@@ -34,7 +34,7 @@
 | Phase | Stories | À faire `[ ]` | En cours `[~]` | Terminé `[x]` | Bloqué `[!]` |
 |---|---|---|---|---|---|
 | Pré-V0 | 3 | 0 | 0 | 3 | 0 |
-| V0 — I0 Squelette | 3 | 2 | 1 | 0 | 0 |
+| V0 — I0 Squelette | 3 | 1 | 1 | 1 | 0 |
 | V0 — I1 DuckDB | 4 | 4 | 0 | 0 | 0 |
 | V0 — I2 Mosaic | 4 | 4 | 0 | 0 | 0 |
 | V0 — I3 Interactivité | 2 | 2 | 0 | 0 | 0 |
@@ -52,7 +52,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **46** | **42** | **1** | **3** | **0** |
+| **Total** | **46** | **41** | **1** | **4** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -120,7 +120,7 @@ Chaque story porte les champs :
 
 ### 2.1 I0 — Squelette Tauri
 
-### B-010 — [~] Bootstrap projet Tauri 2.x + Vite + TypeScript
+### B-010 — [x] Bootstrap projet Tauri 2.x + Vite + TypeScript
 
 - **Itération** : I0
 - **Livrable** : projet Tauri 2.x qui compile et ouvre une fenêtre vide
@@ -135,7 +135,7 @@ Chaque story porte les champs :
 - **Complexité** : M
 - **Notes** : choisir front Vite + TS (pas de framework lourd avant V1) ; éviter React/Vue tant que pas nécessaire.
 
-### B-011 — [ ] Définir `capabilities/main.json` avec scope FS UNC
+### B-011 — [~] Définir `capabilities/main.json` avec scope FS UNC
 
 - **Itération** : I0
 - **Livrable** : ACL Tauri autorisant la lecture sur un chemin UNC paramétrable
