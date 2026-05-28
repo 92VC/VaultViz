@@ -37,15 +37,32 @@ pub async fn startup_path(app: tauri::AppHandle) -> Option<String> {
         }
     }
 
-    // 3. exemple embarqué dans le bundle (resources Tauri)
-    // Préférence : demo_dept (vraie démo carto cross-filter) puis fallback
-    // effectifs_2026 (smoke test minimaliste).
+    // 3. exemple embarqué dans le bundle (resources Tauri).
+    //
+    // Tauri 2 bundler encode `../examples/foo` en `_up_/examples/foo` dans
+    // le dossier de resources (le `..` ne peut pas vivre tel quel dans le
+    // MSI). On essaie les deux conventions par sécurité.
+    //
+    // Préférence : demo_dept (carto cross-filter) puis effectifs_2026
+    // (smoke minimaliste).
     if let Ok(resource_dir) = app.path().resource_dir() {
-        for candidate in &["demo_dept.vviz", "effectifs_2026.vviz"] {
-            let path = resource_dir.join("examples").join(candidate);
-            if path.exists() {
-                if let Some(s) = path.to_str() {
-                    return Some(s.to_string());
+        let candidates = ["demo_dept.vviz", "effectifs_2026.vviz"];
+        let prefixes: [&[&str]; 3] = [
+            &["_up_", "examples"],
+            &["examples"],
+            &[],
+        ];
+        for candidate in &candidates {
+            for prefix in &prefixes {
+                let mut p = resource_dir.clone();
+                for segment in prefix.iter() {
+                    p.push(segment);
+                }
+                p.push(candidate);
+                if p.exists() {
+                    if let Some(s) = p.to_str() {
+                        return Some(s.to_string());
+                    }
                 }
             }
         }
