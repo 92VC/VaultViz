@@ -1,0 +1,34 @@
+[bench-50mb.sh] compilation example bench_50mb…
+   Compiling vaultviz v0.0.1 (/home/alex/Documents/REPO/VaultViz/src-tauri)
+    Finished `release` profile [optimized] target(s) in 0.56s
+[bench-50mb.sh] === run /usr/bin/time -v ===
+== Bench Parquet 50 Mo (Linux local NVMe, DuckDB embarqué) ==
+Fichier : /home/alex/Documents/REPO/VaultViz/examples/synth_50mb.parquet
+Taille  : 50344955 octets (48 Mo)
+
+[            COUNT(*)] elapsed =    7.868 ms — lignes consommées : 1
+[  GROUP BY code_dept] elapsed =   10.399 ms — lignes consommées : 96
+[        Filter + AGG] elapsed =   10.231 ms — lignes consommées : 96
+	Command being timed: "/home/alex/Documents/REPO/VaultViz/src-tauri/target/release/examples/bench_50mb /home/alex/Documents/REPO/VaultViz/examples/synth_50mb.parquet"
+	User time (seconds): 0.23
+	System time (seconds): 0.03
+	Percent of CPU this job got: 568%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.04
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 50036
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 10938
+	Voluntary context switches: 377
+	Involuntary context switches: 15
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
