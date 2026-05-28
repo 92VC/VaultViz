@@ -1,7 +1,8 @@
 // Types du viz-engine VaultViz.
 //
 // Centralisés ici pour rester indépendants du moteur (Mosaic ou repli
-// Vega-Lite, cf. R-8 / ADR-002).
+// Vega-Lite, cf. R-8 / ADR-002). Les types DSL sont alignés sur
+// `schema/vviz-v1.json` (B-033b).
 
 import type { Table } from "apache-arrow";
 
@@ -14,9 +15,56 @@ export interface VVizSource {
   path: string;
 }
 
-/**
- * Document `.vviz` parsé. La spec sera resserrée en B-033 (DSL VaultViz).
- */
+/** Canal d'encoding (geo, color, x, y, value). */
+export interface EncodingChannel {
+  field?: string;
+  aggregate?: "sum" | "avg" | "count" | "min" | "max" | "none";
+  topology?: string;
+}
+
+/** Type de vue supporté en V0 (cf. schema enum). */
+export type ViewType =
+  | "map_choropleth"
+  | "bar"
+  | "barX"
+  | "barY"
+  | "line"
+  | "area"
+  | "dot"
+  | "table"
+  | "kpi";
+
+/** Spec d'une vue dans `spec.views[]`. */
+export interface ViewSpec {
+  id: string;
+  type: ViewType;
+  source: string;
+  title?: string;
+  filterBy?: string;
+  /**
+   * Encoding ouvert (les composants connaissent leurs canaux). Une vue
+   * `table` y passe `columns: string[]` ; les autres y passent des
+   * EncodingChannel.
+   */
+  encoding?: Record<string, EncodingChannel | string[] | undefined>;
+  options?: Record<string, unknown>;
+}
+
+/** Selection déclarée dans `spec.selections[]`. */
+export interface SelectionSpec {
+  id: string;
+  kind: "single" | "interval" | "crossfilter";
+}
+
+/** Spec complète d'un .vviz. */
+export interface VVizSpec {
+  engine: "mosaic";
+  layout?: "vstack" | "hstack" | "grid";
+  selections?: SelectionSpec[];
+  views: ViewSpec[];
+}
+
+/** Document `.vviz` parsé. */
 export interface VVizDocument {
   $schema?: string;
   vviz: {
@@ -28,7 +76,7 @@ export interface VVizDocument {
     updated?: string;
   };
   data: { sources: VVizSource[] };
-  spec: Record<string, unknown>;
+  spec: VVizSpec;
 }
 
 /**

@@ -30,7 +30,9 @@
     "targets": ["msi"],
     "resources": [
       "../examples/effectifs_2026.vviz",
-      "../examples/sample.parquet"
+      "../examples/sample.parquet",
+      "../examples/demo_dept.vviz",
+      "../examples/demo_dept.parquet"
     ],
     "icon": [
       "icons/32x32.png",

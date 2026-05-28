@@ -41,4 +41,46 @@ describe("bar-chart (B-041)", () => {
     ).not.toThrow();
     expect(c.children.length).toBeGreaterThanOrEqual(1);
   });
+
+  it("accepte yAggregate=sum avec yField", () => {
+    const c = document.createElement("div");
+    const ctx = createRuntime();
+    expect(() =>
+      renderBarChart(c, {
+        source: "effectifs",
+        xField: "code_dept",
+        yField: "value",
+        yAggregate: "sum",
+        ctx,
+      }),
+    ).not.toThrow();
+    expect(c.children.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("throw si yAggregate=sum sans yField", () => {
+    const c = document.createElement("div");
+    const ctx = createRuntime();
+    expect(() =>
+      renderBarChart(c, {
+        source: "effectifs",
+        xField: "code_dept",
+        yAggregate: "sum",
+        ctx,
+      }),
+    ).toThrow(/yField/i);
+  });
+
+  it("throw sur agrégat non supporté", () => {
+    const c = document.createElement("div");
+    const ctx = createRuntime();
+    expect(() =>
+      renderBarChart(c, {
+        source: "x",
+        xField: "k",
+        yField: "v",
+        yAggregate: "median",
+        ctx,
+      }),
+    ).toThrow(/non supporté/i);
+  });
 });
