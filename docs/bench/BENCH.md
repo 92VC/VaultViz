@@ -79,3 +79,62 @@ ls -la target/release/vaultviz \
        target/release/deps/duck_smoke-* \
        target/release/libvaultviz_lib.rlib
 ```
+
+---
+
+## B-023 — Bench Parquet 50 Mo (synthétique Linux NVMe)
+
+**Méthode** : Parquet synthétique généré via
+`docs/scripts/gen-synth-parquet.sh 50` (substitut au CLI `duckdb`
+non installé : passe par un binaire Rust `examples/gen_synth.rs` qui
+utilise le crate `duckdb` bundled). Bench via
+`docs/scripts/bench-50mb.sh` (compile + lance `examples/bench_50mb.rs`
+sous `/usr/bin/time -v` pour RAM peak).
+
+**Cible PRD §9.1 V0** : premier rendu < 3 s sur Parquet 50 Mo.
+
+**Note** : substitut au bench SMB CPAM réel (reporté V1, cf. ci-dessous).
+Le bench Linux NVMe est plus rapide que SMBv3 LAN, mais sert de
+plancher utile et valide qu'aucun goulot algorithmique ne se cache.
+
+### Résultats — run du 2026-05-28 (Fedora 43, x86_64)
+
+| Paramètre | Valeur |
+|---|---|
+| Taille parquet | **48 Mo** (50 344 955 octets, 950 000 lignes, Snappy) |
+| Schéma | id INT64, code_dept INT32, lib_dept VARCHAR, effectif DOUBLE, taux DOUBLE, jour DATE, categorie VARCHAR, hash VARCHAR(md5) |
+| CPU | Fedora 43, multi-cœurs (588 % d'usage observé → ~6 cœurs en parallèle DuckDB) |
+| Storage | NVMe local |
+
+| Query | Temps elapsed | RAM peak (process complet) | Statut vs cible 3 s |
+|---|---|---|---|
+| `SELECT COUNT(*) FROM …`               | **7.9 ms**  | 50 Mo | **vert** large (× 380) |
+| `GROUP BY code_dept` (AVG+COUNT)       | **10.4 ms** | 50 Mo | **vert** large (× 290) |
+| `Filter (jour > …) + AVG GROUP BY`     | **10.2 ms** | 50 Mo | **vert** large (× 290) |
+
+Log brut : `docs/bench/run-50mb-linux-20260528.log`. *(Versionné via
+`git add -f` car le `.gitignore` exclut `*.log`. Refaire un `git add -f`
+à chaque nouveau run de bench.)*
+
+**Observations** :
+- DuckDB push-down + parallélisme SIMD assurent une marge énorme sur la
+  cible PRD ; le goulot ne sera pas le SQL côté serveur mais le transit
+  Arrow IPC (B-080 mesurera 300 Mo).
+- RAM peak du process complet ≈ 50 Mo, soit ~la taille du Parquet
+  scanné — DuckDB ne *charge pas* tout le Parquet en mémoire (lecture
+  streaming par row group), c'est le coût de boot + structures internes.
+- Cible PRD V1 « RAM stable < 400 Mo en idle » très largement tenue.
+
+**Statut Hybride (cf. plan §0.3)** :
+- [x] Mesure temps ouverture → `SELECT COUNT(*)` < 3 s ✓ (sur synthétique, pas SMB réel)
+- [x] Mesure RAM stable < 400 Mo ✓
+- [!] Mesures SMB CPAM réel : reporté V1 (handoff documenté)
+- [x] Comparaison local NVMe documentée ✓
+
+**SMB CPAM réel** : à reproduire en V1 dans le cadre du pilote
+(handoff `docs/handoff/dsi-signing-package.md` à créer en Wave 7). Le
+delta attendu local NVMe → SMBv3 LAN est de l'ordre de 5-20× sur la
+latence d'ouverture, principalement à cause du temps de négociation
+SMB et de la fragmentation des reads par row group. Cible de
+**marge × 100** (10 ms × 100 = 1 s) reste largement dans le budget 3 s.
+
