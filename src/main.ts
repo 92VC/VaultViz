@@ -25,6 +25,12 @@ import {
 } from "./viz-engine/mosaic-runtime";
 import { renderChoropleth } from "./components/map-view";
 import { renderBarChart } from "./components/bar-chart";
+import { renderTable } from "./components/table-view";
+import {
+  fetchDrill,
+  onSelectionValue,
+  type DrillQueryOptions,
+} from "./viz-engine/drill-query";
 
 type VVizErrorPayload = { kind: string; message: string };
 
@@ -302,6 +308,60 @@ async function renderCrossFilterDashboard(
     note.textContent = `Bar chart indisponible : ${msg}`;
     barMount.appendChild(note);
   }
+
+  // --- Drill-down table (B-050, UC-1 complet) ---
+  // Toute la logique de re-query (SQL builder, escaping, subscribe à
+  // la Selection) vit dans `viz-engine/drill-query.ts`. Ici on ne fait
+  // que connecter le `renderTable` à `fetchDrill`.
+  const tableSection = document.createElement("div");
+  tableSection.className = "vv-drill";
+  const tableTitle = document.createElement("h3");
+  tableTitle.className = "vv-h2";
+  tableTitle.textContent = "Drill-down détail (B-050, UC-1)";
+  tableSection.appendChild(tableTitle);
+  const tableMount = document.createElement("div");
+  tableSection.appendChild(tableMount);
+  section.appendChild(tableSection);
+
+  const drillOpts: DrillQueryOptions = {
+    table: "effectifs",
+    field: "code_dept",
+    columns: ["code_dept", "id", "jour", "n"],
+    defaultOrder: "id",
+    limit: 5000,
+  };
+
+  const initial = await fetchDrill(conn, drillOpts, null);
+  if (!initial) {
+    const note = document.createElement("p");
+    note.className = "vv-note";
+    note.textContent = "Table drill-down indisponible (query DuckDB en échec).";
+    tableSection.appendChild(note);
+    return;
+  }
+
+  const tableApi = renderTable(tableMount, initial, {
+    columns: [
+      { field: "code_dept", label: "Dept" },
+      { field: "id", label: "ID", align: "right" },
+      { field: "jour", label: "Jour" },
+      { field: "n", label: "n", align: "right" },
+    ],
+    visibleRows: 15,
+    onSort: (field, dir) => {
+      drillOpts.orderBy = { field, dir };
+      const code = ctx.selections.get("dept_select")?.active?.value;
+      fetchDrill(conn, drillOpts, typeof code === "string" ? code : null).then(
+        (t) => t && tableApi.setData(t),
+      );
+    },
+  });
+
+  onSelectionValue(ctx, "dept_select", (code) => {
+    fetchDrill(conn, drillOpts, code).then(
+      (t) => t && tableApi.setData(t),
+    );
+  });
 }
 
 /**

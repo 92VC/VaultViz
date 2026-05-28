@@ -138,3 +138,36 @@ latence d'ouverture, principalement à cause du temps de négociation
 SMB et de la fragmentation des reads par row group. Cible de
 **marge × 100** (10 ms × 100 = 1 s) reste largement dans le budget 3 s.
 
+---
+
+## B-050 — Drill-down dept → table virtualisée (UC-1 complet)
+
+**Méthode** : ouverture de l'app en `cargo tauri dev` (Linux NVMe,
+ext4, Parquet `examples/synth_50mb.parquet`, 950 000 lignes), clic
+département Hauts-de-Seine (`code_dept = '92'`) sur la carte
+choroplèthe, mesure du délai clic → table peuplée via
+`performance.now()` côté front.
+
+| Mesure                                       | Cible V0   | Cible V1   | Statut                          |
+|----------------------------------------------|------------|------------|---------------------------------|
+| Clic dept → table 5000 lignes peuplée        | < 3 s      | < 1 s      | À mesurer en Wave 8 (B-080)     |
+| 1er render table 5000 lignes (Arrow → DOM)   | < 1 s      | < 500 ms   | À mesurer en Wave 8 (B-080)     |
+| Re-query DuckDB filtré WHERE code_dept = ... | proxy 50 Mo ≈ 10 ms (cf. B-023) | idem | extrapolé vert |
+
+**Notes** :
+
+- Bench Tauri dev non reproductible dans un subagent (besoin GUI
+  WebView2 sur Windows, ou GTK WebKit sur Linux). La mesure réelle
+  sera consignée par le contrôleur lors de Wave 8 (B-080 — bench
+  300 Mo) avec instrumentation `performance.now()` dans
+  `renderCrossFilterDashboard()` (src/main.ts).
+- La virtualisation côté JS rend une fenêtre fixe d'environ 30 lignes
+  indépendamment de `numRows` ; le coût render DOM est borné à O(1)
+  par scroll event, indépendant du dataset → les tests unitaires
+  (`src/__tests__/table-view.test.ts`) le couvrent (10 000 lignes →
+  moins de 50 `<div class="vv-tr">` rendues).
+- Le re-query DuckDB filtré bénéficie du push-down de prédicat sur
+  Parquet (row group pruning par statistiques min/max), donc le drill
+  sera proportionnellement plus rapide que le COUNT global déjà
+  mesuré 7,9 ms.
+

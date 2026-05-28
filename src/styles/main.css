@@ -112,6 +112,82 @@ body {
   min-width: 0;
 }
 
+/* B-050 — table virtualisée */
+.vv-table {
+  background: rgba(127, 127, 127, 0.05);
+  border: 1px solid rgba(127, 127, 127, 0.2);
+  border-radius: 6px;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+}
+
+.vv-table-header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  background: rgba(127, 127, 127, 0.15);
+  font-weight: 600;
+  z-index: 1;
+}
+
+.vv-th {
+  flex: 1 1 0;
+  padding: 0.375rem 0.5rem;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid rgba(127, 127, 127, 0.2);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vv-th:last-child {
+  border-right: 0;
+}
+
+.vv-th:hover {
+  background: rgba(127, 127, 127, 0.12);
+}
+
+.vv-th[data-sort="asc"]::after {
+  content: " ▲";
+  opacity: 0.7;
+}
+
+.vv-th[data-sort="desc"]::after {
+  content: " ▼";
+  opacity: 0.7;
+}
+
+.vv-table-body {
+  position: relative;
+}
+
+.vv-tr {
+  display: flex;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.08);
+}
+
+.vv-td {
+  flex: 1 1 0;
+  padding: 0.25rem 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vv-table-footer {
+  position: sticky;
+  bottom: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  background: rgba(127, 127, 127, 0.08);
+  border-top: 1px solid rgba(127, 127, 127, 0.12);
+}
+
 .vv-choropleth-svg {
   background: rgba(127, 127, 127, 0.05);
   border-radius: 6px;
