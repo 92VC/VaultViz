@@ -14,6 +14,9 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { tableFromIPC } from "apache-arrow";
+import * as vg from "@uwdata/vgplot";
+
+import { VVIZ_ENGINE_VERSION } from "./viz-engine";
 
 type VVizErrorPayload = { kind: string; message: string };
 
@@ -151,6 +154,61 @@ async function bootstrap(): Promise<void> {
 
   // Démo B-022 — best-effort, n'écrase pas le rendu principal.
   await renderQueryDemo(root, DEFAULT_PARQUET);
+
+  // Démo B-030 — plot vgplot statique inline (sans coordinator).
+  renderDemoPlot(root);
+}
+
+/**
+ * B-030 — démo vgplot statique.
+ *
+ * Plot scatter `vg.dot` avec données inline (tableau d'objets). Le
+ * code `Mark.hasOwnData()` (mosaic-plot) court-circuite `prepare()`
+ * et `query()` quand `source` est un Array : aucun coordinator ni
+ * connector requis pour ce cas. C'est la preuve que la chaîne
+ * Mosaic est correctement intégrée dans le bundle Vite.
+ *
+ * Plus tard (B-031), un connector DuckDB natif sera enregistré sur
+ * le coordinator pour que `vg.from("table_name")` push-down ses
+ * requêtes vers Rust.
+ *
+ * Engine version : {@link VVIZ_ENGINE_VERSION}.
+ */
+function renderDemoPlot(root: HTMLElement): void {
+  const section = document.createElement("section");
+  section.className = "vv-vgplot-demo";
+  const heading = document.createElement("h2");
+  heading.className = "vv-h2";
+  heading.textContent = "Démo vgplot statique (B-030)";
+  const note = document.createElement("p");
+  note.className = "vv-note";
+  note.textContent = `engine: ${VVIZ_ENGINE_VERSION}`;
+  section.append(heading, note);
+
+  try {
+    const data = [
+      { x: 1, y: 2 },
+      { x: 2, y: 4 },
+      { x: 3, y: 9 },
+      { x: 4, y: 16 },
+      { x: 5, y: 25 },
+      { x: 6, y: 36 },
+      { x: 7, y: 49 },
+    ];
+    const plot = vg.plot(
+      vg.dot(data, { x: "x", y: "y", r: 6, fill: "steelblue" }),
+      vg.width(400),
+      vg.height(280),
+    );
+    section.appendChild(plot as Node);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const failure = document.createElement("p");
+    failure.className = "vv-note";
+    failure.textContent = `Plot vgplot indisponible : ${message}`;
+    section.appendChild(failure);
+  }
+  root.appendChild(section);
 }
 
 bootstrap();
