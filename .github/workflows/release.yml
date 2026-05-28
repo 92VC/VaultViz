@@ -1,0 +1,97 @@
+name: Release MSI
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build-msi:
+    name: Build MSI release + SBOM
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      - name: Install JS deps
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Install Tauri CLI
+        run: cargo install --locked tauri-cli@^2.0
+
+      - name: Build Tauri MSI release
+        run: cargo tauri build --bundles msi
+
+      - name: Install cargo-audit
+        run: cargo install --locked cargo-audit
+
+      - name: SBOM Rust (cargo-audit)
+        shell: bash
+        run: |
+          cargo audit --json > audit-rust.json || true
+          ls -la audit-rust.json
+
+      - name: SBOM npm (audit)
+        shell: bash
+        run: |
+          npm audit --json > audit-npm.json || true
+          ls -la audit-npm.json
+
+      - name: Compute MSI SHA-256
+        shell: bash
+        run: |
+          for msi in src-tauri/target/release/bundle/msi/*.msi; do
+            sha256sum "$msi" | tee -a msi-sha256.txt
+          done
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vaultviz-msi
+          path: src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: error
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            audit-rust.json
+            audit-npm.json
+            msi-sha256.txt
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            src-tauri/target/release/bundle/msi/*.msi
+            audit-rust.json
+            audit-npm.json
+            msi-sha256.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') }}
