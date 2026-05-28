@@ -33,7 +33,7 @@
 
 | Phase | Stories | À faire `[ ]` | En cours `[~]` | Terminé `[x]` | Bloqué `[!]` |
 |---|---|---|---|---|---|
-| Pré-V0 | 3 | 2 | 1 | 0 | 0 |
+| Pré-V0 | 3 | 2 | 0 | 1 | 0 |
 | V0 — I0 Squelette | 3 | 3 | 0 | 0 | 0 |
 | V0 — I1 DuckDB | 4 | 4 | 0 | 0 | 0 |
 | V0 — I2 Mosaic | 4 | 4 | 0 | 0 | 0 |
@@ -52,7 +52,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **46** | **45** | **1** | **0** | **0** |
+| **Total** | **46** | **45** | **0** | **1** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -72,7 +72,7 @@ Chaque story porte les champs :
 
 ## 1. Pré-V0 — Préparation du repo
 
-### B-000 — [~] Initialiser le repo Git + structure de dossiers
+### B-000 — [x] Initialiser le repo Git + structure de dossiers
 
 - **Itération** : Pré-V0
 - **Livrable** : repo Git initial sur GitHub privé organisation CPAM avec arborescence §B du PRD
