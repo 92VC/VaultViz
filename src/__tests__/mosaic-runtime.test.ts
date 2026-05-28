@@ -11,6 +11,7 @@ import { isSelection } from "@uwdata/mosaic-core";
 
 import {
   bindMapSelection,
+  compileToMosaic,
   createRuntime,
   ensureClauseSource,
   ensureParam,
@@ -147,5 +148,71 @@ describe("mosaic-runtime — bindMapSelection (B-040)", () => {
     p75!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     const sel = ctx.selections.get("dept_select")!;
     expect(sel.clauses.length).toBe(0);
+  });
+});
+
+describe("compileToMosaic (B-041 DSL .vviz → plan de rendu)", () => {
+  const docCrossFilter = {
+    spec: {
+      layout: "hstack" as const,
+      selections: [{ id: "dept_select", kind: "single" as const }],
+      views: [
+        {
+          id: "map_dept",
+          type: "map_choropleth",
+          source: "effectifs",
+          options: { selectionTarget: "dept_select" },
+        },
+        {
+          id: "bar_dept",
+          type: "barY",
+          source: "effectifs",
+          filterBy: "dept_select",
+          encoding: { x: { field: "code_dept" } },
+        },
+      ],
+    },
+  };
+
+  it("enregistre les Selection nommées dans le runtime", () => {
+    const compiled = compileToMosaic(docCrossFilter);
+    expect(compiled.ctx.selections.has("dept_select")).toBe(true);
+  });
+
+  it("propage `filterBy` du DSL en `filterSelectionName`", () => {
+    const compiled = compileToMosaic(docCrossFilter);
+    const bar = compiled.views.find((v) => v.id === "bar_dept");
+    expect(bar?.filterSelectionName).toBe("dept_select");
+  });
+
+  it("expose la cible d'émission de la carte via `emitsTo`", () => {
+    const compiled = compileToMosaic(docCrossFilter);
+    const map = compiled.views.find((v) => v.id === "map_dept");
+    expect(map?.emitsTo).toBe("dept_select");
+  });
+
+  it("préserve l'ordre et le layout du DSL", () => {
+    const compiled = compileToMosaic(docCrossFilter);
+    expect(compiled.layout).toBe("hstack");
+    expect(compiled.views.map((v) => v.id)).toEqual([
+      "map_dept",
+      "bar_dept",
+    ]);
+  });
+
+  it("auto-crée une Selection référencée par filterBy même si absente de selections[]", () => {
+    const compiled = compileToMosaic({
+      spec: {
+        views: [
+          {
+            id: "v1",
+            type: "barY",
+            source: "s",
+            filterBy: "implicit_sel",
+          },
+        ],
+      },
+    });
+    expect(compiled.ctx.selections.has("implicit_sel")).toBe(true);
   });
 });

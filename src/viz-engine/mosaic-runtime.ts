@@ -198,3 +198,105 @@ function clearMapStroke(svg: SVGSVGElement): void {
     p.style.stroke = "#fff";
   }
 }
+
+// ---------------------------------------------------------------------------
+// Compileur DSL .vviz → plan de rendu Mosaic (B-041)
+// ---------------------------------------------------------------------------
+
+/**
+ * Vue compilée — l'élément DOM est créé mais non encore monté ; chaque
+ * vue référence le nom de Selection à utiliser (le runtime garantit
+ * que ces Selection existent au moment du compile).
+ */
+export interface CompiledView {
+  id: string;
+  type: string;
+  source: string;
+  title?: string;
+  encoding?: Record<string, unknown>;
+  options?: Record<string, unknown>;
+  filterSelectionName?: string;
+  /** Vrai si la vue *émet* des clauses (cas du map_choropleth). */
+  emitsTo?: string;
+}
+
+export interface CompiledDoc {
+  ctx: RuntimeContext;
+  layout: "vstack" | "hstack" | "grid";
+  views: CompiledView[];
+}
+
+/**
+ * Compile un document `.vviz` validé (cf. JSON Schema B-033b /
+ * validateur B-061) en plan de rendu Mosaic. Le compileur ne fait
+ * **aucun** rendu DOM — il enregistre les Selection nommées du DSL
+ * dans le runtime, et retourne une liste de `CompiledView` que les
+ * composants (`renderChoropleth`, `renderBarChart`, `renderTable`)
+ * pourront monter eux-mêmes.
+ *
+ * Confiner la traduction DSL → composants dans `viz-engine/` est
+ * essentiel au critère No-Go H4 (PRD §12.1) — le code applicatif ne
+ * voit qu'une liste de plans déjà résolus.
+ *
+ * Mapping DSL :
+ * - `selections[].id` + `kind` → `ensureSelection(ctx, id, kind)`.
+ * - View `type: "map_choropleth"` + `options.selectionTarget` →
+ *   `emitsTo: <selectionName>` (le binder sera attaché côté composant).
+ * - View `filterBy: <selId>` → `filterSelectionName: <selId>`.
+ */
+export function compileToMosaic(doc: {
+  spec: {
+    layout?: string;
+    selections?: Array<{ id: string; kind: SelectionKind }>;
+    views: Array<{
+      id: string;
+      type: string;
+      source: string;
+      title?: string;
+      encoding?: Record<string, unknown>;
+      options?: Record<string, unknown>;
+      filterBy?: string;
+    }>;
+  };
+}): CompiledDoc {
+  const ctx = createRuntime();
+  const layout = (doc.spec.layout ?? "vstack") as
+    | "vstack"
+    | "hstack"
+    | "grid";
+
+  // 1. Pré-enregistrer toutes les Selection déclarées dans le DSL.
+  for (const s of doc.spec.selections ?? []) {
+    ensureSelection(ctx, s.id, s.kind);
+  }
+
+  // 2. Compiler chaque view.
+  const views: CompiledView[] = [];
+  for (const v of doc.spec.views) {
+    const compiled: CompiledView = {
+      id: v.id,
+      type: v.type,
+      source: v.source,
+      title: v.title,
+      encoding: v.encoding,
+      options: v.options,
+    };
+    if (v.filterBy) {
+      // S'assurer que la Selection référencée existe.
+      ensureSelection(ctx, v.filterBy, "single");
+      compiled.filterSelectionName = v.filterBy;
+    }
+    // map_choropleth : la cible d'émission se déclare via
+    // options.selectionTarget (extension VaultViz).
+    const selTarget = (v.options as Record<string, unknown> | undefined)?.[
+      "selectionTarget"
+    ];
+    if (typeof selTarget === "string") {
+      ensureSelection(ctx, selTarget, "single");
+      compiled.emitsTo = selTarget;
+    }
+    views.push(compiled);
+  }
+
+  return { ctx, layout, views };
+}

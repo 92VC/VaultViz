@@ -20,8 +20,11 @@ import { VVIZ_ENGINE_VERSION, initMosaicRuntime } from "./viz-engine";
 import { createDuckConnector } from "./viz-engine/duck-connector";
 import {
   bindMapSelection,
+  compileToMosaic,
   createRuntime,
   ensureSelection,
+  type CompiledView,
+  type RuntimeContext,
 } from "./viz-engine/mosaic-runtime";
 import { renderChoropleth } from "./components/map-view";
 import { renderBarChart } from "./components/bar-chart";
@@ -186,28 +189,36 @@ async function bootstrap(): Promise<void> {
   // Démo B-032 — carte choroplèthe France (UC-1 partiel).
   await renderDemoChoropleth(root, DEFAULT_PARQUET);
 
-  // Démo B-041 — cross-filter UC-3 : carte + barres coordonnées via une
-  // seule `vg.Selection` partagée par le runtime. Aucun JS de filtrage
-  // métier ici, uniquement du câblage (createRuntime + renderXxx).
-  await renderCrossFilterDashboard(root, DEFAULT_PARQUET);
+  // Démo B-041 / B-050 — cross-filter UC-3 + drill UC-1 piloté par
+  // une spec `.vviz` déclarative (`examples/cross_filter_demo.vviz`).
+  // `main.ts` ne fait que (1) lire le fichier, (2) compiler via le
+  // runtime, (3) mounter chaque vue compilée. Toute la logique
+  // Selection/predicate vit dans `viz-engine/`.
+  await renderDashboardFromVviz(root, DEFAULT_PARQUET);
 }
 
+const DEFAULT_DASHBOARD_VVIZ =
+  (import.meta.env.VITE_DASHBOARD_VVIZ as string | undefined) ??
+  "./examples/cross_filter_demo.vviz";
+
 /**
- * B-041 — Dashboard cross-filter UC-3 (carte ↔ barres).
+ * B-041 + B-050 — Dashboard piloté par un `.vviz` (spec déclarative).
  *
- * Câble une `vg.Selection` partagée entre la carte choroplèthe (émetteur
- * de clauses point au clic, cf. B-040) et un bar chart vgplot
- * (récepteur via `filterBy`). Au clic d'un département : le predicate
- * push-down est généré par mosaic-sql, le coordinator re-query DuckDB
- * via notre connector (B-031), le bar chart se ré-affiche.
+ * Pipeline :
+ * 1. lit le `.vviz` via `read_vviz` (B-012)
+ * 2. compile via `compileToMosaic()` (B-041) — résout les Selection et
+ *    transforme les views DSL en plans Mosaic
+ * 3. prépare la vue DuckDB `effectifs` qui matérialise la source
+ * 4. itère sur `compiled.views` et mount le composant correspondant à
+ *    chaque type (`map_choropleth`, `barY`, `table`) — aucun code de
+ *    filtrage métier ici, juste du dispatch par type.
  *
- * Aucune logique de filtrage métier dans ce fichier — uniquement du
- * câblage haut-niveau (création runtime, registration de la vue
- * DuckDB, render des deux composants). Critère No-Go H4 (PRD §12.1) :
- * vérifiable par `grep -nE "if.*selection|\\.filter\\(" src/main.ts`
- * → aucune occurrence métier (filtrages côté JS).
+ * Critère No-Go H4 (PRD §12.1) : le seul `if` métier ci-dessous est le
+ * dispatch par `view.type` — ce n'est pas du filtrage de données, c'est
+ * de la résolution polymorphique de composant. `grep -nE "\.filter\(|
+ * if.*selection|forEach.*sel" src/main.ts` reste à 0.
  */
-async function renderCrossFilterDashboard(
+async function renderDashboardFromVviz(
   root: HTMLElement,
   parquetPath: string,
 ): Promise<void> {
@@ -215,28 +226,46 @@ async function renderCrossFilterDashboard(
   section.className = "vv-vgplot-demo vv-dashboard";
   const h = document.createElement("h2");
   h.className = "vv-h2";
-  h.textContent = "Dashboard cross-filter UC-3 — carte ↔ barres (B-041)";
+  h.textContent = "Dashboard .vviz — cross-filter + drill (B-041/B-050)";
   section.appendChild(h);
   const sub = document.createElement("p");
   sub.className = "vv-note";
-  sub.textContent =
-    "Clic département = filtre push-down vgplot → DuckDB. Re-clic = clear. Selection partagée via runtime Mosaic.";
+  sub.textContent = `Spec : ${DEFAULT_DASHBOARD_VVIZ}`;
   section.appendChild(sub);
-  const row = document.createElement("div");
-  row.className = "vv-hflex";
-  section.appendChild(row);
   root.appendChild(section);
 
-  // Préparer la vue DuckDB référencée par vg.from("effectifs").
-  // Best-effort : si pas de Tauri en dev navigateur pur, on rend la
-  // démo avec une note de fallback.
+  // 1. Lire le .vviz.
+  let doc: Parameters<typeof compileToMosaic>[0];
+  try {
+    const raw = await invoke<string>("read_vviz", {
+      path: DEFAULT_DASHBOARD_VVIZ,
+    });
+    doc = JSON.parse(raw);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const note = document.createElement("p");
+    note.className = "vv-note";
+    note.textContent = `Dashboard indisponible (lecture .vviz en échec) : ${msg}`;
+    section.appendChild(note);
+    return;
+  }
+
+  // 2. Compiler.
+  const compiled = compileToMosaic(doc);
+
+  // 3. Préparer la vue DuckDB de la source (sample.parquet : id/label/value
+  //    + code_dept synthétique). En production, ce mapping viendra du
+  //    DSL — `data.sources[].path` + projection automatique des colonnes
+  //    référencées par les `views[].encoding`. Hors scope V0.
   const conn = createDuckConnector();
   try {
     await conn.query({
       type: "exec",
       sql: `
         CREATE OR REPLACE VIEW effectifs AS
-        SELECT *,
+        SELECT id,
+               label,
+               value,
                LPAD(CAST(((id % 96) + 1) AS VARCHAR), 2, '0') AS code_dept
         FROM read_parquet('${parquetPath}')
       `,
@@ -245,29 +274,154 @@ async function renderCrossFilterDashboard(
     const msg = err instanceof Error ? err.message : String(err);
     const note = document.createElement("p");
     note.className = "vv-note";
-    note.textContent = `Dashboard cross-filter indisponible (Tauri requis) : ${msg}`;
+    note.textContent = `Dashboard indisponible (CREATE VIEW DuckDB) : ${msg}`;
     section.appendChild(note);
     return;
   }
 
-  // Runtime partagé entre la carte et les barres.
-  const ctx = createRuntime();
-  ensureSelection(ctx, "dept_select", "single");
+  // 4. Layout container — flex pour hstack, block pour vstack.
+  const layout = document.createElement("div");
+  layout.className =
+    compiled.layout === "hstack" ? "vv-hflex" : "vv-vstack";
+  section.appendChild(layout);
 
-  // --- Carte (émetteur de clauses) ---
-  const mapMount = document.createElement("div");
-  mapMount.className = "vv-mapmount";
-  row.appendChild(mapMount);
+  // 5. Précharger la métrique par dept pour la carte (1 query global).
+  const dataByDept = await fetchDataByDept(conn, "effectifs", "code_dept");
 
-  const dataByDept = new Map<string, number>();
+  // 6. Mounter chaque vue compilée.
+  for (const view of compiled.views) {
+    const mount = document.createElement("div");
+    mount.dataset.viewId = view.id;
+    mount.className = `vv-view vv-view-${view.type}`;
+    if (view.title) {
+      const t = document.createElement("h3");
+      t.className = "vv-h2";
+      t.textContent = view.title;
+      mount.appendChild(t);
+    }
+    layout.appendChild(mount);
+    try {
+      await mountView(view, mount, compiled.ctx, conn, dataByDept);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const note = document.createElement("p");
+      note.className = "vv-note";
+      note.textContent = `Vue "${view.id}" (${view.type}) indisponible : ${msg}`;
+      mount.appendChild(note);
+    }
+  }
+}
+
+/**
+ * Dispatch d'une vue compilée → composant adapté. Le seul `switch` du
+ * fichier — équivalent à `Visitor` côté pattern. Aucune logique de
+ * filtrage de données : tout passe par les Selection.
+ */
+async function mountView(
+  view: CompiledView,
+  mount: HTMLElement,
+  ctx: RuntimeContext,
+  conn: ReturnType<typeof createDuckConnector>,
+  dataByDept: Map<string, number>,
+): Promise<void> {
+  const opts = (view.options ?? {}) as Record<string, unknown>;
+  const w = typeof opts.width === "number" ? opts.width : undefined;
+  const ht = typeof opts.height === "number" ? opts.height : undefined;
+
+  if (view.type === "map_choropleth") {
+    const mapMount = document.createElement("div");
+    mount.appendChild(mapMount);
+    const svg = renderChoropleth(mapMount, dataByDept, {
+      width: w ?? 480,
+      height: ht ?? 480,
+    });
+    if (view.emitsTo) {
+      bindMapSelection(svg, ctx, {
+        field: "code_dept",
+        selectionName: view.emitsTo,
+      });
+    }
+    return;
+  }
+
+  if (view.type === "barY" || view.type === "barX" || view.type === "bar") {
+    const enc = (view.encoding ?? {}) as Record<string, unknown>;
+    const xEnc = (enc.x ?? {}) as { field?: string };
+    const xField = xEnc.field ?? "code_dept";
+    renderBarChart(mount, {
+      source: view.source,
+      xField,
+      filterSelectionName: view.filterSelectionName,
+      ctx,
+      width: w,
+      height: ht,
+      fill: typeof opts.fill === "string" ? (opts.fill as string) : undefined,
+    });
+    return;
+  }
+
+  if (view.type === "table") {
+    const enc = (view.encoding ?? {}) as { columns?: string[] };
+    const columns = Array.isArray(enc.columns)
+      ? enc.columns
+      : ["code_dept", "id", "label", "value"];
+    const drillOpts: DrillQueryOptions = {
+      table: view.source,
+      field: "code_dept",
+      columns,
+      defaultOrder:
+        typeof opts.defaultOrder === "string"
+          ? (opts.defaultOrder as string)
+          : "id",
+      limit: typeof opts.limit === "number" ? opts.limit : 5000,
+    };
+    const initial = await fetchDrill(conn, drillOpts, null);
+    if (!initial) {
+      throw new Error("requête initiale en échec");
+    }
+    const tableApi = renderTable(mount, initial, {
+      columns: columns.map((field) => ({ field })),
+      visibleRows:
+        typeof opts.visibleRows === "number" ? opts.visibleRows : 15,
+      onSort: (field, dir) => {
+        drillOpts.orderBy = { field, dir };
+        const sel = view.filterSelectionName
+          ? ctx.selections.get(view.filterSelectionName)
+          : undefined;
+        const code = sel?.active?.value;
+        fetchDrill(
+          conn,
+          drillOpts,
+          typeof code === "string" ? code : null,
+        ).then((t) => t && tableApi.setData(t));
+      },
+    });
+    if (view.filterSelectionName) {
+      onSelectionValue(ctx, view.filterSelectionName, (code) => {
+        fetchDrill(conn, drillOpts, code).then(
+          (t) => t && tableApi.setData(t),
+        );
+      });
+    }
+    return;
+  }
+
+  const note = document.createElement("p");
+  note.className = "vv-note";
+  note.textContent = `Type de vue non supporté en V0 : ${view.type}`;
+  mount.appendChild(note);
+}
+
+async function fetchDataByDept(
+  conn: ReturnType<typeof createDuckConnector>,
+  table: string,
+  field: string,
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
   try {
     const t = (await conn.query({
       type: "arrow",
-      sql: `
-        SELECT code_dept AS code, COUNT(*) AS n
-        FROM effectifs
-        GROUP BY code_dept
-      `,
+      sql: `SELECT "${field}" AS code, COUNT(*) AS n FROM "${table}" GROUP BY "${field}"`,
     })) as {
       numRows: number;
       get: (i: number) => { code: string; n: bigint | number } | null;
@@ -276,93 +430,15 @@ async function renderCrossFilterDashboard(
       for (let i = 0; i < t.numRows; i++) {
         const r = t.get(i);
         if (!r) continue;
-        dataByDept.set(String(r.code), Number(r.n));
+        out.set(String(r.code), Number(r.n));
       }
     }
   } catch {
-    // bench muet — la carte reste affichée à 0
+    // silencieux — la carte rendra à 0
   }
-  const svg = renderChoropleth(mapMount, dataByDept, { width: 480, height: 480 });
-  bindMapSelection(svg, ctx, {
-    field: "code_dept",
-    selectionName: "dept_select",
-  });
-
-  // --- Bar chart (récepteur via filterBy) ---
-  const barMount = document.createElement("div");
-  barMount.className = "vv-barmount";
-  row.appendChild(barMount);
-  try {
-    renderBarChart(barMount, {
-      source: "effectifs",
-      xField: "code_dept",
-      filterSelectionName: "dept_select",
-      ctx,
-      width: 480,
-      height: 320,
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const note = document.createElement("p");
-    note.className = "vv-note";
-    note.textContent = `Bar chart indisponible : ${msg}`;
-    barMount.appendChild(note);
-  }
-
-  // --- Drill-down table (B-050, UC-1 complet) ---
-  // Toute la logique de re-query (SQL builder, escaping, subscribe à
-  // la Selection) vit dans `viz-engine/drill-query.ts`. Ici on ne fait
-  // que connecter le `renderTable` à `fetchDrill`.
-  const tableSection = document.createElement("div");
-  tableSection.className = "vv-drill";
-  const tableTitle = document.createElement("h3");
-  tableTitle.className = "vv-h2";
-  tableTitle.textContent = "Drill-down détail (B-050, UC-1)";
-  tableSection.appendChild(tableTitle);
-  const tableMount = document.createElement("div");
-  tableSection.appendChild(tableMount);
-  section.appendChild(tableSection);
-
-  const drillOpts: DrillQueryOptions = {
-    table: "effectifs",
-    field: "code_dept",
-    columns: ["code_dept", "id", "jour", "n"],
-    defaultOrder: "id",
-    limit: 5000,
-  };
-
-  const initial = await fetchDrill(conn, drillOpts, null);
-  if (!initial) {
-    const note = document.createElement("p");
-    note.className = "vv-note";
-    note.textContent = "Table drill-down indisponible (query DuckDB en échec).";
-    tableSection.appendChild(note);
-    return;
-  }
-
-  const tableApi = renderTable(tableMount, initial, {
-    columns: [
-      { field: "code_dept", label: "Dept" },
-      { field: "id", label: "ID", align: "right" },
-      { field: "jour", label: "Jour" },
-      { field: "n", label: "n", align: "right" },
-    ],
-    visibleRows: 15,
-    onSort: (field, dir) => {
-      drillOpts.orderBy = { field, dir };
-      const code = ctx.selections.get("dept_select")?.active?.value;
-      fetchDrill(conn, drillOpts, typeof code === "string" ? code : null).then(
-        (t) => t && tableApi.setData(t),
-      );
-    },
-  });
-
-  onSelectionValue(ctx, "dept_select", (code) => {
-    fetchDrill(conn, drillOpts, code).then(
-      (t) => t && tableApi.setData(t),
-    );
-  });
+  return out;
 }
+
 
 /**
  * B-032 — démo carte choroplèthe.
