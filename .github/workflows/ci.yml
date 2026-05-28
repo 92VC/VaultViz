@@ -45,7 +45,7 @@ jobs:
             patchelf
 
       - name: Install JS deps
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Run Vitest
         run: npm test
@@ -78,7 +78,7 @@ jobs:
           workspaces: "src-tauri -> target"
 
       - name: Install JS deps
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Install Tauri CLI
         run: cargo install --locked tauri-cli@^2.0

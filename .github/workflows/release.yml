@@ -34,7 +34,7 @@ jobs:
           workspaces: "src-tauri -> target"
 
       - name: Install JS deps
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Build frontend
         run: npm run build
