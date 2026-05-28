@@ -18,6 +18,7 @@ import * as vg from "@uwdata/vgplot";
 
 import { VVIZ_ENGINE_VERSION, initMosaicRuntime } from "./viz-engine";
 import { createDuckConnector } from "./viz-engine/duck-connector";
+import { renderChoropleth } from "./components/map-view";
 
 type VVizErrorPayload = { kind: string; message: string };
 
@@ -169,6 +170,70 @@ async function bootstrap(): Promise<void> {
     console.warn("[VaultViz] init Mosaic runtime impossible :", err);
   }
   await renderConnectorDemo(root, DEFAULT_PARQUET);
+
+  // Démo B-032 — carte choroplèthe France (UC-1 partiel).
+  await renderDemoChoropleth(root, DEFAULT_PARQUET);
+}
+
+/**
+ * B-032 — démo carte choroplèthe.
+ *
+ * Synthétise une métrique « COUNT par département » à partir du Parquet
+ * de fixture (id % 96 → code département), puis rend une SVG D3
+ * coloriée par valeur. Si la query échoue (pas de Tauri / pas de
+ * Parquet), on rend quand même la carte avec valeurs à 0, pour
+ * démontrer le fond cartographique.
+ */
+async function renderDemoChoropleth(
+  root: HTMLElement,
+  parquetPath: string,
+): Promise<void> {
+  const section = document.createElement("section");
+  section.className = "vv-vgplot-demo";
+  const h = document.createElement("h2");
+  h.className = "vv-h2";
+  h.textContent = "Carte choroplèthe France (B-032, UC-1 partiel)";
+  section.appendChild(h);
+  const sub = document.createElement("p");
+  sub.className = "vv-note";
+  sub.textContent =
+    "Fond : IGN ADMIN EXPRESS / Etalab Licence Ouverte 2.0 (V0 simplifié).";
+  section.appendChild(sub);
+  const mapEl = document.createElement("div");
+  mapEl.className = "vv-map";
+  section.appendChild(mapEl);
+  root.appendChild(section);
+
+  const dataByDept = new Map<string, number>();
+  try {
+    const conn = createDuckConnector();
+    const t = (await conn.query({
+      type: "arrow",
+      sql: `
+        SELECT LPAD(CAST(((id % 96) + 1) AS VARCHAR), 2, '0') AS code,
+               COUNT(*) AS n
+        FROM read_parquet('${parquetPath}')
+        GROUP BY 1
+      `,
+    })) as {
+      numRows: number;
+      get: (i: number) => { code: string; n: bigint | number } | null;
+    } | null;
+    if (t && t.numRows) {
+      for (let i = 0; i < t.numRows; i++) {
+        const row = t.get(i);
+        if (!row) continue;
+        dataByDept.set(String(row.code), Number(row.n));
+      }
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const note = document.createElement("p");
+    note.className = "vv-note";
+    note.textContent = `Données indisponibles, rendu fond seul : ${msg}`;
+    section.insertBefore(note, mapEl);
+  }
+  renderChoropleth(mapEl, dataByDept, { width: 600, height: 600 });
 }
 
 /**

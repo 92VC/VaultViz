@@ -94,6 +94,42 @@ body {
   padding: 0.5rem;
 }
 
+.vv-map {
+  margin: 0.5rem 0;
+}
+
+.vv-choropleth-svg {
+  background: rgba(127, 127, 127, 0.05);
+  border-radius: 6px;
+  display: block;
+}
+
+.vv-choropleth-svg path:hover {
+  stroke: #213547;
+  stroke-width: 1.5;
+}
+
+.vv-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.vv-legend-grad {
+  display: inline-block;
+  width: 160px;
+  height: 10px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    hsl(220, 20%, 60%) 0%,
+    hsl(220, 100%, 35%) 100%
+  );
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
