@@ -656,19 +656,19 @@ Approche **vibe coding** : itérations courtes, valeur démontrée à chaque ét
 
 ## 15. Décisions verrouillées (récapitulatif ADRs)
 
-| # | Décision | Source de référence |
-|---|---|---|
-| ADR-001 | DuckDB **natif** via `duckdb-rs` (bundled), pas WASM en V1 | [duckdb-rs](https://crates.io/crates/duckdb), [DuckDB](https://duckdb.org) |
-| ADR-002 | **Mosaic + vgplot** en V1 (push-down DuckDB) ; fine couche d'abstraction `viz-engine` pour repli éventuel | [Mosaic](https://idl.uw.edu/mosaic/), [Mosaic IEEE VIS 2024](https://idl.cs.washington.edu/files/2024-Mosaic-TVCG.pdf) |
-| ADR-003 | Parquet (pivot) + Arrow IPC (transit Rust↔JS) ; JSON banni pour data | [Apache Arrow](https://arrow.apache.org) |
-| ADR-004 | Tauri 2.x ; Electron et Wails v3 (alpha) écartés | [Tauri 2](https://v2.tauri.app), [Wails v3](https://v3.wails.io/whats-new/) |
-| ADR-005 | MSI signable produit par la CI ; signature et déploiement = DSI (hors scope produit) | — |
-| ADR-006 | MSI via `tauri-bundler` ; MSIX en V2 si demandé | [Tauri distribute](https://v2.tauri.app/distribute/) |
-| ADR-007 | UNC `//host/share/...` ; scope FS Tauri explicite | À valider en POC (H1) |
-| ADR-008 | Aucun port ouvert, **aucun appel sortant**, pas de télémétrie, pas d'updater applicatif ; logs locaux ; MAJ via MECM | Principe local-first |
-| ADR-009 | Carto = MapLibre GL JS + TopoJSON IGN ADMIN EXPRESS COG simplifiée | [IGN ADMIN EXPRESS](https://geoservices.ign.fr/adminexpress), [MapLibre](https://maplibre.org/) |
-| ADR-010 | **Windows 11 exclusivement** — pas de build multi-plateforme | — |
-| ADR-011 | **Export PDF A4** comme exigence V1 explicite (UC-4) | — |
+| # | Décision | Fichier | Source de référence |
+|---|---|---|---|
+| ADR-001 | DuckDB **natif** via `duckdb-rs` (bundled), pas WASM en V1 | [ADR-001](docs/adr/ADR-001-duckdb-natif.md) | [duckdb-rs](https://crates.io/crates/duckdb), [DuckDB](https://duckdb.org) |
+| ADR-002 | **Mosaic + vgplot** en V1 (push-down DuckDB) ; fine couche d'abstraction `viz-engine` pour repli éventuel | [ADR-002](docs/adr/ADR-002-mosaic-vgplot.md) | [Mosaic](https://idl.uw.edu/mosaic/), [Mosaic IEEE VIS 2024](https://idl.cs.washington.edu/files/2024-Mosaic-TVCG.pdf) |
+| ADR-003 | Parquet (pivot) + Arrow IPC (transit Rust↔JS) ; JSON banni pour data | [ADR-003](docs/adr/ADR-003-parquet-arrow.md) | [Apache Arrow](https://arrow.apache.org) |
+| ADR-004 | Tauri 2.x ; Electron et Wails v3 (alpha) écartés | [ADR-004](docs/adr/ADR-004-tauri-2.md) | [Tauri 2](https://v2.tauri.app), [Wails v3](https://v3.wails.io/whats-new/) |
+| ADR-005 | MSI signable produit par la CI ; signature et déploiement = DSI (hors scope produit) | [ADR-005](docs/adr/ADR-005-signature-dsi.md) | — |
+| ADR-006 | MSI via `tauri-bundler` ; MSIX en V2 si demandé | [ADR-006](docs/adr/ADR-006-msi-bundler.md) | [Tauri distribute](https://v2.tauri.app/distribute/) |
+| ADR-007 | UNC `//host/share/...` ; scope FS Tauri explicite | [ADR-007](docs/adr/ADR-007-unc-paths.md) | À valider en POC (H1) |
+| ADR-008 | Aucun port ouvert, **aucun appel sortant**, pas de télémétrie, pas d'updater applicatif ; logs locaux ; MAJ via MECM | [ADR-008](docs/adr/ADR-008-no-network.md) | Principe local-first |
+| ADR-009 | Carto = MapLibre GL JS + TopoJSON IGN ADMIN EXPRESS COG simplifiée | [ADR-009](docs/adr/ADR-009-maplibre-ign.md) | [IGN ADMIN EXPRESS](https://geoservices.ign.fr/adminexpress), [MapLibre](https://maplibre.org/) |
+| ADR-010 | **Windows 11 exclusivement** — pas de build multi-plateforme | [ADR-010](docs/adr/ADR-010-windows-11-only.md) | — |
+| ADR-011 | **Export PDF A4** comme exigence V1 explicite (UC-4) | [ADR-011](docs/adr/ADR-011-export-pdf-v1.md) | — |
 
 ### 15.1 RACI des ADRs
 

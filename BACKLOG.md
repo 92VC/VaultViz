@@ -33,7 +33,7 @@
 
 | Phase | Stories | À faire `[ ]` | En cours `[~]` | Terminé `[x]` | Bloqué `[!]` |
 |---|---|---|---|---|---|
-| Pré-V0 | 3 | 1 | 0 | 2 | 0 |
+| Pré-V0 | 3 | 0 | 0 | 3 | 0 |
 | V0 — I0 Squelette | 3 | 3 | 0 | 0 | 0 |
 | V0 — I1 DuckDB | 4 | 4 | 0 | 0 | 0 |
 | V0 — I2 Mosaic | 4 | 4 | 0 | 0 | 0 |
@@ -52,7 +52,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **46** | **44** | **0** | **2** | **0** |
+| **Total** | **46** | **43** | **0** | **3** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -100,7 +100,7 @@ Chaque story porte les champs :
 - **Complexité** : S
 - **Notes** : le PRD vit avec le code, pas séparément (philosophie BI-as-code).
 
-### B-002 — [ ] Convertir chaque ADR du PRD en fichier `docs/adr/`
+### B-002 — [x] Convertir chaque ADR du PRD en fichier `docs/adr/`
 
 - **Itération** : Pré-V0
 - **Livrable** : 11 fichiers `docs/adr/ADR-NNN-titre.md`, un par ADR
