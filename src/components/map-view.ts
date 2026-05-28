@@ -61,7 +61,7 @@ export function renderChoropleth(
   container: HTMLElement,
   dataByDept: Map<string, number>,
   opts: ChoroplethOptions = {},
-): void {
+): SVGSVGElement {
   const width = opts.width ?? 600;
   const height = opts.height ?? 600;
   const emptyColor = opts.emptyColor ?? "#eee";
@@ -120,6 +120,7 @@ export function renderChoropleth(
   `;
 
   container.replaceChildren(svg, legend);
+  return svg;
 }
 
 /**

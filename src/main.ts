@@ -18,6 +18,11 @@ import * as vg from "@uwdata/vgplot";
 
 import { VVIZ_ENGINE_VERSION, initMosaicRuntime } from "./viz-engine";
 import { createDuckConnector } from "./viz-engine/duck-connector";
+import {
+  bindMapSelection,
+  createRuntime,
+  ensureSelection,
+} from "./viz-engine/mosaic-runtime";
 import { renderChoropleth } from "./components/map-view";
 
 type VVizErrorPayload = { kind: string; message: string };
@@ -233,7 +238,17 @@ async function renderDemoChoropleth(
     note.textContent = `Données indisponibles, rendu fond seul : ${msg}`;
     section.insertBefore(note, mapEl);
   }
-  renderChoropleth(mapEl, dataByDept, { width: 600, height: 600 });
+  const svg = renderChoropleth(mapEl, dataByDept, { width: 600, height: 600 });
+
+  // B-040 — binding Selection sur la carte (clic dept = clause point).
+  // Tout le JS de filtrage vit dans viz-engine/mosaic-runtime.ts ; ici
+  // on ne fait que câbler.
+  const ctx = createRuntime();
+  ensureSelection(ctx, "dept_select", "single");
+  bindMapSelection(svg, ctx, {
+    field: "code_dept",
+    selectionName: "dept_select",
+  });
 }
 
 /**
