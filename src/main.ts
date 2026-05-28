@@ -35,9 +35,9 @@ import {
   type DrillQueryOptions,
 } from "./viz-engine/drill-query";
 import {
-  fromVVizError,
   renderErrorBanner,
 } from "./components/error-banner";
+import { loadVViz } from "./viz-engine/spec-loader";
 
 type VVizErrorPayload = { kind: string; message: string };
 
@@ -147,16 +147,17 @@ async function bootstrap(): Promise<void> {
   const root = document.getElementById("app");
   if (!root) return;
 
-  try {
-    const content = await invoke<string>("read_vviz", { path: DEFAULT_VVIZ });
-    renderContent(root, DEFAULT_VVIZ, content);
-  } catch (err: unknown) {
-    renderErrorBanner(root, fromVVizError(err, DEFAULT_VVIZ), {
+  // B-061 — pipeline unifié : read + JSON.parse + Ajv. Toute erreur peint
+  // le bandeau (B-060) avec son kind exact et la liste des violations.
+  const { doc: mainDoc, error: mainErr } = await loadVViz(DEFAULT_VVIZ);
+  if (mainErr) {
+    renderErrorBanner(root, mainErr, {
       onRetry: () => bootstrap(),
       helpHref: HELP_HREF,
     });
     return;
   }
+  renderContent(root, DEFAULT_VVIZ, JSON.stringify(mainDoc, null, 2));
 
   // Démo B-022 — best-effort, n'écrase pas le rendu principal.
   await renderQueryDemo(root, DEFAULT_PARQUET);
@@ -223,21 +224,28 @@ async function renderDashboardFromVviz(
   section.appendChild(sub);
   root.appendChild(section);
 
-  // 1. Lire le .vviz.
-  let doc: Parameters<typeof compileToMosaic>[0];
-  try {
-    const raw = await invoke<string>("read_vviz", {
-      path: DEFAULT_DASHBOARD_VVIZ,
-    });
-    doc = JSON.parse(raw);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const note = document.createElement("p");
-    note.className = "vv-note";
-    note.textContent = `Dashboard indisponible (lecture .vviz en échec) : ${msg}`;
-    section.appendChild(note);
+  // 1. Lire + valider le .vviz via le pipeline B-061. En cas d'erreur,
+  //    on peint le bandeau typé dans la section (et non dans `root`) pour
+  //    ne pas écraser le rendu principal — la démo dashboard reste un
+  //    best-effort.
+  const { doc: loaded, error: loadErr } = await loadVViz(
+    DEFAULT_DASHBOARD_VVIZ,
+  );
+  if (loadErr || !loaded) {
+    const errMount = document.createElement("div");
+    section.appendChild(errMount);
+    renderErrorBanner(
+      errMount,
+      loadErr ?? {
+        kind: "Io",
+        path: DEFAULT_DASHBOARD_VVIZ,
+        message: "doc indisponible",
+      },
+      { helpHref: HELP_HREF },
+    );
     return;
   }
+  const doc = loaded as unknown as Parameters<typeof compileToMosaic>[0];
 
   // 2. Compiler.
   const compiled = compileToMosaic(doc);
