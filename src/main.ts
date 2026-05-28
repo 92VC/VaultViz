@@ -18,7 +18,22 @@ import * as vg from "@uwdata/vgplot";
 
 import { VVIZ_ENGINE_VERSION, initMosaicRuntime } from "./viz-engine";
 import { createDuckConnector } from "./viz-engine/duck-connector";
+import {
+  bindMapSelection,
+  compileToMosaic,
+  createRuntime,
+  ensureSelection,
+  type CompiledView,
+  type RuntimeContext,
+} from "./viz-engine/mosaic-runtime";
 import { renderChoropleth } from "./components/map-view";
+import { renderBarChart } from "./components/bar-chart";
+import { renderTable } from "./components/table-view";
+import {
+  fetchDrill,
+  onSelectionValue,
+  type DrillQueryOptions,
+} from "./viz-engine/drill-query";
 
 type VVizErrorPayload = { kind: string; message: string };
 
@@ -173,7 +188,257 @@ async function bootstrap(): Promise<void> {
 
   // Démo B-032 — carte choroplèthe France (UC-1 partiel).
   await renderDemoChoropleth(root, DEFAULT_PARQUET);
+
+  // Démo B-041 / B-050 — cross-filter UC-3 + drill UC-1 piloté par
+  // une spec `.vviz` déclarative (`examples/cross_filter_demo.vviz`).
+  // `main.ts` ne fait que (1) lire le fichier, (2) compiler via le
+  // runtime, (3) mounter chaque vue compilée. Toute la logique
+  // Selection/predicate vit dans `viz-engine/`.
+  await renderDashboardFromVviz(root, DEFAULT_PARQUET);
 }
+
+const DEFAULT_DASHBOARD_VVIZ =
+  (import.meta.env.VITE_DASHBOARD_VVIZ as string | undefined) ??
+  "./examples/cross_filter_demo.vviz";
+
+/**
+ * B-041 + B-050 — Dashboard piloté par un `.vviz` (spec déclarative).
+ *
+ * Pipeline :
+ * 1. lit le `.vviz` via `read_vviz` (B-012)
+ * 2. compile via `compileToMosaic()` (B-041) — résout les Selection et
+ *    transforme les views DSL en plans Mosaic
+ * 3. prépare la vue DuckDB `effectifs` qui matérialise la source
+ * 4. itère sur `compiled.views` et mount le composant correspondant à
+ *    chaque type (`map_choropleth`, `barY`, `table`) — aucun code de
+ *    filtrage métier ici, juste du dispatch par type.
+ *
+ * Critère No-Go H4 (PRD §12.1) : le seul `if` métier ci-dessous est le
+ * dispatch par `view.type` — ce n'est pas du filtrage de données, c'est
+ * de la résolution polymorphique de composant. `grep -nE "\.filter\(|
+ * if.*selection|forEach.*sel" src/main.ts` reste à 0.
+ */
+async function renderDashboardFromVviz(
+  root: HTMLElement,
+  parquetPath: string,
+): Promise<void> {
+  const section = document.createElement("section");
+  section.className = "vv-vgplot-demo vv-dashboard";
+  const h = document.createElement("h2");
+  h.className = "vv-h2";
+  h.textContent = "Dashboard .vviz — cross-filter + drill (B-041/B-050)";
+  section.appendChild(h);
+  const sub = document.createElement("p");
+  sub.className = "vv-note";
+  sub.textContent = `Spec : ${DEFAULT_DASHBOARD_VVIZ}`;
+  section.appendChild(sub);
+  root.appendChild(section);
+
+  // 1. Lire le .vviz.
+  let doc: Parameters<typeof compileToMosaic>[0];
+  try {
+    const raw = await invoke<string>("read_vviz", {
+      path: DEFAULT_DASHBOARD_VVIZ,
+    });
+    doc = JSON.parse(raw);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const note = document.createElement("p");
+    note.className = "vv-note";
+    note.textContent = `Dashboard indisponible (lecture .vviz en échec) : ${msg}`;
+    section.appendChild(note);
+    return;
+  }
+
+  // 2. Compiler.
+  const compiled = compileToMosaic(doc);
+
+  // 3. Préparer la vue DuckDB de la source (sample.parquet : id/label/value
+  //    + code_dept synthétique). En production, ce mapping viendra du
+  //    DSL — `data.sources[].path` + projection automatique des colonnes
+  //    référencées par les `views[].encoding`. Hors scope V0.
+  const conn = createDuckConnector();
+  try {
+    await conn.query({
+      type: "exec",
+      sql: `
+        CREATE OR REPLACE VIEW effectifs AS
+        SELECT id,
+               label,
+               value,
+               LPAD(CAST(((id % 96) + 1) AS VARCHAR), 2, '0') AS code_dept
+        FROM read_parquet('${parquetPath}')
+      `,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const note = document.createElement("p");
+    note.className = "vv-note";
+    note.textContent = `Dashboard indisponible (CREATE VIEW DuckDB) : ${msg}`;
+    section.appendChild(note);
+    return;
+  }
+
+  // 4. Layout container — flex pour hstack, block pour vstack.
+  const layout = document.createElement("div");
+  layout.className =
+    compiled.layout === "hstack" ? "vv-hflex" : "vv-vstack";
+  section.appendChild(layout);
+
+  // 5. Précharger la métrique par dept pour la carte (1 query global).
+  const dataByDept = await fetchDataByDept(conn, "effectifs", "code_dept");
+
+  // 6. Mounter chaque vue compilée.
+  for (const view of compiled.views) {
+    const mount = document.createElement("div");
+    mount.dataset.viewId = view.id;
+    mount.className = `vv-view vv-view-${view.type}`;
+    if (view.title) {
+      const t = document.createElement("h3");
+      t.className = "vv-h2";
+      t.textContent = view.title;
+      mount.appendChild(t);
+    }
+    layout.appendChild(mount);
+    try {
+      await mountView(view, mount, compiled.ctx, conn, dataByDept);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const note = document.createElement("p");
+      note.className = "vv-note";
+      note.textContent = `Vue "${view.id}" (${view.type}) indisponible : ${msg}`;
+      mount.appendChild(note);
+    }
+  }
+}
+
+/**
+ * Dispatch d'une vue compilée → composant adapté. Le seul `switch` du
+ * fichier — équivalent à `Visitor` côté pattern. Aucune logique de
+ * filtrage de données : tout passe par les Selection.
+ */
+async function mountView(
+  view: CompiledView,
+  mount: HTMLElement,
+  ctx: RuntimeContext,
+  conn: ReturnType<typeof createDuckConnector>,
+  dataByDept: Map<string, number>,
+): Promise<void> {
+  const opts = (view.options ?? {}) as Record<string, unknown>;
+  const w = typeof opts.width === "number" ? opts.width : undefined;
+  const ht = typeof opts.height === "number" ? opts.height : undefined;
+
+  if (view.type === "map_choropleth") {
+    const mapMount = document.createElement("div");
+    mount.appendChild(mapMount);
+    const svg = renderChoropleth(mapMount, dataByDept, {
+      width: w ?? 480,
+      height: ht ?? 480,
+    });
+    if (view.emitsTo) {
+      bindMapSelection(svg, ctx, {
+        field: "code_dept",
+        selectionName: view.emitsTo,
+      });
+    }
+    return;
+  }
+
+  if (view.type === "barY" || view.type === "barX" || view.type === "bar") {
+    const enc = (view.encoding ?? {}) as Record<string, unknown>;
+    const xEnc = (enc.x ?? {}) as { field?: string };
+    const xField = xEnc.field ?? "code_dept";
+    renderBarChart(mount, {
+      source: view.source,
+      xField,
+      filterSelectionName: view.filterSelectionName,
+      ctx,
+      width: w,
+      height: ht,
+      fill: typeof opts.fill === "string" ? (opts.fill as string) : undefined,
+    });
+    return;
+  }
+
+  if (view.type === "table") {
+    const enc = (view.encoding ?? {}) as { columns?: string[] };
+    const columns = Array.isArray(enc.columns)
+      ? enc.columns
+      : ["code_dept", "id", "label", "value"];
+    const drillOpts: DrillQueryOptions = {
+      table: view.source,
+      field: "code_dept",
+      columns,
+      defaultOrder:
+        typeof opts.defaultOrder === "string"
+          ? (opts.defaultOrder as string)
+          : "id",
+      limit: typeof opts.limit === "number" ? opts.limit : 5000,
+    };
+    const initial = await fetchDrill(conn, drillOpts, null);
+    if (!initial) {
+      throw new Error("requête initiale en échec");
+    }
+    const tableApi = renderTable(mount, initial, {
+      columns: columns.map((field) => ({ field })),
+      visibleRows:
+        typeof opts.visibleRows === "number" ? opts.visibleRows : 15,
+      onSort: (field, dir) => {
+        drillOpts.orderBy = { field, dir };
+        const sel = view.filterSelectionName
+          ? ctx.selections.get(view.filterSelectionName)
+          : undefined;
+        const code = sel?.active?.value;
+        fetchDrill(
+          conn,
+          drillOpts,
+          typeof code === "string" ? code : null,
+        ).then((t) => t && tableApi.setData(t));
+      },
+    });
+    if (view.filterSelectionName) {
+      onSelectionValue(ctx, view.filterSelectionName, (code) => {
+        fetchDrill(conn, drillOpts, code).then(
+          (t) => t && tableApi.setData(t),
+        );
+      });
+    }
+    return;
+  }
+
+  const note = document.createElement("p");
+  note.className = "vv-note";
+  note.textContent = `Type de vue non supporté en V0 : ${view.type}`;
+  mount.appendChild(note);
+}
+
+async function fetchDataByDept(
+  conn: ReturnType<typeof createDuckConnector>,
+  table: string,
+  field: string,
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  try {
+    const t = (await conn.query({
+      type: "arrow",
+      sql: `SELECT "${field}" AS code, COUNT(*) AS n FROM "${table}" GROUP BY "${field}"`,
+    })) as {
+      numRows: number;
+      get: (i: number) => { code: string; n: bigint | number } | null;
+    } | null;
+    if (t && t.numRows) {
+      for (let i = 0; i < t.numRows; i++) {
+        const r = t.get(i);
+        if (!r) continue;
+        out.set(String(r.code), Number(r.n));
+      }
+    }
+  } catch {
+    // silencieux — la carte rendra à 0
+  }
+  return out;
+}
+
 
 /**
  * B-032 — démo carte choroplèthe.
@@ -233,7 +498,17 @@ async function renderDemoChoropleth(
     note.textContent = `Données indisponibles, rendu fond seul : ${msg}`;
     section.insertBefore(note, mapEl);
   }
-  renderChoropleth(mapEl, dataByDept, { width: 600, height: 600 });
+  const svg = renderChoropleth(mapEl, dataByDept, { width: 600, height: 600 });
+
+  // B-040 — binding Selection sur la carte (clic dept = clause point).
+  // Tout le JS de filtrage vit dans viz-engine/mosaic-runtime.ts ; ici
+  // on ne fait que câbler.
+  const ctx = createRuntime();
+  ensureSelection(ctx, "dept_select", "single");
+  bindMapSelection(svg, ctx, {
+    field: "code_dept",
+    selectionName: "dept_select",
+  });
 }
 
 /**
