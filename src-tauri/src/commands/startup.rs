@@ -38,10 +38,16 @@ pub async fn startup_path(app: tauri::AppHandle) -> Option<String> {
     }
 
     // 3. exemple embarqué dans le bundle (resources Tauri)
+    // Préférence : demo_dept (vraie démo carto cross-filter) puis fallback
+    // effectifs_2026 (smoke test minimaliste).
     if let Ok(resource_dir) = app.path().resource_dir() {
-        let example = resource_dir.join("examples").join("effectifs_2026.vviz");
-        if example.exists() {
-            return example.to_str().map(|s| s.to_string());
+        for candidate in &["demo_dept.vviz", "effectifs_2026.vviz"] {
+            let path = resource_dir.join("examples").join(candidate);
+            if path.exists() {
+                if let Some(s) = path.to_str() {
+                    return Some(s.to_string());
+                }
+            }
         }
     }
 

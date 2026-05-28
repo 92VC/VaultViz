@@ -49,6 +49,7 @@ logs/
 # B-021/B-022). Les gros parquets de bench (B-023, B-080) restent ignorés
 # car nommés `synth_*.parquet`.
 !examples/sample.parquet
+!examples/demo_dept.parquet
 !examples/fixtures/
 !examples/fixtures/**
 

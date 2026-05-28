@@ -2,44 +2,50 @@
   "$schema": "https://vaultviz.fr/schema/v1.json",
   "vviz": {
     "version": "1.0",
-    "title": "Effectifs CPAM 92 — 2026",
-    "description": "Cartographie départementale + détail (squelette V0).",
-    "author": "M. Mehdi",
-    "created": "2026-05-15",
+    "title": "Exemple minimaliste (sample.parquet)",
+    "description": "Démo synthétique sur 50 000 lignes id/label/value — sert de smoke test sans pré-requis carto.",
+    "author": "VaultViz",
+    "created": "2026-05-28",
     "updated": "2026-05-28"
   },
   "data": {
     "sources": [
-      { "name": "effectifs", "path": "./examples/sample.parquet" }
+      { "name": "items", "path": "./sample.parquet" }
     ]
   },
   "spec": {
     "engine": "mosaic",
     "layout": "vstack",
-    "selections": [
-      { "id": "dept_filter", "kind": "single" }
-    ],
     "views": [
       {
-        "id": "map_dept",
-        "title": "Effectifs par département",
-        "type": "map_choropleth",
-        "source": "effectifs",
+        "id": "kpi_total",
+        "type": "kpi",
+        "title": "Nombre de lignes",
+        "source": "items",
         "encoding": {
-          "geo": { "field": "dept_code", "topology": "departements" },
-          "color": { "field": "n", "aggregate": "sum" }
-        },
-        "options": { "width": 600, "height": 600 }
+          "value": { "aggregate": "count" }
+        }
       },
       {
-        "id": "kpi_total",
-        "title": "Total effectifs",
-        "type": "kpi",
-        "source": "effectifs",
+        "id": "bar_par_label",
+        "type": "barY",
+        "title": "Répartition par label",
+        "source": "items",
         "encoding": {
-          "value": { "field": "n", "aggregate": "sum" }
+          "x": { "field": "label" },
+          "y": { "aggregate": "count" }
         },
-        "filterBy": "dept_filter"
+        "options": { "width": 720, "height": 320 }
+      },
+      {
+        "id": "table_items",
+        "type": "table",
+        "title": "Détail (top 5000)",
+        "source": "items",
+        "encoding": {
+          "columns": ["id", "label", "value"]
+        },
+        "options": { "limit": 5000, "visibleRows": 18 }
       }
     ]
   }
