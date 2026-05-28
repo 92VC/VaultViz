@@ -1,0 +1,19 @@
+{
+  "$schema": "https://vaultviz.fr/schema/v1.json",
+  "vviz": {
+    "version": "1.0",
+    "title": "Effectifs CPAM 92 — 2026",
+    "description": "Cartographie départementale + détail (squelette V0).",
+    "author": "M. Mehdi",
+    "created": "2026-05-15",
+    "updated": "2026-05-28"
+  },
+  "data": {
+    "sources": [
+      { "name": "effectifs", "path": "./examples/sample.parquet" }
+    ]
+  },
+  "spec": {
+    "_NOTE": "Format de spec figé en B-033 (Wave 3). Ce stub est intentionnellement minimal pour B-012."
+  }
+}
