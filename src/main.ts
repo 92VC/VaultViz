@@ -151,10 +151,17 @@ async function openVViz(path: string): Promise<void> {
 }
 
 async function resolveStartupPath(): Promise<string | null> {
+  // Garde-fou : si l'IPC ne répond pas en 2 s, on bascule sur welcome
+  // au lieu de bloquer indéfiniment sur une page blanche.
   try {
-    const r = await invoke<string | null>("startup_path");
-    return r ?? null;
-  } catch {
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
+    const r = await Promise.race([
+      invoke<string | null>("startup_path"),
+      timeout,
+    ]);
+    return typeof r === "string" && r.length > 0 ? r : null;
+  } catch (err) {
+    console.warn("[VaultViz] startup_path indisponible :", err);
     return null;
   }
 }
