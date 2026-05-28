@@ -34,6 +34,10 @@ import {
   onSelectionValue,
   type DrillQueryOptions,
 } from "./viz-engine/drill-query";
+import {
+  fromVVizError,
+  renderErrorBanner,
+} from "./components/error-banner";
 
 type VVizErrorPayload = { kind: string; message: string };
 
@@ -41,22 +45,8 @@ const DEFAULT_VVIZ =
   (import.meta.env.VITE_VVIZ_DEFAULT as string | undefined) ??
   "./examples/effectifs_2026.vviz";
 
-const ERROR_COPY: Record<string, (m: string) => string> = {
-  NotFound: (m) => `Fichier .vviz introuvable. Vérifiez le chemin ou contactez le publisher. (${m})`,
-  Forbidden: (m) => `Accès refusé par la politique de capability FS. (${m})`,
-  Io: (m) => `Erreur d'entrée/sortie. (${m})`,
-  Invalid: (m) => `Format invalide. (${m})`,
-};
-
-function renderError(container: HTMLElement, kind: string, message: string): void {
-  const copy = (ERROR_COPY[kind] ?? ERROR_COPY.Io)(message);
-  container.innerHTML = `
-    <div class="vv-error" role="alert">
-      <strong>Erreur :</strong>
-      <span>${escapeHtml(copy)}</span>
-    </div>
-  `;
-}
+const HELP_HREF =
+  "https://github.com/92VC/VaultViz/tree/main/docs/user"; // placeholder V0 (B-061)
 
 function renderContent(container: HTMLElement, path: string, content: string): void {
   let pretty = content;
@@ -161,12 +151,11 @@ async function bootstrap(): Promise<void> {
     const content = await invoke<string>("read_vviz", { path: DEFAULT_VVIZ });
     renderContent(root, DEFAULT_VVIZ, content);
   } catch (err: unknown) {
-    const payload = err as VVizErrorPayload | string;
-    if (typeof payload === "object" && payload && "kind" in payload) {
-      renderError(root, payload.kind, payload.message ?? "");
-    } else {
-      renderError(root, "Io", String(err));
-    }
+    renderErrorBanner(root, fromVVizError(err, DEFAULT_VVIZ), {
+      onRetry: () => bootstrap(),
+      helpHref: HELP_HREF,
+    });
+    return;
   }
 
   // Démo B-022 — best-effort, n'écrase pas le rendu principal.
