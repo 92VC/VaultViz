@@ -1,0 +1,50 @@
+# Rust / Cargo
+target/
+**/*.rs.bk
+Cargo.lock.bak
+
+# Node / npm
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Artefacts de build / packaging
+*.msi
+*.exe
+*.dll
+*.pdb
+*.app
+*.dmg
+
+# Environnements
+.env
+.env.*
+!.env.example
+
+# Éditeurs / OS
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs locaux VaultViz
+*.log
+logs/
+
+# Données de test (pas dans le repo)
+*.parquet
+*.pmtiles
+
+# Couverture / rapports
+coverage/
+*.lcov
