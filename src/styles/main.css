@@ -70,6 +70,77 @@ body {
   margin-right: 0.5rem;
 }
 
+.vv-error-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.vv-error-kind {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  background: rgba(220, 53, 69, 0.18);
+  padding: 0.0625rem 0.375rem;
+  border-radius: 4px;
+}
+
+.vv-error-msg {
+  margin: 0.25rem 0 0.5rem;
+}
+
+.vv-error-details {
+  margin: 0.25rem 0 0.5rem 1rem;
+  padding: 0;
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.vv-error-details li {
+  margin: 0.125rem 0;
+}
+
+.vv-error-details code {
+  font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+  background: rgba(127, 127, 127, 0.15);
+  padding: 0.0625rem 0.25rem;
+  border-radius: 3px;
+}
+
+.vv-error-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.vv-retry {
+  background: rgba(220, 53, 69, 0.2);
+  color: inherit;
+  border: 1px solid rgba(220, 53, 69, 0.5);
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.vv-retry:hover {
+  background: rgba(220, 53, 69, 0.32);
+}
+
+.vv-help {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  color: inherit;
+}
+
+.vv-help:hover {
+  opacity: 1;
+}
+
 .vv-h2 {
   font-size: 1.25rem;
   margin: 2rem 0 0.5rem;

@@ -21,6 +21,15 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 
+# B-062 — timestamps + résolution du dossier `%LOCALAPPDATA%\VaultViz\logs`
+# (PRD §6.4). `chrono` en `default-features = false` + `clock` + `serde`
+# suffit pour `Utc::now()` et le formatage ISO-8601 — on n'a pas besoin
+# de tout `chrono-tz`. `directories` (5.x) expose `BaseDirs` qui pointe
+# sur le bon répertoire LOCALAPPDATA sur Windows et fallback `~/.local/share`
+# sur Linux pour le dev.
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+directories = "5"
+
 # DuckDB natif statique (ADR-001). Feature `bundled` compile DuckDB en C++
 # embarqué dans le binaire : pas de DLL externe à déployer sur Windows 11.
 # Le crate ré-exporte `arrow` (cf. `duckdb::arrow::…`).

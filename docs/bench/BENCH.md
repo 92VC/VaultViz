@@ -171,3 +171,30 @@ choroplèthe, mesure du délai clic → table peuplée via
   sera proportionnellement plus rapide que le COUNT global déjà
   mesuré 7,9 ms.
 
+
+---
+
+## B-062 — Logging local rotatif (note d'estimation)
+
+**Politique** (cf. `src-tauri/src/log.rs`, PRD §6.4 / §8.3) :
+
+- Niveaux : `INFO` / `WARN` / `ERROR`
+- Rotation : suppression des fichiers `YYYY-MM-DD.log` dont la date est
+  strictement antérieure à `today - 7 jours`, à chaque write.
+- Plafond total : 50 Mo (LRU sur mtime).
+- Aucune PII : `assert_no_pii()` rejette toute apostrophe, motif
+  ` WHERE ...=...` ou message > 4096 octets.
+
+**Estimation de volume** (V0, dimensionnement informatif) :
+
+| Source             | Volume/session (octets) | Hypothèse                         |
+|--------------------|-------------------------|-----------------------------------|
+| Démarrage (`INFO`) | ~80                     | 1 ligne `[ts] [INFO] VaultViz X started` |
+| Ouverture `.vviz`  | ~120                    | 1 ligne par fichier ouvert        |
+| Requête DuckDB     | ~140                    | latency + nb rows (V1, non câblé V0) |
+| Erreur typée       | ~200                    | kind + path tronqué               |
+
+À raison d'une dizaine d'événements par session interactive (≤ 5 ko/jour
+en usage normal), le plafond 50 Mo n'est jamais approché — la rotation
+7 jours suffit largement. Le SIZE_CAP_BYTES sert de filet de sécurité
+contre un éventuel bug applicatif (boucle de log).
