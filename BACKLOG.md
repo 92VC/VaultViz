@@ -36,7 +36,7 @@
 | Pré-V0 | 3 | 0 | 0 | 3 | 0 |
 | V0 — I0 Squelette | 3 | 0 | 0 | 3 | 0 |
 | V0 — I1 DuckDB | 4 | 0 | 0 | 4 | 0 |
-| V0 — I2 Mosaic | 4 | 4 | 0 | 0 | 0 |
+| V0 — I2 Mosaic | 4 | 0 | 0 | 4 | 0 |
 | V0 — I3 Interactivité | 2 | 2 | 0 | 0 | 0 |
 | V0 — I4 Drill-down | 1 | 1 | 0 | 0 | 0 |
 | V0 — I5 Erreurs | 3 | 3 | 0 | 0 | 0 |
@@ -52,7 +52,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **46** | **36** | **0** | **10** | **0** |
+| **Total** | **46** | **32** | **0** | **14** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -224,7 +224,7 @@ Chaque story porte les champs :
 
 ### 2.3 I2 — Mosaic + vgplot
 
-### B-030 — [ ] Setup Mosaic + vgplot côté front
+### B-030 — [x] Setup Mosaic + vgplot côté front
 
 - **Itération** : I2
 - **Livrable** : `package.json` avec dépendances Mosaic verrouillées, import démo qui rend un plot statique
@@ -238,7 +238,7 @@ Chaque story porte les champs :
 - **Complexité** : M
 - **Notes** : vérifier état Mosaic le jour J — si encore non production-ready avec API mouvante, déclencher R-8 et discuter repli Vega-Lite avant d'investir dans B-031.
 
-### B-031 — [ ] Connecter Mosaic à DuckDB natif via un connector custom
+### B-031 — [x] Connecter Mosaic à DuckDB natif via un connector custom
 
 - **Itération** : I2
 - **Livrable** : `src/viz-engine/duck-connector.ts` qui implémente l'interface Mosaic Connector et appelle Rust via Tauri commands
@@ -252,7 +252,7 @@ Chaque story porte les champs :
 - **Complexité** : L
 - **Notes** : Mosaic fournit un `wasmConnector` et un `socketConnector` ; on écrit notre `nativeConnector`. Si trop coûteux : option de fallback DuckDB-WASM avec données pré-extraites depuis le natif (mais c'est suboptimal).
 
-### B-032 — [ ] Carte choroplèthe France figée (TopoJSON embarqué)
+### B-032 — [x] Carte choroplèthe France figée (TopoJSON embarqué)
 
 - **Itération** : I2
 - **Livrable** : spec vgplot rendant une carte France colorée par une métrique
@@ -266,7 +266,7 @@ Chaque story porte les champs :
 - **Complexité** : M
 - **Notes** : pas encore MapLibre (V1) — rendu Mosaic geo natif si possible, sinon SVG D3 minimal.
 
-### B-033 — [ ] Figer le format `.vviz` (envelope + spec vgplot)
+### B-033 — [x] Figer le format `.vviz` (envelope + spec vgplot)
 
 - **Itération** : I2
 - **Livrable** : `schema/vviz-v1.json` (JSON Schema Draft 7) + un exemple `examples/effectifs_2026.vviz` qui se rend
