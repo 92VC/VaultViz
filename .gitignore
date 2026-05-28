@@ -45,6 +45,13 @@ logs/
 *.parquet
 *.pmtiles
 
+# Exceptions : fixtures versionnées pour tests / démo (taille < 1 Mo, cf.
+# B-021/B-022). Les gros parquets de bench (B-023, B-080) restent ignorés
+# car nommés `synth_*.parquet`.
+!examples/sample.parquet
+!examples/fixtures/
+!examples/fixtures/**
+
 # Couverture / rapports
 coverage/
 *.lcov

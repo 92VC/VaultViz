@@ -7,7 +7,9 @@
 //! `_impl`) sans démarrer un runtime Tauri.
 
 pub mod commands;
+pub mod duck;
 pub mod error;
+pub mod state;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

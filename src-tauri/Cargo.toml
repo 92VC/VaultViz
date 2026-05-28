@@ -23,9 +23,17 @@ thiserror = "1"
 
 # DuckDB natif statique (ADR-001). Feature `bundled` compile DuckDB en C++
 # embarqué dans le binaire : pas de DLL externe à déployer sur Windows 11.
-# Le crate ré-exporte `arrow` (cf. `duckdb::arrow::…`) — on s'en sert pour
-# l'écriture IPC dans `duck.rs` (B-021/B-022) afin d'éviter tout version skew.
+# Le crate ré-exporte `arrow` (cf. `duckdb::arrow::…`).
 duckdb = { version = "1", features = ["bundled"] }
+
+# Apache Arrow — uniquement la feature `ipc` (stream writer/reader). On
+# pin sur la *même* version majeure que celle utilisée en interne par
+# `duckdb-rs` ("58", cf. `[dependencies.arrow]` du manifest duckdb). Cargo
+# unifie alors les deux dépendances en UN seul artefact `arrow 58.x`,
+# évitant tout version skew des types `RecordBatch` / `Schema` entre
+# l'itérateur DuckDB et le `StreamWriter`. À re-aligner manuellement si
+# `duckdb-rs` bump son arrow majeur (rare : ils suivent les LTS).
+arrow = { version = "58", default-features = false, features = ["ipc"] }
 
 [dev-dependencies]
 tempfile = "3"
