@@ -16,7 +16,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { tableFromIPC } from "apache-arrow";
 import * as vg from "@uwdata/vgplot";
 
-import { VVIZ_ENGINE_VERSION } from "./viz-engine";
+import { VVIZ_ENGINE_VERSION, initMosaicRuntime } from "./viz-engine";
+import { createDuckConnector } from "./viz-engine/duck-connector";
 
 type VVizErrorPayload = { kind: string; message: string };
 
@@ -157,6 +158,56 @@ async function bootstrap(): Promise<void> {
 
   // Démo B-030 — plot vgplot statique inline (sans coordinator).
   renderDemoPlot(root);
+
+  // B-031 — initialise le coordinator Mosaic avec notre connector DuckDB
+  // natif. Best-effort : si Tauri n'est pas dispo (dev navigateur pur),
+  // l'init reste muette et la démo de query connectorisée affichera
+  // une note d'indisponibilité.
+  try {
+    initMosaicRuntime();
+  } catch (err) {
+    console.warn("[VaultViz] init Mosaic runtime impossible :", err);
+  }
+  await renderConnectorDemo(root, DEFAULT_PARQUET);
+}
+
+/**
+ * B-031 — démo connector Mosaic.
+ *
+ * Passe par `createDuckConnector().query({ type: "arrow", sql })` plutôt
+ * que par `invoke()` direct, pour démontrer que la même primitive (un
+ * connector conforme à l'interface Mosaic) peut servir aussi bien aux
+ * plots vgplot qu'à des requêtes ad-hoc côté app.
+ */
+async function renderConnectorDemo(
+  root: HTMLElement,
+  parquetPath: string,
+): Promise<void> {
+  const section = document.createElement("section");
+  section.className = "vv-vgplot-demo";
+  const h = document.createElement("h2");
+  h.className = "vv-h2";
+  h.textContent = "Démo connector Mosaic ↔ DuckDB (B-031)";
+  section.appendChild(h);
+  const body = document.createElement("p");
+  body.textContent = "chargement…";
+  section.appendChild(body);
+  root.appendChild(section);
+
+  try {
+    const conn = createDuckConnector();
+    const result = (await conn.query({
+      type: "arrow",
+      sql: `SELECT COUNT(*)::BIGINT AS n FROM read_parquet('${parquetPath}')`,
+    })) as { numRows: number; get: (i: number) => { toArray(): unknown[] } | null };
+    const row = result?.get(0);
+    const n = row ? Number((row.toArray() as unknown[])[0]) : 0;
+    body.textContent = `Connector OK — COUNT(*) = ${n.toLocaleString("fr-FR")} ligne(s).`;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    body.className = "vv-note";
+    body.textContent = `Connector indisponible : ${msg}`;
+  }
 }
 
 /**
