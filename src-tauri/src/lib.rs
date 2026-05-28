@@ -36,6 +36,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::vviz::read_vviz,
             commands::query::run_query,
+            commands::startup::startup_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

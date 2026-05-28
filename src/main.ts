@@ -143,13 +143,27 @@ const DEFAULT_PARQUET =
   (import.meta.env.VITE_PARQUET_DEMO as string | undefined) ??
   "./examples/sample.parquet";
 
+async function resolveStartupPath(): Promise<string> {
+  // Priorité 1 : commande Rust startup_path (argv[1] / VVIZ_DEFAULT / bundle resource)
+  try {
+    const resolved = await invoke<string | null>("startup_path");
+    if (resolved) return resolved;
+  } catch {
+    // Si la commande n'existe pas (ancien binaire) on tombe sur le fallback build-time
+  }
+  // Priorité 2 : valeur figée au build (dev navigateur, override projet)
+  return DEFAULT_VVIZ;
+}
+
 async function bootstrap(): Promise<void> {
   const root = document.getElementById("app");
   if (!root) return;
 
+  const startupPath = await resolveStartupPath();
+
   // B-061 — pipeline unifié : read + JSON.parse + Ajv. Toute erreur peint
   // le bandeau (B-060) avec son kind exact et la liste des violations.
-  const { doc: mainDoc, error: mainErr } = await loadVViz(DEFAULT_VVIZ);
+  const { doc: mainDoc, error: mainErr } = await loadVViz(startupPath);
   if (mainErr) {
     renderErrorBanner(root, mainErr, {
       onRetry: () => bootstrap(),
@@ -157,7 +171,7 @@ async function bootstrap(): Promise<void> {
     });
     return;
   }
-  renderContent(root, DEFAULT_VVIZ, JSON.stringify(mainDoc, null, 2));
+  renderContent(root, startupPath, JSON.stringify(mainDoc, null, 2));
 
   // Démo B-022 — best-effort, n'écrase pas le rendu principal.
   await renderQueryDemo(root, DEFAULT_PARQUET);
