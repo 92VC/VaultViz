@@ -13,9 +13,19 @@ pub mod state;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // `AppState` héberge la connexion DuckDB partagée (cf. `state.rs`).
+    // V0 n'en a pas l'usage (chaque `run_query` ouvre sa propre
+    // connexion in-memory), mais on l'enregistre dès B-022 pour que
+    // B-031 (Mosaic Connector) puisse y accéder via `State<'_, AppState>`.
+    let app_state = state::AppState::new().expect("init AppState (DuckDB in-memory)");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![commands::vviz::read_vviz])
+        .manage(app_state)
+        .invoke_handler(tauri::generate_handler![
+            commands::vviz::read_vviz,
+            commands::query::run_query,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
