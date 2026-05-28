@@ -1,14 +1,19 @@
-// VaultViz V0 — bootstrap front (I0/B-012)
+// VaultViz V0 — bootstrap front (I0/B-012 → I1/B-022)
 //
-// Au démarrage, on tente de lire un .vviz par défaut (env `VITE_VVIZ_DEFAULT`,
-// fallback `./examples/effectifs_2026.vviz`). Le contenu JSON est pretty-printé
-// dans une zone <pre>. Les erreurs (NotFound / Forbidden / Io / Invalid) sont
-// affichées dans un bandeau lisible.
+// Au démarrage :
+// 1. on lit un `.vviz` par défaut (env `VITE_VVIZ_DEFAULT`, fallback
+//    `./examples/effectifs_2026.vviz`) et on pretty-printe son JSON.
+// 2. (B-022) on tente un `run_query` SQL sur un Parquet local pour démontrer
+//    le pipeline DuckDB → Arrow IPC → JS Table. Affiche le COUNT en
+//    dessous du pretty-print. Best-effort : si le Parquet n'existe pas
+//    (cas dev déconnecté ou cible Tauri non lancée), on affiche le
+//    message d'erreur typé sans casser le rendu principal.
 //
-// Les composants UI riches (carte, table, cross-filter) arrivent en Wave 3+.
-// B-061 ajoutera la validation JSON Schema et le routage erreur.
+// Les composants UI riches (carte, table virtualisée, cross-filter)
+// arrivent en Wave 3+. B-061 ajoutera la validation JSON Schema.
 
 import { invoke } from "@tauri-apps/api/core";
+import { tableFromIPC } from "apache-arrow";
 
 type VVizErrorPayload = { kind: string; message: string };
 
@@ -59,6 +64,75 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * B-022 — démo Arrow IPC pipe.
+ *
+ * Lance un `run_query` sur un Parquet local (`examples/sample.parquet`,
+ * cf. `gen_fixtures` en B-021) et affiche le résultat (COUNT + 5 premières
+ * lignes en tableau HTML brut). Best-effort : toute erreur est rendue
+ * sous forme de note grisée, le rendu principal du `.vviz` reste intact.
+ *
+ * **Notes** :
+ * - Le buffer reçu par `invoke` est un `ArrayBuffer` (Tauri 2 ipc::Response).
+ *   On le convertit en `Uint8Array` avant `tableFromIPC`.
+ * - Aucune étape JSON.parse / stringify intermédiaire (cf. ADR-003).
+ */
+async function renderQueryDemo(root: HTMLElement, parquetPath: string): Promise<void> {
+  const section = document.createElement("section");
+  section.className = "vv-query-demo";
+  section.innerHTML = `<h2>Démo DuckDB → Arrow IPC (B-022)</h2><p>chargement…</p>`;
+  root.appendChild(section);
+
+  try {
+    // 1) COUNT(*)
+    const countSql = `SELECT COUNT(*)::BIGINT AS n FROM read_parquet('${parquetPath}')`;
+    const countBuf = await invoke<ArrayBuffer>("run_query", { sql: countSql });
+    const countTable = tableFromIPC(new Uint8Array(countBuf));
+    const countRow = countTable.get(0);
+    const count = countRow ? Number(countRow.toArray()[0]) : 0;
+
+    // 2) 5 premières lignes
+    const previewSql = `SELECT * FROM read_parquet('${parquetPath}') LIMIT 5`;
+    const previewBuf = await invoke<ArrayBuffer>("run_query", { sql: previewSql });
+    const previewTable = tableFromIPC(new Uint8Array(previewBuf));
+
+    const headers = previewTable.schema.fields.map((f) => escapeHtml(f.name));
+    const rowsHtml: string[] = [];
+    for (let i = 0; i < previewTable.numRows; i++) {
+      const row = previewTable.get(i);
+      if (!row) continue;
+      const cells = row
+        .toArray()
+        .map((v: unknown) => `<td>${escapeHtml(String(v))}</td>`)
+        .join("");
+      rowsHtml.push(`<tr>${cells}</tr>`);
+    }
+
+    section.innerHTML = `
+      <h2>Démo DuckDB → Arrow IPC (B-022)</h2>
+      <p>Parquet : <code>${escapeHtml(parquetPath)}</code> — <strong>${count}</strong> lignes.</p>
+      <table class="vv-preview">
+        <thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>
+        <tbody>${rowsHtml.join("")}</tbody>
+      </table>
+    `;
+  } catch (err: unknown) {
+    const payload = err as VVizErrorPayload | string;
+    const message =
+      typeof payload === "object" && payload && "message" in payload
+        ? (payload as VVizErrorPayload).message
+        : String(err);
+    section.innerHTML = `
+      <h2>Démo DuckDB → Arrow IPC (B-022)</h2>
+      <p class="vv-note">Démo indisponible : ${escapeHtml(message)}</p>
+    `;
+  }
+}
+
+const DEFAULT_PARQUET =
+  (import.meta.env.VITE_PARQUET_DEMO as string | undefined) ??
+  "./examples/sample.parquet";
+
 async function bootstrap(): Promise<void> {
   const root = document.getElementById("app");
   if (!root) return;
@@ -74,6 +148,9 @@ async function bootstrap(): Promise<void> {
       renderError(root, "Io", String(err));
     }
   }
+
+  // Démo B-022 — best-effort, n'écrase pas le rendu principal.
+  await renderQueryDemo(root, DEFAULT_PARQUET);
 }
 
 bootstrap();
