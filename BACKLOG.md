@@ -46,13 +46,14 @@
 | V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-3 Watcher | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-4 Exports | 3 | 3 | 0 | 0 | 0 |
-| V1 — V1-5 DSFR | 2 | 2 | 0 | 0 | 0 |
+| V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
+| V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 4 | 0 | 0 | 0 |
 | V1 — V1-6 Signature DSI | 1 | 1 | 0 | 0 | 0 |
 | V1 — V1-7 RGAA | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **46** | **20** | **0** | **23** | **3** |
+| **Total** | **49** | **22** | **0** | **24** | **3** |
 
 ### 0.4 Conventions champs
 
@@ -589,33 +590,78 @@ Chaque story porte les champs :
 - **PRD** : UC-4
 - **Complexité** : M
 
-### 3.5 V1-5 — Thème DSFR
+### 3.5 V1-5 — Intégration du design (épopée maquette)
 
-### B-140 — [ ] Setup palette + composants DSFR
+> Remplace l'ex-itération « Thème DSFR ». Le DSFR est abandonné au profit du design custom de la maquette (`mockups/VaultViz/`) — cf. [ADR-012](docs/adr/ADR-012-design-system.md) et la [spec d'intégration](docs/superpowers/specs/2026-05-29-integration-design-maquette-design.md). Chaque épopée SP1→SP4 fait l'objet de son propre cycle spec → plan → implémentation. **Stories B-140 et B-141 retirées** (tombstones ci-dessous pour traçabilité).
 
-- **Itération** : V1-5
-- **Livrable** : application visuellement conforme au Système de design de l'État
+- **B-140 — [retiré]** ~~Setup palette + composants DSFR~~ → remplacé par B-200/B-201/B-202 (ADR-012).
+- **B-141 — [retiré]** ~~Typo Marianne embarquée~~ → remplacé par B-201 (polices Inter + JetBrains Mono embarquées).
+
+### B-199 — [x] SP0 — Refondation documentaire & backlog
+
+- **Itération** : V1-5 / SP0
+- **Livrable** : PRD amendé (DSFR retiré), ADR-012 créé, backlog V1 restructuré autour de SP1→SP4
 - **Critères d'acceptation** :
-  - [ ] CSS DSFR ou variables couleurs DSFR appliquées à tous les composants
-  - [ ] Boutons, formulaires, tableaux : style DSFR
-  - [ ] Mode sombre : préparer la possibilité (V2)
-  - [ ] En-tête avec logo DSFR (sans usurper l'identité de l'État)
-- **Dépendances** : B-132
-- **PRD** : §4.1 V1, glossaire DSFR
-- **Complexité** : M
-
-### B-141 — [ ] Typo Marianne embarquée
-
-- **Itération** : V1-5
-- **Livrable** : police Marianne intégrée sans appel CDN
-- **Critères d'acceptation** :
-  - [ ] Fichiers `.woff2` Marianne embarqués dans le bundle
-  - [ ] `@font-face` déclarée ; aucun fallback réseau
-  - [ ] Test : MSI en mode avion, typo correcte
-  - [ ] Licence Marianne vérifiée et conformement intégrée
-- **Dépendances** : B-140
-- **PRD** : §4.1 V1
+  - [ ] ADR-012 présent et accepté
+  - [ ] PRD §4.1 V1 et §15 amendés (plus d'exigence DSFR active ; ADR-012 référencé)
+  - [ ] B-140/B-141 retirés (tombstones) ; dépendances re-pointées
+  - [ ] Tableau de bord §0.3 cohérent
+- **Dépendances** : aucune
+- **PRD** : §4.1, §15 ; ADR-012
 - **Complexité** : S
+
+### B-200 — [ ] SP1 — Design system (tokens + polices + icônes + CSS base)
+
+- **Itération** : V1-5 / SP1
+- **Livrable** : design tokens (dark/light), polices Inter + JetBrains Mono **embarquées** (.woff2 + @font-face), jeu d'icônes SVG, CSS de base des composants
+- **Critères d'acceptation** :
+  - [ ] Tokens CSS portés (`:root`, `[data-theme="dark"]`, `[data-theme="light"]`, densité, accent)
+  - [ ] **Zéro appel réseau** pour les polices (invariant I-2) — vérifié par grep anti-URL
+  - [ ] Toggle de thème persistant en `%LOCALAPPDATA%` (I-3)
+  - [ ] Tests existants (`npm test`, `cargo test`) toujours au vert
+- **Dépendances** : B-199
+- **PRD** : §4.1 V1 ; ADR-012, ADR-008 (I-2)
+- **Complexité** : L (épopée — spec dédiée)
+- **Notes** : la maquette importe les polices via Google Fonts CDN — interdit ; embarquer en local.
+
+### B-210 — [ ] SP2 — App shell
+
+- **Itération** : V1-5 / SP2
+- **Livrable** : titlebar custom (contrôles fenêtre Tauri), toolbar (path/statut/actions), home (hero/dropzone/récents persistés), glisser-déposer, loader à étapes, dialog natif thémé, bandeau d'erreur câblé sur erreurs typées
+- **Critères d'acceptation** :
+  - [ ] Home remplace `welcome.ts` ; récents persistés app-local (I-3)
+  - [ ] Ouverture par double-clic, dialog ET glisser-déposer
+  - [ ] Bandeau d'erreur alimenté par `ErrorPayload` + détails Ajv existants
+  - [ ] Tests existants toujours au vert
+- **Dépendances** : B-200
+- **PRD** : §4.1 V1, UC-2 ; ADR-012
+- **Complexité** : L (épopée — spec dédiée)
+
+### B-220 — [ ] SP3 — Dashboard spec-driven
+
+- **Itération** : V1-5 / SP3
+- **Livrable** : extensions `schema/vviz-v1.json` + `view-compiler` pour KPI-avec-delta, carte+sélecteur de métrique, barres classées, barres appariées, table+recherche+badges, chip de filtre ; exemple canonique `examples/controle-gestion.vviz` + Parquet
+- **Critères d'acceptation** :
+  - [ ] Chaque composant de la maquette exprimable en `.vviz` (générique, pas hardcodé)
+  - [ ] Push-down DuckDB + cross-filter Mosaic préservés
+  - [ ] L'exemple canonique rendu par le moteur ≈ `mockups/VaultViz/VaultViz.html`
+  - [ ] Tests existants + nouveaux tests de compilation au vert
+- **Dépendances** : B-200, B-210
+- **PRD** : §5.3, UC-1, UC-3 ; ADR-002, ADR-012
+- **Complexité** : L (épopée — spec dédiée, potentiellement re-découpée)
+
+### B-230 — [ ] SP4 — Onglets multi-documents
+
+- **Itération** : V1-5 / SP4
+- **Livrable** : architecture multi-documents (namespacing connexion DuckDB Rust + état d'onglets front)
+- **Critères d'acceptation** :
+  - [ ] Plusieurs `.vviz` ouverts simultanément, isolés
+  - [ ] Pas de fuite de vues/données entre onglets
+  - [ ] Tests existants toujours au vert
+- **Dépendances** : B-220
+- **PRD** : §4.1 (hors V1 « multi » à réévaluer) ; ADR-012
+- **Complexité** : L (épopée — brainstorm + spec dédiés)
+- **Notes** : la maquette note les onglets « V2 » ; séquencés en dernier.
 
 ### 3.6 V1-6 — Signature DSI
 
@@ -628,7 +674,7 @@ Chaque story porte les champs :
   - [ ] MSI signé par la DSI à partir d'un artefact CI propre
   - [ ] Test installation sur poste protégé AppLocker
   - [ ] Cycle d'itération clair : nouvelle version CI → nouveau MSI signé en N jours max
-- **Dépendances** : B-141, B-072 (test V0 réussi)
+- **Dépendances** : B-220 (design intégré), B-072 (test V0 réussi)
 - **PRD** : ADR-005, §16 Q2
 - **Complexité** : S (côté dev) ; M (côté DSI, hors scope produit)
 - **Blocage potentiel** : `[!]` si refus DSI ou délais incompatibles
@@ -644,7 +690,7 @@ Chaque story porte les champs :
   - [ ] Liste classée par criticité (bloquant / non bloquant)
   - [ ] Recommandations actionnables
   - [ ] Périmètre clair : application uniquement, pas le contenu des datasets
-- **Dépendances** : B-141
+- **Dépendances** : B-220 (design intégré)
 - **PRD** : §8.2 RGAA, §12.2
 - **Complexité** : M
 - **Notes** : impliquer le Référent accessibilité (cf. RACI §15.1).
