@@ -1,35 +1,56 @@
 // B-041 — Bar chart vgplot avec filterBy Selection (cross-filter).
 //
-// On délègue *toute* la mécanique de filtre à Mosaic : `vg.from(table,
-// { filterBy: sel })` push-down les clauses actives de `sel` dans le
-// SQL généré par mosaic-sql ; quand la Selection émet une nouvelle
-// clause (cf. B-040 carte), le coordinator re-query DuckDB et le Plot
-// se ré-affiche. Aucun listener ad-hoc côté front.
+// Refacto T5 : prend yField + yAggregate du spec. Le caller passe les
+// noms exacts du DSL .vviz — plus aucune constante côté composant.
 //
-// Cf. node_modules/@uwdata/mosaic-plot/src/marks/Mark.js : le ctor
-// transmet `source.options.filterBy` à la base `MosaicClient`, qui
-// s'abonne aux events de la Selection et invalide la query.
+// Le filterBy Selection est délégué à Mosaic : `vg.from(table, { filterBy })`
+// pousse les clauses actives dans le SQL généré par mosaic-sql. Quand
+// la Selection émet une nouvelle clause (clic carte), le coordinator
+// re-query DuckDB et le Plot se ré-affiche.
 
 import * as vg from "@uwdata/vgplot";
 
 import type { RuntimeContext } from "../viz-engine/mosaic-runtime";
 
 export interface BarChartOptions {
-  /** Nom de table/vue DuckDB (préalablement créée via `CREATE VIEW`). */
+  /** Nom de table/vue DuckDB (préalablement créée via CREATE VIEW). */
   source: string;
   /** Champ catégoriel (axe X). */
   xField: string;
-  /**
-   * Nom d'une Selection dans le runtime à utiliser pour `filterBy`.
-   * Si absent, le bar chart n'est pas filtré.
-   */
+  /** Champ Y (omis pour count(*)). */
+  yField?: string;
+  /** Agrégat Y : count | sum | avg | min | max. Défaut : count. */
+  yAggregate?: string;
+  /** Nom d'une Selection à utiliser pour filterBy. */
   filterSelectionName?: string;
-  /** Runtime contenant les Selection/Param partagées. */
   ctx: RuntimeContext;
   width?: number;
   height?: number;
-  /** Couleur des barres (CSS color). */
   fill?: string;
+}
+
+function yChannel(opts: BarChartOptions): unknown {
+  const agg = (opts.yAggregate ?? "count").toLowerCase();
+  if (agg === "count") return vg.count();
+  if (!opts.yField) {
+    throw new Error(`yField requis pour agrégat ${agg}`);
+  }
+  const f = opts.yField;
+  // vgplot expose sum/avg/min/max comme fonctions agrégatives nommées.
+  // Cf. node_modules/@uwdata/vgplot/src/api.js (re-exports mosaic-sql).
+  const v = vg as unknown as Record<string, (field: string) => unknown>;
+  switch (agg) {
+    case "sum":
+      return v.sum(f);
+    case "avg":
+      return v.avg(f);
+    case "min":
+      return v.min(f);
+    case "max":
+      return v.max(f);
+    default:
+      throw new Error(`agrégat non supporté : ${agg}`);
+  }
 }
 
 /**
@@ -37,9 +58,6 @@ export interface BarChartOptions {
  * Selection nommée (si fournie) via `filterBy` — toute mise à jour de
  * la selection déclenche un re-query DuckDB sub-seconde sur Parquet
  * local (cf. bench B-023 : COUNT 50 Mo < 50 ms).
- *
- * Retourne l'élément racine du plot pour permettre au caller de le
- * remplacer ou le supprimer.
  */
 export function renderBarChart(
   container: HTMLElement,
@@ -52,8 +70,6 @@ export function renderBarChart(
     ? opts.ctx.selections.get(opts.filterSelectionName)
     : undefined;
 
-  // vg.from(table, { filterBy }) : ref logique à une table DuckDB ;
-  // le coordinator résoudra la query via notre DuckConnector (B-031).
   const source = sel
     ? vg.from(opts.source, { filterBy: sel })
     : vg.from(opts.source);
@@ -61,7 +77,7 @@ export function renderBarChart(
   const plot = vg.plot(
     vg.barY(source, {
       x: opts.xField,
-      y: vg.count(),
+      y: yChannel(opts),
       fill,
     }),
     vg.width(w),
