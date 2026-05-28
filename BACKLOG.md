@@ -37,8 +37,8 @@
 | V0 — I0 Squelette | 3 | 0 | 0 | 3 | 0 |
 | V0 — I1 DuckDB | 4 | 0 | 0 | 4 | 0 |
 | V0 — I2 Mosaic | 4 | 0 | 0 | 4 | 0 |
-| V0 — I3 Interactivité | 2 | 2 | 0 | 0 | 0 |
-| V0 — I4 Drill-down | 1 | 1 | 0 | 0 | 0 |
+| V0 — I3 Interactivité | 2 | 0 | 0 | 2 | 0 |
+| V0 — I4 Drill-down | 1 | 0 | 0 | 1 | 0 |
 | V0 — I5 Erreurs | 3 | 3 | 0 | 0 | 0 |
 | V0 — I6 MSI | 3 | 3 | 0 | 0 | 0 |
 | V0 — I7 Go/No-Go | 3 | 3 | 0 | 0 | 0 |
@@ -52,7 +52,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **46** | **32** | **0** | **14** | **0** |
+| **Total** | **46** | **29** | **0** | **17** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -282,7 +282,7 @@ Chaque story porte les champs :
 
 ### 2.4 I3 — Interactivité
 
-### B-040 — [ ] Sélection Mosaic (point select) sur la carte
+### B-040 — [x] Sélection Mosaic (point select) sur la carte
 
 - **Itération** : I3
 - **Livrable** : clic département → param `dept_select` mis à jour, query DuckDB push-down déclenchée
@@ -295,7 +295,7 @@ Chaque story porte les champs :
 - **PRD** : H4, §4.1 V0
 - **Complexité** : M
 
-### B-041 — [ ] Cross-filter 2 vues : carte + barres détail
+### B-041 — [x] Cross-filter 2 vues : carte + barres détail
 
 - **Itération** : I3
 - **Livrable** : dashboard 2 vues coordonnées via une Mosaic Selection partagée
@@ -310,7 +310,7 @@ Chaque story porte les champs :
 
 ### 2.5 I4 — Drill-down
 
-### B-050 — [ ] Drill-down département → tableau filtré (UC-1 complet)
+### B-050 — [x] Drill-down département → tableau filtré (UC-1 complet)
 
 - **Itération** : I4
 - **Livrable** : démo bout-en-bout UC-1 : ouverture `.vviz`, carte, clic Hauts-de-Seine, tableau détaillé affiché
