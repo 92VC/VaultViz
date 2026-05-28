@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VaultViz</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+/* prototype state switcher (proto-only chrome) */
+#proto{position:fixed;left:14px;bottom:14px;z-index:320;font-size:var(--fs-xs)}
+#proto-toggle{display:flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:var(--r-pill);
+  background:var(--surface-1);border:1px solid var(--border-2);color:var(--text-2);box-shadow:var(--shadow-card);font-weight:500}
+#proto-toggle:hover{color:var(--text-1);border-color:var(--border-strong)}
+#proto-toggle .pdot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+#proto-menu{position:absolute;left:0;bottom:38px;display:none;flex-direction:column;gap:1px;
+  background:var(--surface-1);border:1px solid var(--border-2);border-radius:var(--r-md);box-shadow:var(--shadow-pop);padding:5px;min-width:172px}
+#proto-menu.on{display:flex}
+#proto-menu .ph{font-size:var(--fs-micro);text-transform:uppercase;letter-spacing:.4px;color:var(--text-faint);padding:6px 10px 3px}
+#proto-menu button{text-align:left;padding:7px 10px;border-radius:6px;color:var(--text-2);font-size:var(--fs-sm);display:flex;align-items:center;gap:9px}
+#proto-menu button:hover{background:var(--surface-3);color:var(--text-1)}
+#proto-menu button .n{font-family:var(--font-mono);color:var(--text-faint);font-size:var(--fs-micro);width:14px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ TITLE BAR ============ -->
+  <div class="titlebar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="2.5" y="2.5" width="27" height="27" rx="7" fill="var(--accent)"/>
+        <path d="M9 10l4.6 12h0.2L18.4 10" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="20.5" y="9.5" width="2.7" height="13" rx="1.3" fill="#fff" opacity=".9"/>
+      </svg>
+      VaultViz
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="win-ctrls">
+      <button class="win-btn" title="Réduire"><svg viewBox="0 0 12 12" width="11" height="11"><path d="M2 6h8" stroke="currentColor" stroke-width="1.2"/></svg></button>
+      <button class="win-btn" title="Agrandir"><svg viewBox="0 0 12 12" width="11" height="11" fill="none"><rect x="2.2" y="2.2" width="7.6" height="7.6" rx="1" stroke="currentColor" stroke-width="1.2"/></svg></button>
+      <button class="win-btn close" title="Fermer"><svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 3l6 6M9 3l-6 6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- ============ TOOLBAR ============ -->
+  <div class="toolbar">
+    <div id="path-wrap" style="display:none;align-items:center;min-width:0">
+      <div class="path" id="path"></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="status" id="status" data-s="ready"><span class="led"></span><span class="s-txt">Prêt</span></div>
+    <div class="tdiv"></div>
+    <button class="tbtn" id="btn-open-tb"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5A1.5 1.5 0 0 1 4 4h3l1.5 1.8H14a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 14 14.8H4a1.5 1.5 0 0 1-1.5-1.5z"/></svg>Ouvrir</button>
+    <button class="tbtn" id="btn-export"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11.5V3M5.8 6.2L9 3l3.2 3.2M3.5 12.5v1.5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-1.5"/></svg>Exporter</button>
+    <button class="tbtn icon" id="btn-theme" title="Thème"></button>
+    <button class="tbtn icon" id="btn-settings" title="Paramètres"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="2.3"/><path d="M9 1.8v1.8M9 14.4v1.8M16.2 9h-1.8M3.6 9H1.8M14.1 3.9l-1.3 1.3M5.2 12.8l-1.3 1.3M14.1 14.1l-1.3-1.3M5.2 5.2L3.9 3.9" stroke-linecap="round"/></svg></button>
+  </div>
+
+  <!-- ============ STAGE ============ -->
+  <div class="stage" id="stage">
+
+    <!-- HOME -->
+    <div class="home" id="home">
+      <div class="home-hero">
+        <svg class="home-logo" viewBox="0 0 32 32" fill="none">
+          <rect x="2.5" y="2.5" width="27" height="27" rx="8" fill="var(--accent)"/>
+          <path d="M9 10l4.6 12h0.2L18.4 10" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="20.5" y="9.5" width="2.7" height="13" rx="1.3" fill="#fff" opacity=".9"/>
+        </svg>
+        <h1>Vault<span class="v">Viz</span></h1>
+        <p class="tag">Vos dashboards data-viz, pilotés par un simple fichier. Local, instantané, sans cloud.</p>
+        <span class="ver">vviz/1.2 · v0.4.1</span>
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 16V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>
+        <div class="dz-cta">
+          <div class="big">Glissez un fichier <span class="mono" style="color:var(--accent)">.vviz</span> ici</div>
+          <div class="sub">ou parcourez votre disque</div>
+        </div>
+        <button class="tbtn primary" id="btn-open-home" style="height:38px;padding:0 18px;font-size:var(--fs-sm)">
+          <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5A1.5 1.5 0 0 1 4 4h3l1.5 1.8H14a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 14 14.8H4a1.5 1.5 0 0 1-1.5-1.5z"/></svg>
+          Ouvrir un fichier .vviz
+        </button>
+      </div>
+
+      <div class="recents">
+        <div class="recents-head">
+          <span class="lbl">Fichiers récents</span>
+          <button class="clr" id="clear-recents">Effacer</button>
+        </div>
+        <div class="recent-list" id="recent-list"></div>
+        <div class="empty-recents" id="empty-recents" style="display:none">Aucun fichier récent — ouvrez un <span class="mono">.vviz</span> pour démarrer.</div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="dash" id="dashboard" style="display:none">
+
+      <!-- error banner -->
+      <div class="errbar" id="errbar">
+        <div class="errbar-head">
+          <div class="e-ico"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2.5L20 18.5H2z"/><path d="M11 9v4M11 15.5v.3"/></svg></div>
+          <div class="e-body">
+            <div class="e-title">Schéma invalide — le fichier ne respecte pas <span class="mono">vviz/1.2</span></div>
+            <div class="e-msg">3 violations bloquent le rendu. Corrigez le fichier source puis réessayez.</div>
+            <span class="e-path">C:\Users\m.faure\Downloads\clients-grands-comptes.vviz</span>
+          </div>
+          <div class="e-actions">
+            <button class="btn ghost" id="btn-err-home">Annuler</button>
+            <a class="btn" href="#" id="btn-doc"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 3H3.5v9.5h9V10"/><path d="M9 3h4v4M13 3L7.5 8.5"/></svg>Documentation</a>
+            <button class="btn danger" id="btn-retry"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3v3.5H9.5"/><path d="M12.6 6.5A5 5 0 1 0 13 9"/></svg>Réessayer</button>
+          </div>
+        </div>
+        <div class="violations">
+          <div class="viol"><span class="vpath">$.departements[12].ca</span><span class="vmsg">type attendu <code>number</code>, reçu <code>"N/A"</code></span></div>
+          <div class="viol"><span class="vpath">$.meta.schema</span><span class="vmsg">valeur <code>vviz/0.9</code> incompatible — requis <code>vviz/1.2</code></span></div>
+          <div class="viol"><span class="vpath">$.departements[40]</span><span class="vmsg">propriété requise <code>code</code> manquante</span></div>
+        </div>
+      </div>
+
+      <!-- header -->
+      <div class="dash-head">
+        <div class="dh-l">
+          <h2 class="dash-title" id="dash-title"></h2>
+          <p class="dash-desc" id="dash-desc"></p>
+          <div class="dh-meta">
+            <span class="chip"><span class="mono" id="dash-schema"></span></span>
+            <span class="chip" id="dash-rows"></span>
+            <span class="filter-chip" id="filter-chip">Filtré : <span id="filter-chip-txt"></span>
+              <button class="x" title="Réinitialiser le filtre"><svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7"/></svg></button></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpis" id="kpis"></div>
+
+      <!-- charts row -->
+      <div class="grid-2">
+        <!-- map -->
+        <div class="card map-card">
+          <div class="card-head">
+            <div class="ch-l"><div class="card-title">Chiffre d’affaires par département</div>
+              <div class="card-sub">Cliquez un département pour filtrer l’ensemble du tableau de bord</div></div>
+            <div class="seg-ctrl" id="metric-seg">
+              <button class="on" data-m="ca">CA</button><button data-m="marge">Marge</button><button data-m="ecart">Écart</button>
+            </div>
+          </div>
+          <div class="map-wrap" id="map-wrap">
+            <svg id="map-svg" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="maptip" id="maptip"></div>
+          </div>
+          <div class="map-scale" id="map-legend"></div>
+        </div>
+
+        <!-- right column -->
+        <div class="col">
+          <div class="card">
+            <div class="card-head"><div class="ch-l"><div class="card-title">CA par ligne de produits</div>
+              <div class="card-sub">Répartition du chiffre d’affaires</div></div></div>
+            <div class="card-body"><div class="bars" id="cat-bars"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div class="ch-l"><div class="card-title">Budget vs réalisé</div><div class="card-sub">Par trimestre</div></div>
+              <div class="legend">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:var(--surface-3);border:1px solid var(--border-2)"></span>Budget</span>
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:var(--accent)"></span>Réalisé</span>
+              </div>
+            </div>
+            <div class="card-body"><div class="qbars" id="qbars"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- table -->
+      <div class="card table-card">
+        <div class="tbl-toolbar">
+          <div class="card-title">Détail par département</div>
+          <span class="tbl-count" id="tbl-count"></span>
+          <div class="spacer"></div>
+          <div class="search">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2L14 14" stroke-linecap="round"/></svg>
+            <input id="tbl-search" placeholder="Filtrer département, code, région…" />
+          </div>
+        </div>
+        <div class="vtable">
+          <div class="vt-head" id="vt-head"></div>
+          <div class="vt-scroll" id="vt-scroll"><div class="vt-sizer" id="vt-sizer"><div class="vt-rows" id="vt-rows" style="position:absolute;left:0;right:0;top:0"></div></div></div>
+        </div>
+      </div>
+
+    </div><!-- /dashboard -->
+  </div><!-- /stage -->
+
+  <!-- ============ OVERLAY (open dialog + loader) ============ -->
+  <div class="overlay" id="overlay">
+    <!-- native-style open dialog -->
+    <div class="dialog" id="dialog">
+      <div class="dlg-bar">
+        <span class="dlg-title">Ouvrir</span>
+        <span class="crumbs">› Documents › Reporting</span>
+        <button class="win-btn" style="width:32px;height:26px;border-radius:6px" id="dlg-cancel-top"><svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 3l6 6M9 3l-6 6"/></svg></button>
+      </div>
+      <div class="dlg-body">
+        <div class="dlg-side">
+          <div class="side-h">Accès rapide</div>
+          <div class="side-i"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 6.5L8 2l6 4.5V14H2z"/></svg>Bureau</div>
+          <div class="side-i"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4.5h5l1 1.2h6V13H2z"/></svg>Téléchargements</div>
+          <div class="side-i on"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4.5h5l1 1.2h6V13H2z"/></svg>Reporting</div>
+          <div class="side-h">Ce PC</div>
+          <div class="side-i"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.2" y="4.5" width="11.6" height="7" rx="1"/></svg>Disque C:</div>
+          <div class="side-i"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.2" y="4.5" width="11.6" height="7" rx="1"/></svg>Partage D:</div>
+        </div>
+        <div class="dlg-files" id="dlg-files">
+          <div class="dfile dir"><span class="fi"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4.5h4l1 1.2h7V13H2z"/></svg></span><span class="fname">Archives 2024</span><span class="fmeta">dossier</span></div>
+          <div class="dfile sel" data-name="perf-reseau-2025.vviz" data-size="284 Ko"><span class="fi"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M4 2h5l3 3v9H4z"/><path d="M9 2v3h3"/></svg></span><span class="fname">perf-reseau-2025.vviz</span><span class="fmeta">284 Ko</span></div>
+          <div class="dfile" data-name="marge-par-canal-T4.vviz" data-size="156 Ko"><span class="fi"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M4 2h5l3 3v9H4z"/><path d="M9 2v3h3"/></svg></span><span class="fname">marge-par-canal-T4.vviz</span><span class="fmeta">156 Ko</span></div>
+          <div class="dfile" data-name="budget-2026-previsionnel.vviz" data-size="203 Ko"><span class="fi"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M4 2h5l3 3v9H4z"/><path d="M9 2v3h3"/></svg></span><span class="fname">budget-2026-previsionnel.vviz</span><span class="fmeta">203 Ko</span></div>
+          <div class="dfile" data-name="export-brut.csv"><span class="fi" style="background:var(--surface-3);color:var(--text-3)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M4 2h5l3 3v9H4z"/><path d="M9 2v3h3"/></svg></span><span class="fname" style="color:var(--text-3)">export-brut.csv</span><span class="fmeta">1,2 Mo</span></div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <div class="fld"><label>Nom :</label><input class="inp" id="dlg-fname" value="perf-reseau-2025.vviz"/></div>
+        <span class="ext">Fichiers VaultViz (*.vviz)</span>
+        <button class="btn ghost" id="dlg-cancel">Annuler</button>
+        <button class="btn danger" id="dlg-open" style="background:var(--accent)"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5A1.3 1.3 0 0 1 3.8 3.6h2.4l1.3 1.5H12A1.3 1.3 0 0 1 13.3 6.4v5A1.3 1.3 0 0 1 12 12.8H3.8A1.3 1.3 0 0 1 2.5 11.4z"/></svg>Ouvrir</button>
+      </div>
+    </div>
+
+    <!-- loader splash -->
+    <div class="loader" id="loader" style="display:none">
+      <div class="l-file">
+        <div class="l-ico"><svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M5 2h5l3 3v11H5z"/><path d="M10 2v3h3"/></svg></div>
+        <div><div class="l-name" id="l-name">perf-reseau-2025.vviz</div><div class="l-sz" id="l-sz">284 Ko</div></div>
+      </div>
+      <div class="lbar"><i id="l-bar"></i></div>
+      <div class="l-steps" id="l-steps">Lecture du fichier…</div>
+    </div>
+  </div>
+
+  <!-- tweaks panel -->
+  <div id="tweaks"></div>
+
+  <!-- prototype state switcher -->
+  <div id="proto">
+    <button id="proto-toggle"><span class="pdot"></span>Prototype · états</button>
+    <div id="proto-menu">
+      <div class="ph">Naviguer vers</div>
+      <button data-st="home"><span class="n">1</span>Écran d’accueil</button>
+      <button data-st="dialog"><span class="n">5</span>Dialog « Ouvrir »</button>
+      <button data-st="loading"><span class="n">·</span>Chargement</button>
+      <button data-st="dashboard"><span class="n">3</span>Dashboard chargé</button>
+      <button data-st="error"><span class="n">4</span>Bandeau d’erreur</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+  window.__TWEAKS = /*EDITMODE-BEGIN*/{
+    "theme": "dark",
+    "accent": "blue",
+    "cards": "shadows",
+    "density": "compact",
+    "viz": "sequential"
+  }/*EDITMODE-END*/;
+</script>
+<script src="assets/france-map.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/tweaks.js"></script>
+<script>
+  document.getElementById('dlg-cancel-top').addEventListener('click',()=>document.getElementById('overlay').classList.remove('on'));
+  window.VVApp.boot();
+</script>
+
+<style id="__om-edit-overrides"></style>
+</body>
+</html>

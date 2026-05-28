@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="fr" data-theme="dark" data-cards="shadows" data-density="default" data-viz="sequential">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VaultViz — Style Guide</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  html,body{height:auto;overflow:visible}
+  body{overflow-x:hidden}
+  .sg{max-width:1080px;margin:0 auto;padding:56px 40px 96px}
+  .sg-top{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+  .sg-top .logo{width:38px;height:38px}
+  .sg-top h1{font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.6px;margin:0;white-space:nowrap}
+  .sg-top .v{color:var(--accent)}
+  .sg-lede{color:var(--text-2);font-size:var(--fs-md);max-width:640px;margin:0 0 40px;text-wrap:pretty}
+  .sg-sec{margin-top:48px}
+  .sg-h{display:flex;align-items:baseline;gap:12px;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border-1)}
+  .sg-h .n{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--accent)}
+  .sg-h h2{font-size:var(--fs-lg);font-weight:650;letter-spacing:-.3px;margin:0}
+  .sg-h .d{color:var(--text-3);font-size:var(--fs-sm);margin-left:auto}
+  .grid{display:grid;gap:14px}
+  .g-pal{grid-template-columns:repeat(4,1fr)}
+  .g-3{grid-template-columns:repeat(3,1fr)}
+  .g-2{grid-template-columns:repeat(2,1fr)}
+  .sw-card{border:1px solid var(--border-1);border-radius:var(--r-md);overflow:hidden;background:var(--surface-1)}
+  .sw-chip{height:74px}
+  .sw-meta{padding:10px 12px}
+  .sw-meta .nm{font-size:var(--fs-sm);font-weight:550}
+  .sw-meta .hx{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
+  .ramp{display:flex;height:52px;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--border-1)}
+  .ramp div{flex:1}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:14px 0;border-bottom:1px solid var(--border-1)}
+  .type-row .spec{width:150px;flex:0 0 auto;font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-3)}
+  .type-row .spec b{color:var(--text-1);display:block;font-size:var(--fs-sm);font-weight:600}
+  .spacing-row{display:flex;align-items:center;gap:16px;padding:9px 0}
+  .spacing-row .bar{height:16px;background:var(--accent);border-radius:3px}
+  .spacing-row .lab{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-2);width:140px}
+  .radius-demo{display:flex;gap:16px;flex-wrap:wrap}
+  .radius-demo .rd{width:96px;height:72px;background:var(--surface-2);border:1px solid var(--border-2);display:grid;place-items:end center;padding-bottom:8px;font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-3)}
+  .shadow-demo{display:flex;gap:24px;flex-wrap:wrap}
+  .shadow-demo .sd{width:150px;height:96px;background:var(--surface-1);border-radius:var(--r-md);display:grid;place-items:center;font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-3)}
+  .comp-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 0}
+  .demo-card{padding:18px;border:1px solid var(--border-1);border-radius:var(--r-md);background:var(--surface-1)}
+  .note{font-size:var(--fs-xs);color:var(--text-3);font-family:var(--font-mono)}
+  .tok{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--accent-bright);background:var(--accent-tint);padding:1px 6px;border-radius:4px}
+  .theme-toggle{position:fixed;top:18px;right:22px;z-index:10}
+</style>
+</head>
+<body>
+<button class="tbtn icon theme-toggle" id="tt" title="Thème" style="border:1px solid var(--border-2);background:var(--surface-1)"></button>
+<div class="sg">
+
+  <div class="sg-top">
+    <svg class="logo" viewBox="0 0 32 32" fill="none"><rect x="2.5" y="2.5" width="27" height="27" rx="8" fill="var(--accent)"/><path d="M9 10l4.6 12h0.2L18.4 10" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="20.5" y="9.5" width="2.7" height="13" rx="1.3" fill="#fff" opacity=".9"/></svg>
+    <h1>Vault<span class="v">Viz</span> · Style Guide</h1>
+  </div>
+  <p class="sg-lede">Système visuel condensé du dashboard desktop. Sombre par défaut, clair commutable. Inter pour l'UI, JetBrains Mono pour la donnée et les chemins. Densité élevée mais respirée.</p>
+
+  <!-- COLORS -->
+  <div class="sg-sec">
+    <div class="sg-h"><span class="n">01</span><h2>Palette — neutres bleutés</h2><span class="d">thème sombre</span></div>
+    <div class="grid g-pal" id="neutrals"></div>
+  </div>
+
+  <div class="sg-sec">
+    <div class="sg-h"><span class="n">02</span><h2>Accent & sémantique</h2><span class="d">action · état</span></div>
+    <div class="grid g-pal" id="accents"></div>
+  </div>
+
+  <div class="sg-sec">
+    <div class="sg-h"><span class="n">03</span><h2>Rampes data-viz</h2><span class="d">choroplèthe & barres</span></div>
+    <p class="note" style="margin:-8px 0 14px">Séquentielle — dérivée de l'accent, du clair au profond (valeur croissante)</p>
+    <div class="ramp" id="ramp-seq"></div>
+    <p class="note" style="margin:18px 0 14px">Catégorielle — 13 teintes distinctes (par région / catégorie)</p>
+    <div class="ramp" id="ramp-cat"></div>
+  </div>
+
+  <!-- TYPE -->
+  <div class="sg-sec">
+    <div class="sg-h"><span class="n">04</span><h2>Typographie</h2><span class="d">Inter · JetBrains Mono</span></div>
+    <div id="type"></div>
+    <div class="demo-card" style="margin-top:18px;display:flex;gap:40px;flex-wrap:wrap">
+      <div><div class="note" style="margin-bottom:8px">Inter — UI</div><div style="font-size:26px;font-weight:700;letter-spacing:-.5px">Performance réseau 2025</div><div style="color:var(--text-2)">Chiffre d'affaires par département</div></div>
+      <div><div class="note" style="margin-bottom:8px">JetBrains Mono — data</div><div class="mono" style="font-size:24px;font-weight:600">162 489 320 €</div><div class="mono" style="color:var(--text-3);font-size:13px">C:\Reporting\perf-2025.vviz</div></div>
+    </div>
+  </div>
+
+  <!-- SPACING -->
+  <div class="sg-sec">
+    <div class="sg-h"><span class="n">05</span><h2>Espacement</h2><span class="d">échelle 4px</span></div>
+    <div id="spacing"></div>
+  </div>
+
+  <!-- RADIUS + SHADOW -->
+  <div class="sg-sec">
+    <div class="sg-h"><span class="n">06</span><h2>Rayons & ombres</h2><span class="d">cards radius 8px</span></div>
+    <div class="radius-demo" style="margin-bottom:28px">
+      <div class="rd" style="border-radius:6px">6px <span class="tok">--r-sm</span></div>
+      <div class="rd" style="border-radius:8px">8px <span class="tok">--r-md</span></div>
+      <div class="rd" style="border-radius:12px">12px <span class="tok">--r-lg</span></div>
+      <div class="rd" style="border-radius:999px;width:120px">pill</div>
+    </div>
+    <div class="shadow-demo">
+      <div class="sd" style="box-shadow:var(--shadow-card)">card</div>
+      <div class="sd" style="box-shadow:var(--shadow-elev)">elevated</div>
+      <div class="sd" style="box-shadow:var(--shadow-pop)">popover</div>
+    </div>
+  </div>
+
+  <!-- COMPONENTS -->
+  <div class="sg-sec">
+    <div class="sg-h"><span class="n">07</span><h2>Composants</h2><span class="d">primitives</span></div>
+    <div class="demo-card">
+      <div class="comp-row">
+        <button class="tbtn primary">Action primaire</button>
+        <button class="btn">Secondaire</button>
+        <button class="btn ghost">Ghost</button>
+        <button class="btn danger">Réessayer</button>
+      </div>
+      <div class="comp-row" style="margin-top:8px">
+        <span class="badge ok"><span class="bd"></span>Atteint</span>
+        <span class="badge warn"><span class="bd"></span>À risque</span>
+        <span class="badge err"><span class="bd"></span>Sous-objectif</span>
+        <span class="chip"><span class="mono">vviz/1.2</span></span>
+        <span class="chip">96 entités</span>
+        <span class="delta up">▲ +4,9%</span>
+        <span class="delta down">▼ −8,5%</span>
+      </div>
+      <div class="comp-row" style="margin-top:8px">
+        <span class="status" data-s="ready"><span class="led"></span><span>Prêt</span></span>
+        <span class="status" data-s="loading"><span class="led"></span><span>Chargement</span></span>
+        <span class="status" data-s="error"><span class="led"></span><span>Erreur</span></span>
+      </div>
+    </div>
+    <div class="grid g-2" style="margin-top:14px">
+      <div class="card kpi" style="border:1px solid var(--border-1)">
+        <div class="k-top"><div class="k-label">CA réalisé · total</div><div class="k-ico"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5.5A4.5 4.5 0 0 0 6.2 9M14 12.5A4.5 4.5 0 0 1 6.2 9M4 8h7M4 10.5h6"/></svg></div></div>
+        <div class="k-val">162 M€</div>
+        <div class="k-foot"><span class="delta up">▲ +4,9%</span><span>vs 2024</span></div>
+      </div>
+      <div class="card" style="border:1px solid var(--border-1);padding:18px">
+        <div class="card-title" style="padding:0">Bar chart · catégoriel</div>
+        <div class="bars" style="margin-top:14px">
+          <div class="bar-row"><div class="b-lab"><span class="sw" style="background:var(--accent)"></span>Logiciel</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--accent)"></div></div><div class="b-val">69 M€</div></div>
+          <div class="bar-row"><div class="b-lab"><span class="sw" style="background:#13a98f"></span>Services</div><div class="bar-track"><div class="bar-fill" style="width:65%;background:#13a98f"></div></div><div class="b-val">45 M€</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const NEUTRALS_DARK=[['Fond app','--bg-app','#0a0d12'],['Surface 1','--surface-1','#10151d'],['Surface 2','--surface-2','#151b25'],['Surface 3','--surface-3','#1a212d'],['Bordure','--border-1','#212834'],['Bordure 2','--border-2','#2b3441'],['Texte 1','--text-1','#e7ecf3'],['Texte 2','--text-2','#9aa6b8']];
+  const NEUTRALS_LIGHT=[['Fond app','--bg-app','#eef1f5'],['Surface 1','--surface-1','#ffffff'],['Surface 2','--surface-2','#f7f9fb'],['Surface 3','--surface-3','#eef1f5'],['Bordure','--border-1','#e3e8ee'],['Bordure 2','--border-2','#d6dce4'],['Texte 1','--text-1','#101725'],['Texte 2','--text-2','#56616f']];
+  const ACCENTS=[['Accent','--accent','#0066FF'],['Succès','--ok','#27ac63'],['Avertissement','--warn','#e09031'],['Erreur','--err','#e5484d']];
+  function swatch(nm,tok,hx){return `<div class="sw-card"><div class="sw-chip" style="background:${hx}"></div><div class="sw-meta"><div class="nm">${nm}</div><div class="hx">${tok} · ${hx}</div></div></div>`;}
+  function renderColors(){
+    const light=document.documentElement.getAttribute('data-theme')==='light';
+    document.getElementById('neutrals').innerHTML=(light?NEUTRALS_LIGHT:NEUTRALS_DARK).map(a=>swatch(...a)).join('');
+    document.getElementById('accents').innerHTML=ACCENTS.map(a=>swatch(...a)).join('');
+  }
+  // viz ramps (mirror app.js logic, simplified)
+  function hex2rgb(h){h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+  function mix(a,b,w){return a.map((v,i)=>Math.round(v+(b[i]-v)*w));}
+  function rgb(a){return `rgb(${a[0]},${a[1]},${a[2]})`;}
+  function ramps(){
+    const dark=document.documentElement.getAttribute('data-theme')!=='light';
+    const A=[0,102,255];
+    const stops= dark ? [mix(A,[10,13,18],.86),mix(A,[10,13,18],.52),A,mix(A,[255,255,255],.22)]
+                      : [mix(A,[255,255,255],.88),mix(A,[255,255,255],.52),A,mix(A,[0,0,0],.14)];
+    let seq='';for(let i=0;i<24;i++){const t=i/23;const seg=3*t;const k=Math.min(2,Math.floor(seg));seq+=`<div style="background:${rgb(mix(stops[k],stops[k+1],seg-k))}"></div>`;}
+    document.getElementById('ramp-seq').innerHTML=seq;
+    const hues=['#0066FF','#13a98f','#e0903a','#9061f0','#e5556b','#27a8d4','#7cae3a','#d56fa3','#5a78d6','#c0813a','#3ab27f','#b25bd6','#6a7787'];
+    document.getElementById('ramp-cat').innerHTML=hues.map(c=>`<div style="background:${c}"></div>`).join('');
+  }
+  const TYPE=[['Display','40 / 700','--fs-display',40,700],['KPI','34 / 700','--fs-kpi',34,700],['Titre XL','22 / 700','--fs-xl',22,700],['Titre L','18 / 650','--fs-lg',18,650],['Corps','14 / 450','--fs-body',14,450],['Small','13 / 500','--fs-sm',13,500],['Micro','11 / 600','--fs-micro',11,600]];
+  function renderType(){
+    document.getElementById('type').innerHTML=TYPE.map(([nm,spec,tok,px,w])=>
+      `<div class="type-row"><div class="spec"><b>${nm}</b>${spec} · ${tok}</div><div style="font-size:${px}px;font-weight:${w};letter-spacing:${px>24?'-.5px':'0'}">Vente nette 162 M€</div></div>`).join('');
+  }
+  const SPACE=[['--s1',4],['--s2',8],['--s3',12],['--s4',16],['--s5',20],['--s6',24],['--s7',32],['--s8',40]];
+  function renderSpace(){
+    document.getElementById('spacing').innerHTML=SPACE.map(([t,v])=>
+      `<div class="spacing-row"><div class="lab">${t} · ${v}px</div><div class="bar" style="width:${v}px"></div></div>`).join('');
+  }
+  function themeIcon(t){return t==='light'?'☾':'☀';}
+  function render(){renderColors();ramps();}
+  document.getElementById('tt').textContent=themeIcon('dark');
+  document.getElementById('tt').addEventListener('click',()=>{
+    const nt=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+    document.documentElement.setAttribute('data-theme',nt);
+    document.getElementById('tt').textContent=themeIcon(nt);
+    render();
+  });
+  renderType();renderSpace();render();
+</script>
+</body>
+</html>
