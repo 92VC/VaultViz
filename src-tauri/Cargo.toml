@@ -21,5 +21,11 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 
+# DuckDB natif statique (ADR-001). Feature `bundled` compile DuckDB en C++
+# embarqué dans le binaire : pas de DLL externe à déployer sur Windows 11.
+# Le crate ré-exporte `arrow` (cf. `duckdb::arrow::…`) — on s'en sert pour
+# l'écriture IPC dans `duck.rs` (B-021/B-022) afin d'éviter tout version skew.
+duckdb = { version = "1", features = ["bundled"] }
+
 [dev-dependencies]
 tempfile = "3"
