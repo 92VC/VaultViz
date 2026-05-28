@@ -38,6 +38,48 @@ Moteur de rendu = **Mosaic** (UW IDL) + grammaire haut-niveau **vgplot**.
 
 **Risque résiduel R-8** : si Mosaic se révèle bloquant en POC, repli sur Vega-Lite via le même DSL `.vviz`.
 
+## Format spec — décision §16 Q7 (tranchée en B-033b)
+
+**Décision** : la clé `spec` d'un `.vviz` est un **DSL VaultViz prétraité**,
+pas du vgplot JSON brut. Le DSL est compilé en directives vgplot par
+`src/viz-engine/` côté front (compileur TS).
+
+**Justification** :
+
+1. **Stabilité contractuelle face à R-8.** L'API vgplot bouge encore.
+   En reposer le contrat publisher / consommateur sur un DSL stable
+   contrôlé par VaultViz isole les `.vviz` d'auteurs des évolutions
+   internes du moteur. Si on doit basculer sur Vega-Lite (repli R-8),
+   on change uniquement le compileur — pas les `.vviz` du parc.
+
+2. **Validation stricte possible.** Un DSL fermé (enum de `type`,
+   `additionalProperties: false` sur les nœuds racines) permet une
+   validation JSON Schema dure dès l'ouverture du fichier. Un JSON
+   vgplot brut est par construction ouvert (toutes les options Plot.js
+   acceptées) et donc difficile à sécuriser ou à signaler en erreur
+   utilisateur claire.
+
+3. **Surface d'attaque réduite.** Moins de portes = moins de risque
+   d'injection JS / DOM dans le pipeline (cf. PRD §8 sécurité).
+   `script`, `function`, `expression` dynamiques sont hors-DSL.
+
+4. **Compatibilité avec un futur éditeur.** L'auteur écrit un DSL
+   intelligible par revue Git (B-064) plutôt qu'un JSON vgplot
+   verbeux ; un éditeur graphique (hors V0) peut produire du DSL
+   sans devoir comprendre la grammaire vgplot.
+
+**Conséquences** :
+
+- `spec.engine` est un enum (V0 : `"mosaic"` uniquement). Repli
+  `"vega-lite"` ajouté si R-8 se concrétise — même DSL, compileur
+  alternatif.
+- `spec.views` est un tableau de vues typées (`map_choropleth`, `bar`,
+  `line`, `area`, `dot`, `table`, `kpi`, …) — voir `schema/vviz-v1.json`.
+- Le compileur DSL → vgplot vit dans `src/viz-engine/` (déjà préparé en
+  B-031). Sa V0 ne couvre que ce qui est démontré en Wave 3+ ;
+  l'extension du DSL est versionnée par bumps mineurs de
+  `vviz.version` après V1.
+
 ## Références
 
 - [Mosaic (UW IDL)](https://idl.uw.edu/mosaic/)

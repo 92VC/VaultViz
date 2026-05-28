@@ -69,4 +69,36 @@ describe("vviz-v1 JSON Schema (B-033a)", () => {
     bad.vviz.version = "2.0";
     expect(validate(bad)).toBe(false);
   });
+
+  // ── B-033b — spec resserrée (DSL VaultViz) ──────────────────────────
+
+  it("refuse spec sans engine", () => {
+    const bad = deepClone(sample);
+    delete bad.spec.engine;
+    expect(validate(bad)).toBe(false);
+  });
+
+  it("refuse spec.engine inconnu", () => {
+    const bad = deepClone(sample);
+    bad.spec.engine = "deckgl";
+    expect(validate(bad)).toBe(false);
+  });
+
+  it("refuse spec sans views", () => {
+    const bad = deepClone(sample);
+    delete bad.spec.views;
+    expect(validate(bad)).toBe(false);
+  });
+
+  it("refuse une view sans id ou sans source", () => {
+    const bad = deepClone(sample);
+    delete bad.spec.views[0].id;
+    expect(validate(bad)).toBe(false);
+  });
+
+  it("refuse view.type non listé", () => {
+    const bad = deepClone(sample);
+    bad.spec.views[0].type = "globe_3d";
+    expect(validate(bad)).toBe(false);
+  });
 });

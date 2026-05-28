@@ -14,6 +14,33 @@
     ]
   },
   "spec": {
-    "_NOTE": "Format de spec figé en B-033 (Wave 3). Ce stub est intentionnellement minimal pour B-012."
+    "engine": "mosaic",
+    "layout": "vstack",
+    "selections": [
+      { "id": "dept_filter", "kind": "single" }
+    ],
+    "views": [
+      {
+        "id": "map_dept",
+        "title": "Effectifs par département",
+        "type": "map_choropleth",
+        "source": "effectifs",
+        "encoding": {
+          "geo": { "field": "dept_code", "topology": "departements" },
+          "color": { "field": "n", "aggregate": "sum" }
+        },
+        "options": { "width": 600, "height": 600 }
+      },
+      {
+        "id": "kpi_total",
+        "title": "Total effectifs",
+        "type": "kpi",
+        "source": "effectifs",
+        "encoding": {
+          "value": { "field": "n", "aggregate": "sum" }
+        },
+        "filterBy": "dept_filter"
+      }
+    ]
   }
 }
