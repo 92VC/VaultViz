@@ -24,6 +24,7 @@ import {
   ensureSelection,
 } from "./viz-engine/mosaic-runtime";
 import { renderChoropleth } from "./components/map-view";
+import { renderBarChart } from "./components/bar-chart";
 
 type VVizErrorPayload = { kind: string; message: string };
 
@@ -178,6 +179,129 @@ async function bootstrap(): Promise<void> {
 
   // Démo B-032 — carte choroplèthe France (UC-1 partiel).
   await renderDemoChoropleth(root, DEFAULT_PARQUET);
+
+  // Démo B-041 — cross-filter UC-3 : carte + barres coordonnées via une
+  // seule `vg.Selection` partagée par le runtime. Aucun JS de filtrage
+  // métier ici, uniquement du câblage (createRuntime + renderXxx).
+  await renderCrossFilterDashboard(root, DEFAULT_PARQUET);
+}
+
+/**
+ * B-041 — Dashboard cross-filter UC-3 (carte ↔ barres).
+ *
+ * Câble une `vg.Selection` partagée entre la carte choroplèthe (émetteur
+ * de clauses point au clic, cf. B-040) et un bar chart vgplot
+ * (récepteur via `filterBy`). Au clic d'un département : le predicate
+ * push-down est généré par mosaic-sql, le coordinator re-query DuckDB
+ * via notre connector (B-031), le bar chart se ré-affiche.
+ *
+ * Aucune logique de filtrage métier dans ce fichier — uniquement du
+ * câblage haut-niveau (création runtime, registration de la vue
+ * DuckDB, render des deux composants). Critère No-Go H4 (PRD §12.1) :
+ * vérifiable par `grep -nE "if.*selection|\\.filter\\(" src/main.ts`
+ * → aucune occurrence métier (filtrages côté JS).
+ */
+async function renderCrossFilterDashboard(
+  root: HTMLElement,
+  parquetPath: string,
+): Promise<void> {
+  const section = document.createElement("section");
+  section.className = "vv-vgplot-demo vv-dashboard";
+  const h = document.createElement("h2");
+  h.className = "vv-h2";
+  h.textContent = "Dashboard cross-filter UC-3 — carte ↔ barres (B-041)";
+  section.appendChild(h);
+  const sub = document.createElement("p");
+  sub.className = "vv-note";
+  sub.textContent =
+    "Clic département = filtre push-down vgplot → DuckDB. Re-clic = clear. Selection partagée via runtime Mosaic.";
+  section.appendChild(sub);
+  const row = document.createElement("div");
+  row.className = "vv-hflex";
+  section.appendChild(row);
+  root.appendChild(section);
+
+  // Préparer la vue DuckDB référencée par vg.from("effectifs").
+  // Best-effort : si pas de Tauri en dev navigateur pur, on rend la
+  // démo avec une note de fallback.
+  const conn = createDuckConnector();
+  try {
+    await conn.query({
+      type: "exec",
+      sql: `
+        CREATE OR REPLACE VIEW effectifs AS
+        SELECT *,
+               LPAD(CAST(((id % 96) + 1) AS VARCHAR), 2, '0') AS code_dept
+        FROM read_parquet('${parquetPath}')
+      `,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const note = document.createElement("p");
+    note.className = "vv-note";
+    note.textContent = `Dashboard cross-filter indisponible (Tauri requis) : ${msg}`;
+    section.appendChild(note);
+    return;
+  }
+
+  // Runtime partagé entre la carte et les barres.
+  const ctx = createRuntime();
+  ensureSelection(ctx, "dept_select", "single");
+
+  // --- Carte (émetteur de clauses) ---
+  const mapMount = document.createElement("div");
+  mapMount.className = "vv-mapmount";
+  row.appendChild(mapMount);
+
+  const dataByDept = new Map<string, number>();
+  try {
+    const t = (await conn.query({
+      type: "arrow",
+      sql: `
+        SELECT code_dept AS code, COUNT(*) AS n
+        FROM effectifs
+        GROUP BY code_dept
+      `,
+    })) as {
+      numRows: number;
+      get: (i: number) => { code: string; n: bigint | number } | null;
+    } | null;
+    if (t && t.numRows) {
+      for (let i = 0; i < t.numRows; i++) {
+        const r = t.get(i);
+        if (!r) continue;
+        dataByDept.set(String(r.code), Number(r.n));
+      }
+    }
+  } catch {
+    // bench muet — la carte reste affichée à 0
+  }
+  const svg = renderChoropleth(mapMount, dataByDept, { width: 480, height: 480 });
+  bindMapSelection(svg, ctx, {
+    field: "code_dept",
+    selectionName: "dept_select",
+  });
+
+  // --- Bar chart (récepteur via filterBy) ---
+  const barMount = document.createElement("div");
+  barMount.className = "vv-barmount";
+  row.appendChild(barMount);
+  try {
+    renderBarChart(barMount, {
+      source: "effectifs",
+      xField: "code_dept",
+      filterSelectionName: "dept_select",
+      ctx,
+      width: 480,
+      height: 320,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const note = document.createElement("p");
+    note.className = "vv-note";
+    note.textContent = `Bar chart indisponible : ${msg}`;
+    barMount.appendChild(note);
+  }
 }
 
 /**

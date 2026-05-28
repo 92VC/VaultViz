@@ -98,6 +98,20 @@ body {
   margin: 0.5rem 0;
 }
 
+.vv-hflex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin: 0.5rem 0;
+}
+
+.vv-mapmount,
+.vv-barmount {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
 .vv-choropleth-svg {
   background: rgba(127, 127, 127, 0.05);
   border-radius: 6px;
