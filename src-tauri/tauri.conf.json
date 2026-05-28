@@ -38,6 +38,22 @@
     "publisher": "CPAM 92",
     "category": "Productivity",
     "shortDescription": "Visualisation de données locale pour CPAM 92",
-    "longDescription": "VaultViz est un outil de data-visualization desktop local-first interpretant des fichiers .vviz référençant des Parquet sur partage SMB."
+    "longDescription": "VaultViz est un outil de data-visualization desktop local-first interpretant des fichiers .vviz référençant des Parquet sur partage SMB.",
+    "fileAssociations": [
+      {
+        "ext": ["vviz"],
+        "name": "VaultViz Document",
+        "description": "Spec de visualisation VaultViz",
+        "role": "Viewer",
+        "mimeType": "application/x.vviz+json"
+      }
+    ],
+    "windows": {
+      "wix": {
+        "language": ["fr-FR", "en-US"],
+        "upgradeCode": "6C594A1B-6917-44C8-9FA9-13394A781EE9"
+      },
+      "allowDowngrades": false
+    }
   }
 }
