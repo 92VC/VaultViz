@@ -40,8 +40,8 @@
 | V0 — I3 Interactivité | 2 | 0 | 0 | 2 | 0 |
 | V0 — I4 Drill-down | 1 | 0 | 0 | 1 | 0 |
 | V0 — I5 Erreurs | 3 | 0 | 0 | 3 | 0 |
-| V0 — I6 MSI | 3 | 3 | 0 | 0 | 0 |
-| V0 — I7 Go/No-Go | 3 | 3 | 0 | 0 | 0 |
+| V0 — I6 MSI | 3 | 0 | 0 | 2 | 1 |
+| V0 — I7 Go/No-Go | 3 | 0 | 0 | 1 | 2 |
 | V1 — V1-1 MapLibre | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-3 Watcher | 2 | 2 | 0 | 0 | 0 |
@@ -52,7 +52,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **46** | **26** | **0** | **20** | **0** |
+| **Total** | **46** | **20** | **0** | **23** | **3** |
 
 ### 0.4 Conventions champs
 
@@ -367,7 +367,7 @@ Chaque story porte les champs :
 
 ### 2.7 I6 — MSI signable
 
-### B-070 — [ ] Configuration `tauri-bundler` cible MSI
+### B-070 — [x] Configuration `tauri-bundler` cible MSI
 
 - **Itération** : I6
 - **Livrable** : `tauri.conf.json` produit un MSI propre via `cargo tauri build`
@@ -381,7 +381,7 @@ Chaque story porte les champs :
 - **PRD** : ADR-006, §10.3
 - **Complexité** : M
 
-### B-071 — [ ] Workflow GitHub Actions build MSI signable
+### B-071 — [x] Workflow GitHub Actions build MSI signable
 
 - **Itération** : I6
 - **Livrable** : `.github/workflows/build.yml` produisant un MSI à chaque tag `v*`
@@ -395,7 +395,9 @@ Chaque story porte les champs :
 - **PRD** : §10.1, ADR-005
 - **Complexité** : M
 
-### B-072 — [ ] Livrer un MSI de test à la DSI pour test de signature
+### B-072 — [!] Livrer un MSI de test à la DSI pour test de signature
+
+- **Blocage** : Point de contact DSI à identifier (PRD §16 Q2). Dossier handoff prêt : `docs/handoff/dsi-signing-package.md`. MSI v0.0.1-rc1 disponible dès tag GHA `v0.0.1-rc1`.
 
 - **Itération** : I6
 - **Livrable** : ticket DSI accompagné du premier MSI publié, retour validation
@@ -412,7 +414,7 @@ Chaque story porte les champs :
 
 ### 2.8 I7 — Go/No-Go V0
 
-### B-080 — [ ] Benchmark Parquet 300 Mo + RAM
+### B-080 — [x] Benchmark Parquet 300 Mo + RAM
 
 - **Itération** : I7
 - **Livrable** : `BENCH.md` complété avec Parquet 300 Mo réel CPAM
@@ -425,7 +427,9 @@ Chaque story porte les champs :
 - **PRD** : §9.1, §12.1
 - **Complexité** : M
 
-### B-081 — [ ] Démo interne RSSI + 2 cadres invités
+### B-081 — [!] Démo interne RSSI + 2 cadres invités
+
+- **Blocage** : Convocation des participants par sponsor. Dossier prêt : `docs/handoff/demo-script.md` + `docs/handoff/feedback-grid.md`.
 
 - **Itération** : I7
 - **Livrable** : démo live 30 min + retour écrit
@@ -438,7 +442,9 @@ Chaque story porte les champs :
 - **PRD** : §12.1, H6
 - **Complexité** : M
 
-### B-082 — [ ] Décision Go/No-Go V0 → V1
+### B-082 — [!] Décision Go/No-Go V0 → V1
+
+- **Blocage** : Dépend de B-072 (DSI) et B-081 (RSSI) en retour. Template `docs/adr/ADR-V0-GoNoGo-template.md` prêt avec critères techniques pré-évalués (6 🟢 / 3 🟧 / 0 🔴).
 
 - **Itération** : I7
 - **Livrable** : décision tracée dans `docs/adr/ADR-V0-GoNoGo.md` ou amendement PRD

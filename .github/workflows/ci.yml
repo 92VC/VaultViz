@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  test-linux:
+    name: Test Linux (Rust + JS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      - name: Install Linux Tauri deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libsoup-3.0-dev \
+            librsvg2-dev \
+            libappindicator3-dev \
+            patchelf
+
+      - name: Install JS deps
+        run: npm ci
+
+      - name: Run Vitest
+        run: npm test
+
+      - name: Run Cargo tests
+        working-directory: src-tauri
+        run: cargo test --all --release
+
+      - name: Run npm build
+        run: npm run build
+
+  build-windows-smoke:
+    name: Build Windows MSI (smoke)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      - name: Install JS deps
+        run: npm ci
+
+      - name: Install Tauri CLI
+        run: cargo install --locked tauri-cli@^2.0
+
+      - name: Build (smoke debug)
+        run: cargo tauri build --bundles msi --debug
+
+      - name: Upload MSI smoke artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vaultviz-msi-smoke-debug
+          path: src-tauri/target/debug/bundle/msi/*.msi
+          if-no-files-found: warn
