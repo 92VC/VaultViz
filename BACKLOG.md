@@ -39,7 +39,7 @@
 | V0 — I2 Mosaic | 4 | 0 | 0 | 4 | 0 |
 | V0 — I3 Interactivité | 2 | 0 | 0 | 2 | 0 |
 | V0 — I4 Drill-down | 1 | 0 | 0 | 1 | 0 |
-| V0 — I5 Erreurs | 3 | 3 | 0 | 0 | 0 |
+| V0 — I5 Erreurs | 3 | 0 | 0 | 3 | 0 |
 | V0 — I6 MSI | 3 | 3 | 0 | 0 | 0 |
 | V0 — I7 Go/No-Go | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-1 MapLibre | 2 | 2 | 0 | 0 | 0 |
@@ -52,7 +52,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **46** | **29** | **0** | **17** | **0** |
+| **Total** | **46** | **26** | **0** | **20** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -327,7 +327,7 @@ Chaque story porte les champs :
 
 ### 2.6 I5 — Gestion d'erreurs & logging
 
-### B-060 — [ ] Gestion fichier `.vviz` manquant ou inaccessible
+### B-060 — [x] Gestion fichier `.vviz` manquant ou inaccessible
 
 - **Itération** : I5
 - **Livrable** : UX d'erreur claire si le `.vviz` n'existe pas ou si le scope FS refuse
@@ -339,7 +339,7 @@ Chaque story porte les champs :
 - **PRD** : UC-6, §5.2
 - **Complexité** : S
 
-### B-061 — [ ] Gestion spec `.vviz` invalide (échec validation JSON Schema)
+### B-061 — [x] Gestion spec `.vviz` invalide (échec validation JSON Schema)
 
 - **Itération** : I5
 - **Livrable** : validation contre `vviz-v1.json` au chargement, message d'erreur exploitable
@@ -352,7 +352,7 @@ Chaque story porte les champs :
 - **PRD** : UC-6
 - **Complexité** : M
 
-### B-062 — [ ] Logging local fichier rotatif
+### B-062 — [x] Logging local fichier rotatif
 
 - **Itération** : I5
 - **Livrable** : module Rust `log.rs` qui écrit dans `%LOCALAPPDATA%\VaultViz\logs\YYYY-MM-DD.log`
