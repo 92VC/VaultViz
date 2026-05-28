@@ -52,12 +52,20 @@ jobs:
         shell: bash
         run: |
           cargo audit --json > audit-rust.json || true
+          # Fallback : si vide ou absent, écrire un placeholder JSON valide
+          # pour éviter l'erreur "size must be ≥ 1" côté GitHub Release.
+          if [ ! -s audit-rust.json ]; then
+            echo '{"_note":"cargo-audit a renvoyé vide (aucune vulnérabilité ?)"}' > audit-rust.json
+          fi
           ls -la audit-rust.json
 
       - name: SBOM npm (audit)
         shell: bash
         run: |
           npm audit --json > audit-npm.json || true
+          if [ ! -s audit-npm.json ]; then
+            echo '{"_note":"npm audit a renvoyé vide"}' > audit-npm.json
+          fi
           ls -la audit-npm.json
 
       - name: Compute MSI SHA-256
