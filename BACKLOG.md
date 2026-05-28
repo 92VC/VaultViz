@@ -35,7 +35,7 @@
 |---|---|---|---|---|---|
 | Pré-V0 | 3 | 0 | 0 | 3 | 0 |
 | V0 — I0 Squelette | 3 | 0 | 0 | 3 | 0 |
-| V0 — I1 DuckDB | 4 | 4 | 0 | 0 | 0 |
+| V0 — I1 DuckDB | 4 | 3 | 1 | 0 | 0 |
 | V0 — I2 Mosaic | 4 | 4 | 0 | 0 | 0 |
 | V0 — I3 Interactivité | 2 | 2 | 0 | 0 | 0 |
 | V0 — I4 Drill-down | 1 | 1 | 0 | 0 | 0 |
@@ -52,7 +52,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **46** | **40** | **0** | **6** | **0** |
+| **Total** | **46** | **39** | **1** | **6** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -167,7 +167,7 @@ Chaque story porte les champs :
 
 ### 2.2 I1 — DuckDB natif intégré
 
-### B-020 — [ ] Intégrer `duckdb-rs` en feature `bundled`
+### B-020 — [~] Intégrer `duckdb-rs` en feature `bundled`
 
 - **Itération** : I1
 - **Livrable** : DuckDB compilé statiquement dans le binaire Tauri
