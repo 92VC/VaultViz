@@ -42,8 +42,8 @@ jobs:
       - name: Install Tauri CLI
         run: cargo install --locked tauri-cli@^2.0
 
-      - name: Build Tauri MSI release
-        run: cargo tauri build --bundles msi
+      - name: Build Tauri MSI + NSIS release
+        run: cargo tauri build --bundles msi nsis
 
       - name: Install cargo-audit
         run: cargo install --locked cargo-audit
@@ -68,11 +68,14 @@ jobs:
           fi
           ls -la audit-npm.json
 
-      - name: Compute MSI SHA-256
+      - name: Compute installers SHA-256
         shell: bash
         run: |
           for msi in src-tauri/target/release/bundle/msi/*.msi; do
             sha256sum "$msi" | tee -a msi-sha256.txt
+          done
+          for exe in src-tauri/target/release/bundle/nsis/*.exe; do
+            sha256sum "$exe" | tee -a msi-sha256.txt
           done
 
       - name: Upload MSI artifact
@@ -80,6 +83,13 @@ jobs:
         with:
           name: vaultviz-msi
           path: src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: error
+
+      - name: Upload EXE (NSIS) artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vaultviz-exe
+          path: src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
 
       - name: Upload SBOM artifact
@@ -97,6 +107,7 @@ jobs:
         with:
           files: |
             src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
             audit-rust.json
             audit-npm.json
             msi-sha256.txt
