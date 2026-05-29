@@ -702,7 +702,8 @@ button {
 }
 .bar-row {
   display: grid;
-  grid-template-columns: 96px 1fr auto;
+  /* Libellé élargi (96→200px) : noms de sites / d'articles longs lisibles. */
+  grid-template-columns: 200px 1fr auto;
   align-items: center;
   gap: 10px;
   cursor: pointer;
@@ -795,6 +796,139 @@ button {
   font-size: var(--fs-xs);
   color: var(--text-3);
   font-family: var(--font-mono);
+}
+
+/* Légende des barres appariées (séries) — espacement pastille/libellé. */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 10px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+.legend-swatch.budget {
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+}
+.legend-swatch.realise {
+  background: var(--accent);
+}
+
+/* Barre d'onglets internes au dashboard. */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border-2);
+}
+.tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 9px 14px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.tab:hover {
+  color: var(--text-1);
+}
+.tab[data-active="true"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+/* Tooltip custom (survol des barres appariées). */
+.vv-tooltip {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  background: var(--surface-1);
+  color: var(--text-1);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  padding: 5px 9px;
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+/* Carte KPI cliquable (raccourci vers un onglet) : liseré d'accent à gauche
+   (sans reflow) + pastille chevron nette en bas à droite + survol. */
+.card.kpi.nav {
+  position: relative;
+  box-shadow: inset 3px 0 0 var(--accent);
+  transition: border-color 0.15s var(--ease), transform 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
+}
+.card.kpi.nav::after {
+  content: "›";
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.card.kpi.nav:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.card.kpi.nav:hover::after {
+  background: var(--accent);
+  color: var(--surface-1);
+}
+
+/* Hauteurs égales : une carte SEULE dans sa colonne remplit la colonne
+   (les colonnes .grid-2 sont déjà étirées à hauteur égale). Garde-fou
+   `:only-child` → n'affecte pas les colonnes multi-cartes (ex. exemple
+   canonique). Le graphe de barres appariées s'étire alors à la hauteur
+   de la colonne voisine. */
+.grid-2 > .col > .card:only-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.grid-2 > .col > .card:only-child > .card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.grid-2 > .col > .card:only-child > .card-body > .qbars {
+  flex: 1;
+  height: auto;
+  min-height: 170px;
+}
+/* Barres classées : la liste s'étire pour remplir la carte (répartition
+   verticale) → même hauteur visuelle que la vue voisine, sur tous les onglets. */
+.grid-2 > .col > .card:only-child > .card-body > .bars {
+  flex: 1;
+  justify-content: space-between;
 }
 
 /* table (mockup variant) */

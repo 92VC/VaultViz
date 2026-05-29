@@ -125,6 +125,23 @@
             }
           }
         },
+        "tabs": {
+          "type": "array",
+          "description": "Onglets internes du dashboard. Chaque vue est rattachée via `options.tab` ; une carte KPI peut pointer vers un onglet via `options.navigateTo`. Absent → page unique.",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "required": ["id", "label"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z_][a-zA-Z0-9_]{0,63}$"
+              },
+              "label": { "type": "string" }
+            }
+          }
+        },
         "views": {
           "type": "array",
           "minItems": 1,

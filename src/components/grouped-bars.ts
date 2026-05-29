@@ -67,6 +67,31 @@ export function renderGroupedBars(
   legend.appendChild(makeLegendItem(labels[1], "realise"));
   container.appendChild(legend);
 
+  // Tooltip custom au survol (le `title` natif est peu fiable / invisible
+  // dans la WebView). Un seul élément, positionné en `fixed` au curseur.
+  const tip = document.createElement("div");
+  tip.className = "vv-tooltip";
+  tip.hidden = true;
+  container.appendChild(tip);
+  const showTip = (text: string, e: MouseEvent): void => {
+    tip.textContent = text;
+    tip.hidden = false;
+    tip.style.left = `${e.clientX + 12}px`;
+    tip.style.top = `${e.clientY + 12}px`;
+  };
+  const moveTip = (e: MouseEvent): void => {
+    tip.style.left = `${e.clientX + 12}px`;
+    tip.style.top = `${e.clientY + 12}px`;
+  };
+  const hideTip = (): void => {
+    tip.hidden = true;
+  };
+  const bindTip = (bar: HTMLElement, text: string): void => {
+    bar.addEventListener("mouseenter", (e) => showTip(text, e as MouseEvent));
+    bar.addEventListener("mousemove", (e) => moveTip(e as MouseEvent));
+    bar.addEventListener("mouseleave", hideTip);
+  };
+
   const bars = document.createElement("div");
   bars.className = "qbars";
 
@@ -76,12 +101,12 @@ export function renderGroupedBars(
 
     const pair = document.createElement("div");
     pair.className = "qpair";
-    pair.appendChild(
-      makeBar(r.v1, safeMax, "budget", `${labels[0]} ${fmt(r.v1, format)}`),
-    );
-    pair.appendChild(
-      makeBar(r.v2, safeMax, "realise", `${labels[1]} ${fmt(r.v2, format)}`),
-    );
+    const b1 = makeBar(r.v1, safeMax, "budget", `${labels[0]} ${fmt(r.v1, format)}`);
+    const b2 = makeBar(r.v2, safeMax, "realise", `${labels[1]} ${fmt(r.v2, format)}`);
+    bindTip(b1, `${labels[0]} · ${fmt(r.v1, format)}`);
+    bindTip(b2, `${labels[1]} · ${fmt(r.v2, format)}`);
+    pair.appendChild(b1);
+    pair.appendChild(b2);
     group.appendChild(pair);
 
     const lab = document.createElement("div");

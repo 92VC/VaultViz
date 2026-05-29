@@ -121,6 +121,8 @@ export type CompiledView =
       valueLabels?: boolean;
       filterBy?: string;
       filterField?: string;
+      /** Selection émise au clic d'une barre (cross-filter) — options.emitsTo. */
+      emitsSelection?: string;
       options?: Record<string, unknown>;
     }
   | {
@@ -319,6 +321,7 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
           valueLabels: opts?.valueLabels === true ? true : undefined,
           filterBy: view.filterBy,
           filterField: filterFieldFromOpts(opts),
+          emitsSelection: emitsSelectionFromOpts(opts),
           options: opts,
         };
       }

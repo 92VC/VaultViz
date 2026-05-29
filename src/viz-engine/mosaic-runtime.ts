@@ -191,6 +191,37 @@ export function bindMapSelection(
   };
 }
 
+/**
+ * Émetteur de sélection « point » générique, découplé du DOM/SVG. Calque
+ * la sémantique de {@link bindMapSelection} (toggle single, clause source
+ * stable) pour les composants bespoke qui n'ont pas de `<path data-*>` :
+ * barres classées, lignes de table. Le composant appelle la fonction
+ * retournée avec la valeur cliquée (ou `null` pour vider).
+ *
+ * - 1er appel avec `v` → `clausePoint(field, v)` (predicate `field IN (v)`).
+ * - même `v` à nouveau, ou `null` → clause à predicate null (désélection).
+ * - autre `v` → remplace la clause (resolver `single`).
+ */
+export function createPointEmitter(
+  ctx: RuntimeContext,
+  selectionName: string,
+  field: string,
+  sourceName?: string,
+): (value: string | null) => void {
+  const sel = ensureSelection(ctx, selectionName, "single");
+  const source = ensureClauseSource(ctx, sourceName ?? `emit:${selectionName}`);
+  let current: string | null = null;
+  return function emit(value: string | null): void {
+    if (value === null || current === value) {
+      current = null;
+      sel.update(clausePoint(field, undefined, { source }));
+      return;
+    }
+    current = value;
+    sel.update(clausePoint(field, value, { source }));
+  };
+}
+
 function clearMapStroke(svg: SVGSVGElement): void {
   const paths = svg.querySelectorAll<SVGPathElement>("path[data-dept]");
   for (const p of Array.from(paths)) {

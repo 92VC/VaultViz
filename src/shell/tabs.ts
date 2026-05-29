@@ -277,6 +277,7 @@ export function createTabsManager(deps: TabsDeps): TabsManager {
       }
       await mountDashboard(region, compiled, ctx, conn, {
         gridRatio: doc.spec.gridRatio,
+        tabs: doc.spec.tabs,
       });
     } else {
       const layout = document.createElement("div");

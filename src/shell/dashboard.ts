@@ -29,6 +29,7 @@ import { ensureClauseSource } from "../viz-engine/mosaic-runtime";
 import { mountCompiledView } from "../viz-engine/view-mounter";
 import { onSelectionValue } from "../viz-engine/drill-query";
 import { mountFilterChip } from "../components/filter-chip";
+import { renderTabBar, type TabDef } from "../components/tab-bar";
 
 type Region = "kpi" | "main" | "side" | "full";
 
@@ -112,10 +113,13 @@ function clearSelection(
   ctx: RuntimeContext,
   selectionName: string,
   field: string,
+  sourceName = `map:${selectionName}`,
 ): void {
   const sel = ctx.selections.get(selectionName);
   if (!sel) return;
-  const source = ensureClauseSource(ctx, `map:${selectionName}`);
+  // Même ClauseSource que l'émetteur (carte = `map:…`, barres = `emit:…`)
+  // → le resolver `single` retire la clause (désélection).
+  const source = ensureClauseSource(ctx, sourceName);
   sel.update(clausePoint(field, undefined, { source }));
 }
 
@@ -128,7 +132,7 @@ export async function mountDashboard(
   views: CompiledView[],
   ctx: RuntimeContext,
   conn: DuckConnector,
-  opts: { gridRatio?: [number, number] } = {},
+  opts: { gridRatio?: [number, number]; tabs?: TabDef[] } = {},
 ): Promise<void> {
   const hasRegions = views.some((v) => regionOf(v) !== undefined);
 
@@ -156,70 +160,139 @@ export async function mountDashboard(
 
   const kpis = document.createElement("div");
   kpis.className = "kpis";
-
-  const row = document.createElement("div");
-  row.className = "grid-2";
-  // Ratio des colonnes [principale, latérale] piloté par le DSL
-  // (spec.gridRatio). Sans valeur → défaut CSS (1.32 | 1). Permet de
-  // réduire la zone principale (ex. carte) au profit des vues de droite,
-  // côté fichier .vviz — pas de hardcodage par dashboard.
-  const gr = opts.gridRatio;
-  if (
-    Array.isArray(gr) &&
-    gr.length === 2 &&
-    gr.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)
-  ) {
-    row.style.gridTemplateColumns = `minmax(0, ${gr[0]}fr) minmax(0, ${gr[1]}fr)`;
-  }
-  const colMain = document.createElement("div");
-  colMain.className = "col col-main";
-  const colSide = document.createElement("div");
-  colSide.className = "col col-side";
-  row.append(colMain, colSide);
-
-  grid.append(kpis, row);
+  grid.appendChild(kpis);
   container.appendChild(grid);
 
-  // Chip de filtre : lié à la première vue carte émettrice.
-  const emitter = views.find(
-    (v) => v.kind === "choropleth" && v.emitsSelection,
-  ) as Extract<CompiledView, { kind: "choropleth" }> | undefined;
-  let chip: { set(label: string | null): void } | null = null;
-  if (emitter?.emitsSelection) {
-    const selName = emitter.emitsSelection;
-    const field = emitter.geoField;
-    const chipHost = document.createElement("div");
-    chipHost.className = "dash-filter";
-    grid.insertBefore(chipHost, kpis);
-    chip = mountFilterChip(chipHost, {
-      onClear: () => clearSelection(ctx, selName, field),
-    });
-    onSelectionValue(ctx, selName, (v) => chip?.set(v));
+  // Ratio des colonnes [principale, latérale] piloté par le DSL (spec.gridRatio).
+  const gr = opts.gridRatio;
+  const validGr =
+    Array.isArray(gr) &&
+    gr.length === 2 &&
+    gr.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0);
+  /** Construit une rangée `.grid-2` (colonnes principale | latérale). */
+  function makeRow(): { row: HTMLElement; colMain: HTMLElement; colSide: HTMLElement } {
+    const row = document.createElement("div");
+    row.className = "grid-2";
+    if (validGr) {
+      row.style.gridTemplateColumns = `minmax(0, ${gr![0]}fr) minmax(0, ${gr![1]}fr)`;
+    }
+    const colMain = document.createElement("div");
+    colMain.className = "col col-main";
+    const colSide = document.createElement("div");
+    colSide.className = "col col-side";
+    row.append(colMain, colSide);
+    return { row, colMain, colSide };
   }
 
-  for (const v of views) {
+  /** Place une vue graphe (non-KPI) dans les colonnes / le host pleine largeur. */
+  async function placeChart(
+    v: CompiledView,
+    colMain: HTMLElement,
+    colSide: HTMLElement,
+    fullHost: HTMLElement,
+  ): Promise<void> {
     const region = regionOf(v) ?? "main";
-
-    if (region === "kpi") {
-      // KPI : pas de wrapper card (renderKpiCard émet sa propre .card).
-      const mount = document.createElement("div");
-      mount.dataset.viewId = v.id;
-      kpis.appendChild(mount);
-      await mountInto(v, mount, ctx, conn);
-      continue;
-    }
-
     if (region === "full") {
       const card = document.createElement("div");
       card.className = "card table-card";
       card.dataset.viewId = v.id;
-      grid.appendChild(card);
+      fullHost.appendChild(card);
       await mountInto(v, card, ctx, conn);
-      continue;
+      return;
     }
-
     const { card, body } = makeCard(v);
     (region === "side" ? colSide : colMain).appendChild(card);
     await mountInto(v, body, ctx, conn);
+  }
+
+  // Chip de filtre actif (« Filtre : X ✕ ») : lié à la première vue
+  // ÉMETTRICE — carte choroplèthe OU barres classées (extension cross-filter).
+  const emitter = views.find(
+    (v) =>
+      (v.kind === "choropleth" || v.kind === "ranked_bars") &&
+      (v as { emitsSelection?: string }).emitsSelection,
+  );
+  let chip: { set(label: string | null): void } | null = null;
+  if (emitter) {
+    const selName = (emitter as { emitsSelection: string }).emitsSelection;
+    const field =
+      emitter.kind === "choropleth"
+        ? emitter.geoField
+        : (emitter as { filterField?: string }).filterField;
+    const sourceName =
+      emitter.kind === "choropleth" ? `map:${selName}` : `emit:${selName}`;
+    if (field) {
+      const chipHost = document.createElement("div");
+      chipHost.className = "dash-filter";
+      grid.insertBefore(chipHost, kpis);
+      chip = mountFilterChip(chipHost, {
+        onClear: () => clearSelection(ctx, selName, field, sourceName),
+      });
+      onSelectionValue(ctx, selName, (v) => chip?.set(v));
+    }
+  }
+
+  // Bandeau KPI : TOUJOURS visible (synthèse permanente, au-dessus des onglets).
+  const kpiViews = views.filter((v) => regionOf(v) === "kpi");
+  const chartViews = views.filter((v) => regionOf(v) !== "kpi");
+  for (const v of kpiViews) {
+    const mount = document.createElement("div");
+    mount.dataset.viewId = v.id;
+    kpis.appendChild(mount);
+    await mountInto(v, mount, ctx, conn);
+  }
+
+  const tabs = opts.tabs?.filter((t) => t && typeof t.id === "string");
+
+  if (tabs && tabs.length > 0) {
+    // Onglets internes : un panneau par onglet, seul l'actif est visible.
+    const panels = new Map<
+      string,
+      { panel: HTMLElement; colMain: HTMLElement; colSide: HTMLElement }
+    >();
+    function switchTab(id: string): void {
+      for (const [tid, p] of panels) p.panel.hidden = tid !== id;
+      tabBar.setActive(id);
+    }
+    const tabBar = renderTabBar(grid, tabs, {
+      active: tabs[0].id,
+      onSelect: switchTab,
+    });
+
+    for (const t of tabs) {
+      const panel = document.createElement("div");
+      panel.className = "tab-panel";
+      panel.dataset.tab = t.id;
+      const { row, colMain, colSide } = makeRow();
+      panel.appendChild(row);
+      grid.appendChild(panel);
+      panels.set(t.id, { panel, colMain, colSide });
+    }
+
+    const tabIds = new Set(tabs.map((t) => t.id));
+    for (const v of chartViews) {
+      const declared = (v.options as Record<string, unknown> | undefined)?.["tab"];
+      const tabId =
+        typeof declared === "string" && tabIds.has(declared)
+          ? declared
+          : tabs[0].id;
+      const target = panels.get(tabId)!;
+      await placeChart(v, target.colMain, target.colSide, target.panel);
+    }
+
+    // État initial : 1er onglet actif.
+    for (const [tid, p] of panels) p.panel.hidden = tid !== tabs[0].id;
+    // Raccourcis KPI : un clic sur une carte émet `vv-navigate`.
+    grid.addEventListener("vv-navigate", (e) =>
+      switchTab((e as CustomEvent).detail.tab),
+    );
+    return;
+  }
+
+  // Sans onglets : rangée unique (comportement historique).
+  const { row, colMain, colSide } = makeRow();
+  grid.appendChild(row);
+  for (const v of chartViews) {
+    await placeChart(v, colMain, colSide, grid);
   }
 }

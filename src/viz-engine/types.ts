@@ -94,6 +94,8 @@ export interface VVizSpec {
    */
   gridRatio?: [number, number];
   selections?: SelectionSpec[];
+  /** Onglets internes du dashboard (cf. tab-bar). Absent → page unique. */
+  tabs?: { id: string; label: string }[];
   views: ViewSpec[];
 }
 

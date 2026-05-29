@@ -19,7 +19,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { CompiledView } from "./view-compiler";
 import type { DuckConnector } from "./duck-connector";
 import type { RuntimeContext } from "./mosaic-runtime";
-import { bindMapSelection, ensureSelection } from "./mosaic-runtime";
+import { bindMapSelection, createPointEmitter, ensureSelection } from "./mosaic-runtime";
 import { onSelectionValue } from "./drill-query";
 import { renderChoropleth, renderMetricSwitcher } from "../components/map-view";
 import { renderBarChart } from "../components/bar-chart";
@@ -247,16 +247,27 @@ export async function mountCompiledView(
     }
 
     case "ranked_bars": {
+      // Émission cross-filter : si la vue porte `emitsSelection` + un champ
+      // filtrable, un clic sur une barre pousse une clause point (toggle).
+      const emit =
+        view.emitsSelection && view.filterField
+          ? createPointEmitter(ctx, view.emitsSelection, view.filterField)
+          : undefined;
       const render = async (value: string | null): Promise<void> => {
         const sql =
           value !== null && view.filterField
             ? injectWhere(view.sql, view.source, view.filterField, value)
             : view.sql;
         const rows = await fetchKV(conn, sql);
+        const palette = (view.options as Record<string, unknown> | undefined)?.[
+          "palette"
+        ];
         renderRankedBars(container, rows, {
           format: view.valueFormat,
           valueLabels: view.valueLabels,
           title: view.title,
+          palette: Array.isArray(palette) ? (palette as string[]) : undefined,
+          onSelect: emit ? (k) => emit(k) : undefined,
         });
       };
       await render(null);
@@ -283,6 +294,22 @@ export async function mountCompiledView(
     }
 
     case "kpi": {
+      // Raccourci de navigation : si la carte porte options.navigateTo, un clic
+      // émet un événement DOM `vv-navigate` (le dashboard l'écoute et bascule
+      // d'onglet) — découplé de la logique d'onglets.
+      const navTo = (view.options as Record<string, unknown> | undefined)?.[
+        "navigateTo"
+      ];
+      const onClick =
+        typeof navTo === "string"
+          ? () =>
+              container.dispatchEvent(
+                new CustomEvent("vv-navigate", {
+                  detail: { tab: navTo },
+                  bubbles: true,
+                }),
+              )
+          : undefined;
       const render = async (value: string | null): Promise<void> => {
         const sql =
           value !== null && view.filterField
@@ -297,6 +324,7 @@ export async function mountCompiledView(
           deltaUnit: view.deltaUnit,
           foot: view.foot,
           icon: view.icon,
+          onClick,
         });
       };
       await render(null);
