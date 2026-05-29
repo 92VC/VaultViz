@@ -78,8 +78,11 @@ function hasTauri(): boolean {
 async function tauriWindow(): Promise<any | null> {
   if (!hasTauri()) return null;
   try {
-    const spec = "@tauri-apps/api/window";
-    const mod: any = await import(/* @vite-ignore */ spec);
+    // Import dynamique LITTÉRAL : Vite le bundle, donc il fonctionne à
+    // l'exécution dans la WebView (un spécificateur variable + @vite-ignore
+    // resterait non résolu → boutons fenêtre inertes). `@tauri-apps/api`
+    // est une dépendance présente. La garde `hasTauri()` protège les tests.
+    const mod = await import("@tauri-apps/api/window");
     return mod.getCurrentWindow();
   } catch {
     return null;

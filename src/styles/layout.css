@@ -575,9 +575,20 @@ button {
 }
 .map-wrap svg {
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 460px;
   display: block;
   overflow: visible;
+}
+/* La carte V0 (vv-choropleth-svg) émet un viewBox fixe : on la rend
+   responsive par ratio dans la carte du dashboard, sans débordement. */
+.map-wrap .vv-choropleth-svg {
+  width: 100%;
+  height: auto;
+  max-height: 460px;
+}
+.map-wrap .vv-legend {
+  margin-top: 8px;
 }
 .dept {
   stroke: var(--surface-1);
