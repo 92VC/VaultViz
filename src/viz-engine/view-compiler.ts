@@ -12,6 +12,32 @@ function ident(s: string): string {
   return `"${s.replace(/"/g, '""')}"`;
 }
 
+const DOC_ID = /^[a-zA-Z0-9_]{1,32}$/;
+
+/**
+ * Référence SQL qualifiée d'une source (SP4 — namespacing par schéma).
+ *
+ * - Sans `docId` : comportement historique, identifiant simple `"src"`.
+ * - Avec `docId` : `doc_<docId>."src"` (chaque segment échappé).
+ *
+ * Pour les kinds SQL-path (kpi, choropleth, ranked/grouped_bars), cette
+ * chaîne est interpolée dans le SQL brut envoyé à DuckDB → isolation
+ * correcte. Pour vgplot (bar/plot), cf. note dans compileView.
+ *
+ * LIMITE cross-filter sous docId : `injectWhere` (view-mounter.ts)
+ * cherche le token `FROM ${ident(source)}` = `FROM "src"`, qui ne match
+ * pas le `FROM doc_<id>."src"` qualifié. Sous docId, l'injection du
+ * WHERE de cross-filter no-op (rendu non filtré, pas de crash). Le fix
+ * appartient à view-mounter.ts (hors périmètre de cette story).
+ */
+function qualifiedSource(docId: string | undefined, source: string): string {
+  if (docId === undefined) return ident(source);
+  if (!DOC_ID.test(docId)) {
+    throw new Error(`docId invalide : "${docId}"`);
+  }
+  return `doc_${docId}.${ident(source)}`;
+}
+
 function aggExpr(field: string | undefined, agg: string | undefined): string {
   const a = (agg ?? "count").toLowerCase();
   if (a === "count" && !field) return "COUNT(*)";
@@ -152,7 +178,10 @@ function normSort(raw: unknown): string {
   return s === "ASC" ? "ASC" : "DESC";
 }
 
-export function compileView(view: ViewSpec): CompiledView {
+export function compileView(view: ViewSpec, docId?: string): CompiledView {
+  // SP4 : source qualifiée par schéma `doc_<docId>` quand docId fourni.
+  // Sans docId, `src` == `ident(view.source)` → SQL strictement inchangé.
+  const src = qualifiedSource(docId, view.source);
   switch (view.type) {
     case "map_choropleth": {
       const geo = getChannel(view, "geo");
@@ -166,7 +195,7 @@ export function compileView(view: ViewSpec): CompiledView {
       const aggregate = color?.aggregate ?? (color?.field ? "sum" : "count");
       const defaultSql =
         `SELECT ${ident(geoField)} AS key, ${aggExpr(color?.field, aggregate)} AS v ` +
-        `FROM ${ident(view.source)} GROUP BY ${ident(geoField)}`;
+        `FROM ${src} GROUP BY ${ident(geoField)}`;
 
       // SP3 : métriques alternatives (options.metrics). Sans elles, comportement inchangé.
       let metrics: MetricDef[] | undefined;
@@ -185,7 +214,7 @@ export function compileView(view: ViewSpec): CompiledView {
           const agg = (def.aggregate ?? "sum").toLowerCase();
           const mSql =
             `SELECT ${ident(geoField)} AS key, ${aggExpr(def.field, agg)} AS v ` +
-            `FROM ${ident(view.source)} GROUP BY ${ident(geoField)}`;
+            `FROM ${src} GROUP BY ${ident(geoField)}`;
           return {
             key: def.key,
             label: def.label,
@@ -233,7 +262,7 @@ export function compileView(view: ViewSpec): CompiledView {
         const sql =
           `SELECT ${ident(x.field)} AS k, ${aggExpr(y?.field, yAgg)} AS v1, ` +
           `${aggExpr(compareField, yAgg)} AS v2 ` +
-          `FROM ${ident(view.source)} GROUP BY ${ident(x.field)}`;
+          `FROM ${src} GROUP BY ${ident(x.field)}`;
         const rawLabels = opts?.seriesLabels;
         const seriesLabels: [string, string] =
           Array.isArray(rawLabels) &&
@@ -264,7 +293,7 @@ export function compileView(view: ViewSpec): CompiledView {
         const sort = normSort(opts?.sort);
         const sql =
           `SELECT ${ident(x.field)} AS k, ${aggExpr(y?.field, yAgg)} AS v ` +
-          `FROM ${ident(view.source)} GROUP BY ${ident(x.field)} ORDER BY v ${sort}`;
+          `FROM ${src} GROUP BY ${ident(x.field)} ORDER BY v ${sort}`;
         return {
           kind: "ranked_bars",
           id: view.id,
@@ -282,11 +311,19 @@ export function compileView(view: ViewSpec): CompiledView {
       }
 
       // Rétro-compat total : bar nu inchangé.
+      // SP4 : source qualifiée pour vgplot quand docId fourni.
+      // Sans docId → `view.source` brut (vgplot quote tel quel : "src").
+      // LIMITE : vg.from(string) (cf. asTableRef→tableRef) traite la
+      // chaîne comme UN identifiant unique et la re-quote en bloc
+      // (`doc_d1.""effectifs"""`). L'isolation réelle bar/plot nécessite
+      // un suivi côté renderer (passer un tableau ["doc_d1","src"] à
+      // vg.from). Les kinds SQL-path (kpi/choropleth/ranked/grouped)
+      // sont, eux, correctement isolés via la qualification du SQL brut.
       return {
         kind: "bar",
         id: view.id,
         title: view.title,
-        source: view.source,
+        source: docId ? qualifiedSource(docId, view.source) : view.source,
         xField: x.field,
         yField: y?.field,
         yAggregate: yAgg,
@@ -347,10 +384,10 @@ export function compileView(view: ViewSpec): CompiledView {
         const deltaAgg = aggExpr(delta?.field, delta?.aggregate ?? "sum");
         sql =
           `SELECT ${valueAgg} AS v, ${deltaAgg} AS delta ` +
-          `FROM ${ident(view.source)}`;
+          `FROM ${src}`;
         hasDelta = true;
       } else {
-        sql = `SELECT ${valueAgg} AS v FROM ${ident(view.source)}`;
+        sql = `SELECT ${valueAgg} AS v FROM ${src}`;
       }
 
       return {
@@ -381,11 +418,12 @@ export function compileView(view: ViewSpec): CompiledView {
       }
       const y = getChannel(view, "y");
       const series = getChannel(view, "series");
+      // SP4 : même logique que bar (cf. note LIMITE vgplot ci-dessus).
       return {
         kind: "plot",
         id: view.id,
         title: view.title,
-        source: view.source,
+        source: docId ? qualifiedSource(docId, view.source) : view.source,
         plotType: view.type,
         xField: x.field,
         yField: y?.field,

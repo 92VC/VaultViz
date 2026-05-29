@@ -480,3 +480,144 @@ describe("compileView — SP3 table colonnes riches", () => {
     expect(c.search).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// SP4 — namespacing par schéma DuckDB (docId)
+// ---------------------------------------------------------------------------
+
+describe("compileView — SP4 docId qualification", () => {
+  it("kpi avec docId : FROM doc_d1.\"source\"", () => {
+    const v: ViewSpec = {
+      id: "k1",
+      type: "kpi",
+      source: "effectifs",
+      encoding: { value: { field: "n", aggregate: "sum" } },
+    };
+    const c = compileView(v, "d1");
+    if (c.kind !== "kpi") throw new Error("kind");
+    expect(c.sql).toBe(`SELECT SUM("n") AS v FROM doc_d1."effectifs"`);
+  });
+
+  it("kpi sans docId : SQL strictement inchangé (rétro-compat)", () => {
+    const v: ViewSpec = {
+      id: "k1",
+      type: "kpi",
+      source: "effectifs",
+      encoding: { value: { field: "n", aggregate: "sum" } },
+    };
+    const c = compileView(v);
+    if (c.kind !== "kpi") throw new Error("kind");
+    expect(c.sql).toBe(`SELECT SUM("n") AS v FROM "effectifs"`);
+  });
+
+  it("choropleth avec docId : FROM doc_d1.\"source\" (default + metrics)", () => {
+    const v: ViewSpec = {
+      id: "m1",
+      type: "map_choropleth",
+      source: "effectifs",
+      encoding: { geo: { field: "dc" } },
+      options: {
+        metrics: [
+          { key: "tot", label: "Total", field: "n", aggregate: "sum" },
+        ],
+      },
+    };
+    const c = compileView(v, "d1");
+    if (c.kind !== "choropleth") throw new Error("kind");
+    expect(c.sql).toBe(
+      `SELECT "dc" AS key, SUM("n") AS v FROM doc_d1."effectifs" GROUP BY "dc"`,
+    );
+    expect(c.metrics?.[0].sql).toContain(`FROM doc_d1."effectifs"`);
+  });
+
+  it("ranked_bars avec docId : FROM doc_d1.\"source\"", () => {
+    const v: ViewSpec = {
+      id: "b1",
+      type: "bar",
+      source: "effectifs",
+      encoding: { x: { field: "cat" }, y: { field: "val", aggregate: "sum" } },
+      options: { valueLabels: true },
+    };
+    const c = compileView(v, "d1");
+    if (c.kind !== "ranked_bars") throw new Error("kind");
+    expect(c.sql).toBe(
+      `SELECT "cat" AS k, SUM("val") AS v ` +
+        `FROM doc_d1."effectifs" GROUP BY "cat" ORDER BY v DESC`,
+    );
+  });
+
+  it("grouped_bars avec docId : FROM doc_d1.\"source\"", () => {
+    const v: ViewSpec = {
+      id: "b2",
+      type: "bar",
+      source: "effectifs",
+      encoding: { x: { field: "cat" }, y: { field: "val", aggregate: "sum" } },
+      options: { compareField: "val_prev" },
+    };
+    const c = compileView(v, "d1");
+    if (c.kind !== "grouped_bars") throw new Error("kind");
+    expect(c.sql).toBe(
+      `SELECT "cat" AS k, SUM("val") AS v1, SUM("val_prev") AS v2 ` +
+        `FROM doc_d1."effectifs" GROUP BY "cat"`,
+    );
+  });
+
+  it("bar nu avec docId : source field qualifié pour vgplot", () => {
+    const v: ViewSpec = {
+      id: "b3",
+      type: "bar",
+      source: "effectifs",
+      encoding: { x: { field: "cat" }, y: { field: "val", aggregate: "sum" } },
+    };
+    const c = compileView(v, "d1");
+    if (c.kind !== "bar") throw new Error("kind");
+    expect(c.source).toBe(`doc_d1."effectifs"`);
+  });
+
+  it("bar nu sans docId : source field brut (rétro-compat)", () => {
+    const v: ViewSpec = {
+      id: "b3",
+      type: "bar",
+      source: "effectifs",
+      encoding: { x: { field: "cat" }, y: { field: "val", aggregate: "sum" } },
+    };
+    const c = compileView(v);
+    if (c.kind !== "bar") throw new Error("kind");
+    expect(c.source).toBe("effectifs");
+  });
+
+  it("plot avec docId : source field qualifié", () => {
+    const v: ViewSpec = {
+      id: "l1",
+      type: "line",
+      source: "ts",
+      encoding: { x: { field: "mois" }, y: { field: "n", aggregate: "sum" } },
+    };
+    const c = compileView(v, "d1");
+    if (c.kind !== "plot") throw new Error("kind");
+    expect(c.source).toBe(`doc_d1."ts"`);
+  });
+
+  it("docId échappe les guillemets dans la source", () => {
+    const v: ViewSpec = {
+      id: "k1",
+      type: "kpi",
+      source: 'evil"name',
+      encoding: { value: { field: "n", aggregate: "sum" } },
+    };
+    const c = compileView(v, "d1");
+    if (c.kind !== "kpi") throw new Error("kind");
+    expect(c.sql).toBe(`SELECT SUM("n") AS v FROM doc_d1."evil""name"`);
+  });
+
+  it("docId invalide : throw", () => {
+    const v: ViewSpec = {
+      id: "k1",
+      type: "kpi",
+      source: "effectifs",
+      encoding: { value: { field: "n", aggregate: "sum" } },
+    };
+    expect(() => compileView(v, "bad-id")).toThrow(/docId/i);
+    expect(() => compileView(v, "x".repeat(33))).toThrow(/docId/i);
+  });
+});
