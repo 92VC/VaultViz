@@ -7,17 +7,25 @@
 // - le filterSelectionName lié à une Selection existante est toléré
 // - les agrégats / canal de série se construisent sans exception
 
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { renderPlot, type PlotType } from "../components/plot-view";
 import {
   createRuntime,
   ensureSelection,
 } from "../viz-engine/mosaic-runtime";
+import { installVgplotStubConnector } from "./_vgplot-stub";
 
 const TYPES: PlotType[] = ["line", "area", "dot"];
 
 describe("plot-view (T3.7)", () => {
+  // Enregistre un connector stub sur le coordinator vgplot AVANT tout
+  // rendu : empêche les rejets « Socket closed » des requêtes async
+  // fire-and-forget de Mosaic en l'absence de Tauri. Cf. _vgplot-stub.ts.
+  beforeAll(() => {
+    installVgplotStubConnector();
+  });
+
   for (const plotType of TYPES) {
     it(`rend un HTMLElement pour plotType=${plotType} sans filterBy`, () => {
       const c = document.createElement("div");
