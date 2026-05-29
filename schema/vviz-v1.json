@@ -176,6 +176,7 @@
                   "line",
                   "area",
                   "dot",
+                  "pie",
                   "table",
                   "kpi"
                 ]

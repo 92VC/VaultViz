@@ -27,7 +27,8 @@ import { renderTable } from "../components/table-view";
 import { renderKpiCard } from "../components/kpi-card";
 import { renderRankedBars } from "../components/ranked-bars";
 import { renderGroupedBars } from "../components/grouped-bars";
-import { renderPlot } from "../components/plot-view";
+import { renderLineChart, type LinePoint } from "../components/line-chart";
+import { renderPieChart } from "../components/pie-chart";
 
 function ident(s: string): string {
   return `"${s.replace(/"/g, '""')}"`;
@@ -126,6 +127,21 @@ async function fetchKV2(
       v1: Number(row.v1),
       v2: Number(row.v2),
     });
+  }
+  return out;
+}
+
+/** Fetch (x, s, v) pour les courbes multi-séries (x ordonné, s = série). */
+async function fetchXSV(
+  conn: DuckConnector,
+  sql: string,
+): Promise<{ x: string; s: string; v: number }[]> {
+  const t = (await conn.query({ type: "arrow", sql })) as Table;
+  const out: { x: string; s: string; v: number }[] = [];
+  for (let i = 0; i < t.numRows; i++) {
+    const row = t.get(i) as Record<string, unknown> | null;
+    if (!row) continue;
+    out.push({ x: String(row.x), s: String(row.s), v: Number(row.v) });
   }
   return out;
 }
@@ -229,20 +245,76 @@ export async function mountCompiledView(
     }
 
     case "plot": {
-      if (view.filterBy) ensureSelection(ctx, view.filterBy, "single");
-      renderPlot(container, {
-        source: view.source,
-        plotType: view.plotType,
-        xField: view.xField,
-        yField: view.yField,
-        yAggregate: view.yAggregate,
-        seriesField: view.seriesField,
-        filterSelectionName: view.filterBy,
-        ctx,
-        width: numberOpt(view.options, "width"),
-        height: numberOpt(view.options, "height"),
-        title: view.title,
-      });
+      // Rendu MAISON (SVG) alimenté par DuckDB — fiable, sans coordinator
+      // vgplot. Générique : type de vue line/area, n'importe quelle source.
+      const q = (s: string): string => `"${s.replace(/"/g, '""')}"`;
+      const agg = (view.yAggregate ?? "sum").toLowerCase();
+      const yExpr =
+        !view.yField || agg === "count" ? "count(*)" : `${agg}(${q(view.yField)})`;
+      const strOpt = (k: string): string | undefined => {
+        const v = (view.options as Record<string, unknown> | undefined)?.[k];
+        return typeof v === "string" ? v : undefined;
+      };
+      const fmt = strOpt("format");
+      const area = view.plotType === "area";
+      const filterField = strOpt("filterField");
+      const baseSql = view.seriesField
+        ? `SELECT ${q(view.xField)} AS x, ${q(view.seriesField)} AS s, ${yExpr} AS v ` +
+          `FROM ${q(view.source)} GROUP BY ${q(view.xField)}, ${q(view.seriesField)} ` +
+          `ORDER BY ${q(view.xField)}`
+        : `SELECT ${q(view.xField)} AS k, ${yExpr} AS v ` +
+          `FROM ${q(view.source)} GROUP BY ${q(view.xField)} ORDER BY ${q(view.xField)}`;
+      const render = async (value: string | null): Promise<void> => {
+        const sql =
+          value !== null && filterField
+            ? injectWhere(baseSql, view.source, filterField, value)
+            : baseSql;
+        if (view.seriesField) {
+          const rows = await fetchXSV(conn, sql);
+          const map = new Map<string, LinePoint[]>();
+          for (const r of rows) {
+            if (!map.has(r.s)) map.set(r.s, []);
+            map.get(r.s)!.push({ x: r.x, y: r.v });
+          }
+          const series = [...map.entries()].map(([label, points]) => ({ label, points }));
+          renderLineChart(container, series, { format: fmt, area, title: view.title });
+        } else {
+          const rows = await fetchKV(conn, sql);
+          renderLineChart(
+            container,
+            [{ label: view.title ?? "", points: rows.map((r) => ({ x: r.k, y: r.v })) }],
+            { format: fmt, area, title: view.title },
+          );
+        }
+      };
+      await render(null);
+      subscribeCrossFilter(ctx, view.filterBy, filterField, render);
+      return;
+    }
+
+    case "pie": {
+      const palette = (view.options as Record<string, unknown> | undefined)?.[
+        "palette"
+      ];
+      const render = async (value: string | null): Promise<void> => {
+        const sql =
+          value !== null && view.filterField
+            ? injectWhere(view.sql, view.source, view.filterField, value)
+            : view.sql;
+        const rows = await fetchKV(conn, sql);
+        renderPieChart(
+          container,
+          rows.map((r) => ({ label: r.k, value: r.v })),
+          {
+            format: view.valueFormat,
+            title: view.title,
+            donut: numberOpt(view.options, "donut"),
+            palette: Array.isArray(palette) ? (palette as string[]) : undefined,
+          },
+        );
+      };
+      await render(null);
+      subscribeCrossFilter(ctx, view.filterBy, view.filterField, render);
       return;
     }
 

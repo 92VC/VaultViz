@@ -65,6 +65,7 @@ export type ViewType =
   | "line"
   | "area"
   | "dot"
+  | "pie"
   | "table"
   | "kpi";
 
