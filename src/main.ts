@@ -26,197 +26,29 @@ import "@fontsource/jetbrains-mono/500.css";
 
 import { invoke } from "@tauri-apps/api/core";
 
-import { loadVViz } from "./viz-engine/spec-loader";
-import { loadSources } from "./viz-engine/source-loader";
-import { compileView } from "./viz-engine/view-compiler";
-import { mountCompiledView } from "./viz-engine/view-mounter";
-import { mountDashboard } from "./shell/dashboard";
-import { vvizDir } from "./viz-engine/path-resolver";
 import { createDuckConnector } from "./viz-engine/duck-connector";
-import { createRuntime, ensureSelection } from "./viz-engine/mosaic-runtime";
-import { initMosaicRuntime } from "./viz-engine";
 
 import { mountAppShell, type ShellHandles } from "./shell/layout";
 import { createRouter, type Router } from "./shell/router";
-import { mountTitlebar } from "./components/titlebar";
+import { mountTitlebar, type TitlebarHandle } from "./components/titlebar";
 import { mountToolbar, type ToolbarHandle } from "./components/toolbar";
 import { mountHome, type HomeHandle } from "./components/home";
-import { mountLoader, type LoaderHandle, LOAD_STEPS } from "./components/loader";
-import { renderErrorBanner, fromVVizError } from "./components/error-banner";
+import { mountLoader, type LoaderHandle } from "./components/loader";
 import { openViaDialog, onFileDrop } from "./services/file-open";
-import { addRecent } from "./services/recents";
-
-const HELP_HREF = "https://github.com/92VC/VaultViz/tree/main/docs/user";
+import { createTabsManager, type TabsManager } from "./shell/tabs";
 
 let handles: ShellHandles;
 let router: Router;
 let toolbar: ToolbarHandle;
+let titlebar: TitlebarHandle;
 let home: HomeHandle;
 let loader: LoaderHandle;
-
-/** Découpe un chemin .vviz en segments POSIX (pour breadcrumb / nom fichier). */
-function pathSegments(path: string): string[] {
-  return path.replace(/\\/g, "/").split("/").filter(Boolean);
-}
-
-/** Nom de fichier (dernier segment) d'un chemin .vviz. */
-function fileName(path: string): string {
-  const segs = pathSegments(path);
-  return segs.length > 0 ? segs[segs.length - 1] : path;
-}
-
-/**
- * Flux d'ouverture d'un .vviz : loader → pipeline → dashboard | erreur.
- * Ne lance jamais — toute erreur amont est encodée dans un bandeau.
- */
-async function openFlow(path: string): Promise<void> {
-  router.show("loading");
-  loader.start({ name: fileName(path) });
-  loader.setStep(LOAD_STEPS[0]);
-  loader.setProgress(10);
-  toolbar.setStatusVisible(true);
-  toolbar.setStatus("loading");
-
-  // 1. Read + parse + validate (atomique : un seul await).
-  const { doc, error } = await loadVViz(path);
-  if (error || !doc) {
-    showError(
-      path,
-      error ?? fromVVizError({ kind: "Io", message: "doc indisponible" }, path),
-    );
-    return;
-  }
-  loader.setStep(LOAD_STEPS[2]); // Validation du schéma OK
-  loader.setProgress(45);
-
-  // 2. Init runtime Mosaic (idempotent — best-effort hors Tauri).
-  try {
-    initMosaicRuntime();
-  } catch (err) {
-    console.warn("[VaultViz] init Mosaic indisponible :", err);
-  }
-  const ctx = createRuntime();
-  for (const s of doc.spec.selections ?? []) {
-    ensureSelection(ctx, s.id, s.kind);
-  }
-
-  // 3. Charger les sources DuckDB depuis doc.data.sources[].
-  loader.setStep(LOAD_STEPS[3]); // Indexation…
-  loader.setProgress(65);
-  const conn = createDuckConnector();
-  try {
-    await loadSources(conn, doc, vvizDir(path));
-  } catch (err) {
-    showError(path, {
-      kind: "Io",
-      path,
-      message: `Chargement des sources : ${(err as Error).message}`,
-    });
-    return;
-  }
-
-  // 4. Rendu : titre + description + grille des vues dans handles.dashboard.
-  loader.setStep(LOAD_STEPS[4]); // Rendu des vues…
-  loader.setProgress(85);
-
-  const dash = handles.dashboard;
-  dash.innerHTML = "";
-  const title = document.createElement("h1");
-  title.className = "vv-doc-title";
-  title.textContent = doc.vviz.title;
-  dash.appendChild(title);
-  if (doc.vviz.description) {
-    const sub = document.createElement("p");
-    sub.className = "vv-doc-sub";
-    sub.textContent = doc.vviz.description;
-    dash.appendChild(sub);
-  }
-
-  if (doc.spec.layout === "dashboard") {
-    // SP3 : layout par zones. On compile toutes les vues (les erreurs de
-    // compile par-vue sont rendues en notes par mountDashboard via son
-    // try/catch interne — ici on tolère un compile qui jette en isolant
-    // la vue fautive).
-    const region = document.createElement("div");
-    region.className = "vv-layout vv-layout-dashboard";
-    dash.appendChild(region);
-
-    const compiled: ReturnType<typeof compileView>[] = [];
-    for (const v of doc.spec.views) {
-      try {
-        compiled.push(compileView(v));
-      } catch (err) {
-        const msg = (err as Error).message ?? String(err);
-        const note = document.createElement("p");
-        note.className = "vv-note vv-note-error";
-        note.textContent = `Vue "${v.id}" (${v.type}) : ${msg}`;
-        region.appendChild(note);
-      }
-    }
-    await mountDashboard(region, compiled, ctx, conn);
-  } else {
-    const layout = document.createElement("div");
-    layout.className = `vv-layout vv-layout-${doc.spec.layout ?? "vstack"}`;
-    dash.appendChild(layout);
-
-    for (const v of doc.spec.views) {
-      const frame = document.createElement("section");
-      frame.className = `vv-view-frame vv-view-${v.type}`;
-      frame.dataset.viewId = v.id;
-      if (v.title) {
-        const h = document.createElement("h2");
-        h.className = "vv-view-title";
-        h.textContent = v.title;
-        frame.appendChild(h);
-      }
-      const mount = document.createElement("div");
-      mount.className = "vv-view-mount";
-      frame.appendChild(mount);
-      layout.appendChild(frame);
-
-      try {
-        const compiled = compileView(v);
-        await mountCompiledView(compiled, mount, ctx, conn);
-      } catch (err) {
-        const msg = (err as Error).message ?? String(err);
-        const note = document.createElement("p");
-        note.className = "vv-note vv-note-error";
-        note.textContent = `Vue "${v.id}" (${v.type}) : ${msg}`;
-        mount.appendChild(note);
-      }
-    }
-  }
-
-  // 5. Succès : breadcrumb, récents, bascule dashboard, masquage loader.
-  toolbar.setPath(pathSegments(path));
-  toolbar.setStatus("ready");
-  void addRecent({ path, title: doc.vviz.title, openedAt: Date.now() });
-  loader.done();
-  router.show("dashboard");
-  loader.hide();
-}
-
-/** Peint le bandeau d'erreur et bascule sur l'écran d'erreur. */
-function showError(path: string, payload: Parameters<typeof renderErrorBanner>[1]): void {
-  toolbar.setStatus("error");
-  renderErrorBanner(handles.error, payload, {
-    onRetry: () => {
-      void openFlow(path);
-    },
-    onHome: () => {
-      router.show("home");
-      void home.refresh();
-    },
-    helpHref: HELP_HREF,
-  });
-  loader.hide();
-  router.show("error");
-}
+let tabs: TabsManager;
 
 /** Ouverture via dialog natif (toolbar « Ouvrir »). */
 async function pickAndOpen(): Promise<void> {
   const picked = await openViaDialog();
-  if (picked) await openFlow(picked);
+  if (picked) await tabs.open(picked);
 }
 
 async function resolveStartupPath(): Promise<string | null> {
@@ -242,7 +74,7 @@ async function bootstrap(): Promise<void> {
   router = createRouter(handles);
 
   // Montage UNE FOIS des composants permanents.
-  mountTitlebar(handles.titlebar);
+  titlebar = mountTitlebar(handles.titlebar);
   toolbar = mountToolbar(handles.toolbar, {
     onOpen: () => {
       pickAndOpen().catch((err) =>
@@ -252,22 +84,50 @@ async function bootstrap(): Promise<void> {
   });
   home = mountHome(handles.home, {
     onOpenPath: (path) => {
-      void openFlow(path);
+      void tabs.open(path);
     },
   });
   loader = mountLoader(handles.overlay);
+
+  // Gestionnaire d'onglets multi-documents : un docId + un RuntimeContext +
+  // un conteneur DOM par document, connector DuckDB partagé.
+  tabs = createTabsManager({
+    handles,
+    router,
+    titlebar,
+    toolbar,
+    loader,
+    connector: createDuckConnector(),
+    onHome: () => {
+      void home.refresh();
+    },
+  });
+
+  // Câblage des onglets de la titlebar.
+  titlebar.onTabSelect((id) => tabs.activate(id));
+  titlebar.onTabClose((id) => {
+    void tabs.close(id);
+  });
+  titlebar.onNewTab(() => {
+    router.show("home");
+    void home.refresh();
+  });
+
+  // Aucun document ouvert au démarrage → pas d'onglet (l'onglet placeholder
+  // de la titlebar est remplacé par la liste réelle, ici vide).
+  titlebar.setTabs([]);
 
   // Statut masqué tant qu'aucun .vviz n'est ouvert.
   toolbar.setStatusVisible(false);
 
   // Glisser-déposer d'un .vviz (no-op hors Tauri).
   onFileDrop((path) => {
-    void openFlow(path);
+    void tabs.open(path);
   });
 
   const startupPath = await resolveStartupPath();
   if (startupPath) {
-    await openFlow(startupPath);
+    await tabs.open(startupPath);
   } else {
     router.show("home");
     await home.refresh();
