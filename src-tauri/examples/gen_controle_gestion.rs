@@ -185,7 +185,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         SELECT setseed(0.42);
         COPY (
           SELECT
-            code, nom, region, ca, marge_pct, budget, realise, ecart, ecart_pct, statut
+            code, nom, region, ca, marge_pct, budget, realise, ecart, ecart_pct, statut,
+            yoy_ca, yoy_marge
           FROM dep
           ORDER BY code
         ) TO '{}' (FORMAT PARQUET, COMPRESSION SNAPPY);

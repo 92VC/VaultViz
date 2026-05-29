@@ -5,21 +5,20 @@
 //!    un `.vviz` (association d'extension MSI, cf. `tauri.conf.json`).
 //! 2. **Variable d'env `VVIZ_DEFAULT`** — pour les déploiements pilotés
 //!    par MECM ou les démos avec une cible fixe sur le share.
-//! 3. **Exemple embarqué** — `examples/effectifs_2026.vviz` posé dans le
-//!    dossier de ressources du MSI (cf. `bundle.resources` dans
-//!    `tauri.conf.json`). Évite l'écran blanc à la première ouverture.
-//! 4. **Aucun** — renvoie `None`, le front affichera un message d'accueil.
+//! 3. **Aucun** — renvoie `None` ; le front affiche l'écran d'accueil
+//!    (hero + dropzone + récents + bouton « Ouvrir »). On n'ouvre plus
+//!    d'exemple embarqué par défaut (décision UX : montrer le sélecteur,
+//!    pas un dashboard de démo non sollicité).
 //!
 //! Cf. PRD §3.1 (persona Camille — double-clic) et §5.2 (mode déconnecté,
 //! `./` admis comme chemin).
 
 use std::path::PathBuf;
-use tauri::Manager;
 
 /// Retourne le chemin à charger au démarrage selon la priorité documentée
 /// ci-dessus. Le front (`src/main.ts`) appelle cette commande au boot.
 #[tauri::command]
-pub async fn startup_path(app: tauri::AppHandle) -> Option<String> {
+pub async fn startup_path(_app: tauri::AppHandle) -> Option<String> {
     // 1. argv[1] — double-clic Explorer ou ligne de commande
     let args: Vec<String> = std::env::args().collect();
     if let Some(arg) = args.get(1) {
@@ -37,36 +36,11 @@ pub async fn startup_path(app: tauri::AppHandle) -> Option<String> {
         }
     }
 
-    // 3. exemple embarqué dans le bundle (resources Tauri).
-    //
-    // Tauri 2 bundler encode `../examples/foo` en `_up_/examples/foo` dans
-    // le dossier de resources (le `..` ne peut pas vivre tel quel dans le
-    // MSI). On essaie les deux conventions par sécurité.
-    //
-    // Préférence : demo_dept (carto cross-filter) puis effectifs_2026
-    // (smoke minimaliste).
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        let candidates = ["demo_dept.vviz", "effectifs_2026.vviz"];
-        let prefixes: [&[&str]; 3] = [
-            &["_up_", "examples"],
-            &["examples"],
-            &[],
-        ];
-        for candidate in &candidates {
-            for prefix in &prefixes {
-                let mut p = resource_dir.clone();
-                for segment in prefix.iter() {
-                    p.push(segment);
-                }
-                p.push(candidate);
-                if p.exists() {
-                    if let Some(s) = p.to_str() {
-                        return Some(s.to_string());
-                    }
-                }
-            }
-        }
-    }
-
+    // 3. Aucun fichier explicite → écran d'accueil (hero + dropzone +
+    //    récents + bouton « Ouvrir »). On n'ouvre PLUS d'exemple embarqué
+    //    par défaut : décision UX (l'utilisateur doit arriver sur le
+    //    sélecteur, pas sur un dashboard de démo non sollicité). L'écran
+    //    d'accueil remplit désormais le rôle « éviter l'écran blanc »
+    //    évoqué au PRD §3.1.
     None
 }

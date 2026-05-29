@@ -51,7 +51,11 @@ function subtitleOf(view: CompiledView): string | undefined {
  */
 function makeCard(view: CompiledView): { card: HTMLElement; body: HTMLElement } {
   const card = document.createElement("div");
-  card.className = "card";
+  // `options.bare` (DSL) : carte sans fond/bordure (se fond avec le fond
+  // de l'app) — ex. carte choroplèthe centrée sur fond transparent.
+  const bare =
+    (view.options as Record<string, unknown> | undefined)?.["bare"] === true;
+  card.className = bare ? "card bare" : "card";
   card.dataset.viewId = view.id;
 
   const title = view.title;
@@ -124,6 +128,7 @@ export async function mountDashboard(
   views: CompiledView[],
   ctx: RuntimeContext,
   conn: DuckConnector,
+  opts: { gridRatio?: [number, number] } = {},
 ): Promise<void> {
   const hasRegions = views.some((v) => regionOf(v) !== undefined);
 
@@ -154,6 +159,18 @@ export async function mountDashboard(
 
   const row = document.createElement("div");
   row.className = "grid-2";
+  // Ratio des colonnes [principale, latérale] piloté par le DSL
+  // (spec.gridRatio). Sans valeur → défaut CSS (1.32 | 1). Permet de
+  // réduire la zone principale (ex. carte) au profit des vues de droite,
+  // côté fichier .vviz — pas de hardcodage par dashboard.
+  const gr = opts.gridRatio;
+  if (
+    Array.isArray(gr) &&
+    gr.length === 2 &&
+    gr.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)
+  ) {
+    row.style.gridTemplateColumns = `minmax(0, ${gr[0]}fr) minmax(0, ${gr[1]}fr)`;
+  }
   const colMain = document.createElement("div");
   colMain.className = "col col-main";
   const colSide = document.createElement("div");

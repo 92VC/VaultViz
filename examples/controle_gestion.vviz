@@ -17,6 +17,7 @@
   "spec": {
     "engine": "mosaic",
     "layout": "dashboard",
+    "gridRatio": [1, 1.25],
     "selections": [
       { "id": "dept", "kind": "single" }
     ],
@@ -78,6 +79,7 @@
         },
         "options": {
           "region": "main",
+          "bare": true,
           "emitsTo": "dept",
           "subtitle": "Cliquez un département pour filtrer l'ensemble du tableau de bord",
           "metrics": [

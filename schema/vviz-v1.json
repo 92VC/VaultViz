@@ -99,6 +99,13 @@
           "default": "vstack",
           "description": "Disposition macro des vues. `dashboard` : placement par zones via view.options.region (kpi/main/side/full)."
         },
+        "gridRatio": {
+          "type": "array",
+          "description": "Layout `dashboard` : ratio des colonnes [principale, latérale]. Défaut [1.32, 1]. Réduire la principale (ex. carte) au profit des vues de droite.",
+          "items": { "type": "number", "exclusiveMinimum": 0 },
+          "minItems": 2,
+          "maxItems": 2
+        },
         "selections": {
           "type": "array",
           "maxItems": 32,

@@ -42,20 +42,21 @@ function isVVizPath(path: string): boolean {
   return path.toLowerCase().endsWith("." + VVIZ_EXT);
 }
 
-/** Import dynamique d'un module Tauri via spécificateur non littéral. */
-async function importTauri(spec: string): Promise<any> {
-  return await import(/* @vite-ignore */ spec);
-}
-
 /**
  * Ouvre le dialog natif de sélection de fichier filtré sur `.vviz`.
  * Renvoie le chemin choisi, ou `null` si l'utilisateur annule ou hors
  * Tauri. Ne throw pas.
+ *
+ * Import dynamique LITTÉRAL : Vite le résout et le bundle en chunk async,
+ * donc il fonctionne réellement à l'exécution dans la WebView. (Un import
+ * à spécificateur variable + `@vite-ignore` resterait non résolu et
+ * échouerait au runtime — bug du bouton « Ouvrir ».) En tests happy-dom,
+ * la garde `isTauri()` empêche d'atteindre cet import.
  */
 export async function openViaDialog(): Promise<string | null> {
   if (!isTauri()) return null;
   try {
-    const dialog = await importTauri("@tauri-apps/plugin-dialog");
+    const dialog = await import("@tauri-apps/plugin-dialog");
     const picked = await dialog.open({
       title: "Ouvrir un fichier .vviz",
       multiple: false,
@@ -90,9 +91,7 @@ export function onFileDrop(handler: (path: string) => void): () => void {
 
   void (async () => {
     try {
-      const { getCurrentWebview } = await importTauri(
-        "@tauri-apps/api/webview",
-      );
+      const { getCurrentWebview } = await import("@tauri-apps/api/webview");
       const off = await getCurrentWebview().onDragDropEvent((event: any) => {
         const payload = event?.payload;
         if (!payload || payload.type !== "drop") return;
