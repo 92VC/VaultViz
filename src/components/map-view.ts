@@ -15,6 +15,7 @@
 import { geoMercator, geoPath } from "d3-geo";
 
 import geojsonRaw from "../assets/departements-v0.geojson?raw";
+import { fmt, type FormatKind } from "../ui/format";
 
 type DeptFeatureProps = {
   code?: string;
@@ -39,6 +40,12 @@ export interface ChoroplethOptions {
   height?: number;
   colorScale?: (v: number, max: number) => string;
   emptyColor?: string;
+  /**
+   * Format de valeur (cf. `CompiledView.format` / `metrics[].format`).
+   * Appliqué au `<title>` de chaque path et aux bornes de la légende.
+   * Défaut : entier groupé FR.
+   */
+  format?: FormatKind | string;
 }
 
 function defaultColorScale(v: number, max: number): string {
@@ -68,6 +75,7 @@ export function renderChoropleth(
   const values = Array.from(dataByDept.values()).filter((v) => Number.isFinite(v));
   const max = values.length ? Math.max(...values) : 0;
   const colorScale = opts.colorScale ?? defaultColorScale;
+  const format = opts.format;
 
   // d3-geo types : `fitSize` accepte un FeatureCollection étendu.
   const projection = geoMercator().fitSize(
@@ -106,21 +114,68 @@ export function renderChoropleth(
     p.dataset.value = String(v);
 
     const title = document.createElementNS(SVG_NS, "title");
-    title.textContent = `${nom} (${code}) : ${v.toLocaleString("fr-FR")}`;
+    title.textContent = `${nom} (${code}) : ${format ? fmt(v, format) : v.toLocaleString("fr-FR")}`;
     p.appendChild(title);
     svg.appendChild(p);
   }
 
   const legend = document.createElement("div");
   legend.className = "vv-legend";
+  const minLabel = format ? fmt(0, format) : "0";
+  const maxLabel = format ? fmt(max, format) : max.toLocaleString("fr-FR");
   legend.innerHTML = `
-    <span class="vv-legend-label">0</span>
+    <span class="vv-legend-label">${minLabel}</span>
     <span class="vv-legend-grad" aria-hidden="true"></span>
-    <span class="vv-legend-label">${max.toLocaleString("fr-FR")}</span>
+    <span class="vv-legend-label">${maxLabel}</span>
   `;
 
   container.replaceChildren(svg, legend);
   return svg;
+}
+
+/**
+ * Sélecteur de métrique segmenté (`.seg-ctrl`), porté du mockup
+ * (`#metric-seg` dans `VaultViz.html`). Rend un bouton par métrique,
+ * marque l'actif via `.on` + `aria-pressed`, et appelle `onChange` avec
+ * la clé de la métrique cliquée.
+ *
+ * Le re-fetch des données par métrique est de la responsabilité du
+ * mounter (pas de ce composant, qui ne fait que l'UI du switcher).
+ *
+ * Remplace le contenu de `container`.
+ */
+export function renderMetricSwitcher(
+  container: HTMLElement,
+  metrics: { key: string; label: string }[],
+  activeKey: string,
+  onChange: (key: string) => void,
+): void {
+  const seg = document.createElement("div");
+  seg.className = "seg-ctrl";
+  seg.setAttribute("role", "group");
+  seg.setAttribute("aria-label", "Métrique de la carte");
+
+  for (const m of metrics) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.m = m.key;
+    btn.textContent = m.label;
+    const active = m.key === activeKey;
+    if (active) btn.classList.add("on");
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+    btn.addEventListener("click", () => {
+      for (const b of seg.querySelectorAll<HTMLButtonElement>("button")) {
+        b.classList.remove("on");
+        b.setAttribute("aria-pressed", "false");
+      }
+      btn.classList.add("on");
+      btn.setAttribute("aria-pressed", "true");
+      onChange(m.key);
+    });
+    seg.appendChild(btn);
+  }
+
+  container.replaceChildren(seg);
 }
 
 /**
