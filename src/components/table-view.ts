@@ -20,11 +20,32 @@
 
 import type { Table, StructRowProxy } from "apache-arrow";
 
+import { fmt } from "../ui/format";
+import { icon } from "../ui/icons";
+
 export interface TableColumn {
   field: string;
   label?: string;
-  align?: "left" | "right";
+  /**
+   * Alignement. `"right"`/`"num"` alignent à droite (colonnes
+   * numériques) ; `"left"`/`"text"` à gauche. Les valeurs `"num"`/`"text"`
+   * proviennent de `ColumnDef` (cœur viz-engine), `"left"`/`"right"` de
+   * l'usage historique — les deux sont acceptés (compat additive SP3).
+   */
+  align?: "left" | "right" | "num" | "text";
   width?: string;
+  /**
+   * Format numérique déclaratif (`fmt(value, format)`) — ex. `"eur"`,
+   * `"pct"`, `"number"`. Appliqué aux valeurs numériques. SP3.
+   */
+  format?: string;
+  /** `"badge"` rend la valeur en `.badge` coloré via {@link badgeMap}. SP3. */
+  type?: "badge";
+  /**
+   * Mappe la valeur brute → classe d'état (`"ok"`/`"warn"`/`"err"`)
+   * appliquée au `.badge`. SP3.
+   */
+  badgeMap?: Record<string, string>;
 }
 
 export type SortDirection = "asc" | "desc";
@@ -39,6 +60,17 @@ export interface TableViewOptions {
   bufferRows?: number;
   /** Callback de tri colonne — généralement re-query DuckDB. */
   onSort?: (field: string, dir: SortDirection) => void;
+  /**
+   * Affiche une barre d'outils avec un champ de recherche (`.search`)
+   * au-dessus de la table quand `true`. SP3.
+   */
+  search?: boolean;
+  /**
+   * Callback de saisie dans le champ de recherche. Le push-down ILIKE
+   * côté DuckDB est fait par le mounter ; on ne remonte ici que la
+   * saisie brute. SP3.
+   */
+  onSearch?: (q: string) => void;
 }
 
 export interface TableViewHandle {
@@ -59,6 +91,28 @@ export function renderTable(
   const visible = opts.visibleRows ?? 20;
   const buffer = opts.bufferRows ?? 5;
 
+  // Une colonne est alignée à droite si historiquement `"right"` ou,
+  // depuis SP3, `"num"` (colonne numérique côté ColumnDef).
+  const isRightAligned = (c: TableColumn): boolean =>
+    c.align === "right" || c.align === "num";
+
+  // Barre d'outils optionnelle (recherche) — sœur AU-DESSUS de la table,
+  // hors du conteneur scrollable pour ne pas défiler.
+  let toolbar: HTMLElement | null = null;
+  if (opts.search) {
+    toolbar = document.createElement("div");
+    toolbar.className = "tbl-toolbar";
+    const searchBox = document.createElement("div");
+    searchBox.className = "search";
+    searchBox.innerHTML = icon("search");
+    const input = document.createElement("input");
+    input.type = "search";
+    input.className = "tbl-search";
+    input.addEventListener("input", () => opts.onSearch?.(input.value));
+    searchBox.appendChild(input);
+    toolbar.appendChild(searchBox);
+  }
+
   const root = document.createElement("div");
   root.className = "vv-table";
   root.style.maxHeight = `${rowHeight * (visible + 1)}px`;
@@ -77,7 +131,7 @@ export function renderTable(
     cell.className = "vv-th";
     cell.textContent = c.label ?? c.field;
     cell.dataset.field = c.field;
-    if (c.align === "right") cell.style.textAlign = "right";
+    if (isRightAligned(c)) cell.style.textAlign = "right";
     if (c.width) cell.style.flexBasis = c.width;
     cell.addEventListener("click", () => {
       const prev = sortState.get(c.field);
@@ -102,7 +156,8 @@ export function renderTable(
   footer.className = "vv-table-footer";
   root.appendChild(footer);
 
-  container.replaceChildren(root);
+  if (toolbar) container.replaceChildren(toolbar, root);
+  else container.replaceChildren(root);
 
   let current: Table = data;
   let overrideCount: number | null = null;
@@ -117,11 +172,51 @@ export function renderTable(
     }
   }
 
+  function rawValue(row: StructRowProxy, field: string): unknown {
+    return (row as unknown as Record<string, unknown>)[field];
+  }
+
   function rowToText(row: StructRowProxy, field: string): string {
-    const v = (row as unknown as Record<string, unknown>)[field];
+    const v = rawValue(row, field);
     if (v == null) return "";
     if (typeof v === "bigint") return v.toString();
     return String(v);
+  }
+
+  /**
+   * Rend une cellule selon le `ColumnDef` :
+   * - `type:"badge"` → `<span class="badge ok|warn|err">` (précédence) ;
+   * - numérique (`format` défini ou `align:"num"`) → `fmt(value, format)` ;
+   * - sinon → texte brut.
+   * Conserve la garde null/empty avant tout formatage.
+   */
+  function renderCell(cell: HTMLElement, row: StructRowProxy, c: TableColumn): void {
+    const v = rawValue(row, c.field);
+
+    if (c.type === "badge") {
+      if (v == null) {
+        cell.textContent = "";
+        return;
+      }
+      const key = typeof v === "bigint" ? v.toString() : String(v);
+      const span = document.createElement("span");
+      const cls = c.badgeMap?.[key];
+      span.className = cls ? `badge ${cls}` : "badge";
+      span.textContent = key;
+      cell.replaceChildren(span);
+      return;
+    }
+
+    const numeric = c.format != null || c.align === "num";
+    if (numeric && v != null) {
+      const n = typeof v === "bigint" ? Number(v) : (v as number);
+      if (typeof n === "number" && !Number.isNaN(n)) {
+        cell.textContent = fmt(n, c.format);
+        return;
+      }
+    }
+
+    cell.textContent = rowToText(row, c.field);
   }
 
   function paint(): void {
@@ -146,8 +241,8 @@ export function renderTable(
         const cell = document.createElement("div");
         cell.className = "vv-td";
         cell.setAttribute("role", "gridcell");
-        cell.textContent = rowToText(r, c.field);
-        if (c.align === "right") cell.style.textAlign = "right";
+        renderCell(cell, r, c);
+        if (isRightAligned(c)) cell.style.textAlign = "right";
         if (c.width) cell.style.flexBasis = c.width;
         row.appendChild(cell);
       }
