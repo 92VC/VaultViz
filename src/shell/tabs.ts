@@ -34,6 +34,7 @@ import { mountCompiledView } from "../viz-engine/view-mounter";
 import { mountDashboard as mountDashboardReal } from "./dashboard";
 import { vvizDir } from "../viz-engine/path-resolver";
 import { createDuckConnector } from "../viz-engine/duck-connector";
+import { logEvent } from "../services/diag";
 import {
   createRuntime as createRuntimeReal,
   ensureSelection,
@@ -199,6 +200,7 @@ export function createTabsManager(deps: TabsDeps): TabsManager {
     loader.setProgress(10);
     toolbar.setStatusVisible(true);
     toolbar.setStatus("loading");
+    logEvent("info", `ouverture docId=${docId} path=${path}`);
 
     // 1. Lecture + parse + validation.
     const { doc, error } = await loadVViz(path);
@@ -226,9 +228,18 @@ export function createTabsManager(deps: TabsDeps): TabsManager {
     // 3. Charger les sources dans le namespace de CE document.
     loader.setStep(LOAD_STEPS[3]);
     loader.setProgress(65);
+    logEvent(
+      "info",
+      `indexation: ${doc.data.sources.length} source(s), dir=${vvizDir(path)}`,
+    );
+    for (const s of doc.data.sources) {
+      logEvent("info", `  source « ${s.name} » → ${s.path}`);
+    }
     try {
       await loadSources(conn, doc, vvizDir(path), docId);
+      logEvent("info", "indexation OK");
     } catch (err) {
+      logEvent("error", `indexation ÉCHEC: ${(err as Error).message}`);
       showError(path, {
         kind: "Io",
         path,
@@ -322,6 +333,7 @@ export function createTabsManager(deps: TabsDeps): TabsManager {
       sourceNames: doc.data.sources.map((s) => s.name),
     });
 
+    logEvent("info", `rendu OK docId=${docId} (${doc.spec.views.length} vues)`);
     void addRecent({ path, title: doc.vviz.title, openedAt: Date.now() });
     loader.done();
     activate(docId);

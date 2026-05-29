@@ -23,10 +23,13 @@ pub fn run() {
     // B-062 — logger rotatif local (`%LOCALAPPDATA%\VaultViz\logs`).
     // Trace minimaliste : on enregistre juste la version au démarrage,
     // sans payload utilisateur. `assert_no_pii` gardera le message.
+    // Logger global (accessible aux commandes via `log::log`) + logger
+    // managé conservé pour compat.
+    log::init_global();
     let logger = log::Logger::new_default();
     let start_msg = format!("VaultViz {} started", env!("CARGO_PKG_VERSION"));
     if log::assert_no_pii(&start_msg) {
-        logger.log(log::LogLevel::Info, &start_msg);
+        log::log(log::LogLevel::Info, &start_msg);
     }
 
     tauri::Builder::default()
@@ -38,6 +41,7 @@ pub fn run() {
             commands::vviz::read_vviz,
             commands::query::run_query,
             commands::startup::startup_path,
+            commands::diag::log_event,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
