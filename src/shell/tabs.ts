@@ -275,7 +275,9 @@ export function createTabsManager(deps: TabsDeps): TabsManager {
           region.appendChild(note);
         }
       }
-      await mountDashboard(region, compiled, ctx, conn);
+      await mountDashboard(region, compiled, ctx, conn, {
+        gridRatio: doc.spec.gridRatio,
+      });
     } else {
       const layout = document.createElement("div");
       layout.className = `vv-layout vv-layout-${doc.spec.layout ?? "vstack"}`;

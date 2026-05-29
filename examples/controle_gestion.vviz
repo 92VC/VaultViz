@@ -17,6 +17,7 @@
   "spec": {
     "engine": "mosaic",
     "layout": "dashboard",
+    "gridRatio": [1, 1.25],
     "selections": [
       { "id": "dept", "kind": "single" }
     ],

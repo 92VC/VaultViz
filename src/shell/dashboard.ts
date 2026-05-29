@@ -124,6 +124,7 @@ export async function mountDashboard(
   views: CompiledView[],
   ctx: RuntimeContext,
   conn: DuckConnector,
+  opts: { gridRatio?: [number, number] } = {},
 ): Promise<void> {
   const hasRegions = views.some((v) => regionOf(v) !== undefined);
 
@@ -154,6 +155,18 @@ export async function mountDashboard(
 
   const row = document.createElement("div");
   row.className = "grid-2";
+  // Ratio des colonnes [principale, latérale] piloté par le DSL
+  // (spec.gridRatio). Sans valeur → défaut CSS (1.32 | 1). Permet de
+  // réduire la zone principale (ex. carte) au profit des vues de droite,
+  // côté fichier .vviz — pas de hardcodage par dashboard.
+  const gr = opts.gridRatio;
+  if (
+    Array.isArray(gr) &&
+    gr.length === 2 &&
+    gr.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)
+  ) {
+    row.style.gridTemplateColumns = `minmax(0, ${gr[0]}fr) minmax(0, ${gr[1]}fr)`;
+  }
   const colMain = document.createElement("div");
   colMain.className = "col col-main";
   const colSide = document.createElement("div");

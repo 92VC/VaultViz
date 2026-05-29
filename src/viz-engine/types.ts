@@ -87,6 +87,12 @@ export interface SelectionSpec {
 export interface VVizSpec {
   engine: "mosaic";
   layout?: "vstack" | "hstack" | "grid" | "dashboard";
+  /**
+   * Ratio des colonnes [principale, latérale] du layout `dashboard`.
+   * Défaut [1.32, 1]. Réduire la principale (ex. carte) au profit des
+   * vues de droite se déclare ici, dans le `.vviz` — pas en CSS.
+   */
+  gridRatio?: [number, number];
   selections?: SelectionSpec[];
   views: ViewSpec[];
 }
