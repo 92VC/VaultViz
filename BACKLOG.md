@@ -47,13 +47,13 @@
 | V1 — V1-3 Watcher | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-4 Exports | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
-| V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 1 | 0 | 3 | 0 |
+| V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 0 | 0 | 4 | 0 |
 | V1 — V1-6 Signature DSI | 1 | 1 | 0 | 0 | 0 |
 | V1 — V1-7 RGAA | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **49** | **19** | **0** | **27** | **3** |
+| **Total** | **49** | **18** | **0** | **28** | **3** |
 
 ### 0.4 Conventions champs
 
@@ -650,7 +650,7 @@ Chaque story porte les champs :
 - **PRD** : §5.3, UC-1, UC-3 ; ADR-002, ADR-012
 - **Complexité** : L (épopée — spec dédiée, potentiellement re-découpée)
 
-### B-230 — [ ] SP4 — Onglets multi-documents
+### B-230 — [x] SP4 — Onglets multi-documents
 
 - **Itération** : V1-5 / SP4
 - **Livrable** : architecture multi-documents (namespacing connexion DuckDB Rust + état d'onglets front)
