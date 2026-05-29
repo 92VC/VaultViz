@@ -16,26 +16,33 @@ function sqlString(s: string): string {
 }
 
 /**
- * Nom du schéma DuckDB d'un document (SP4 — multi-documents).
+ * Nom de vue DuckDB d'une source (SP4 — multi-documents).
  *
- * - Avec `docId` valide : `doc_<docId>`.
- * - Sans `docId` : chaîne vide → schéma `main` implicite (rétro-compat).
+ * Namespacing par NOM DE VUE PLAT préfixé (et non par schéma DuckDB, qui
+ * cassait vgplot : `vg.from('doc_d1."src"')` re-quote la chaîne en UN
+ * seul identifiant invalide). Un nom plat `doc_<docId>__<source>` est un
+ * identifiant SQL simple, donc valide à la fois pour vgplot (`vg.from`
+ * le quote en bloc correctement) et pour l'injection de WHERE.
+ *
+ * - Sans `docId` : identifiant simple `<source>` (rétro-compat).
+ * - Avec `docId` valide : `doc_<docId>__<source>` (plat).
  */
-export function schemaName(docId?: string): string {
-  if (docId === undefined) return "";
+export function viewName(docId: string | undefined, source: string): string {
+  if (docId === undefined) return source;
   if (!DOC_ID.test(docId)) {
     throw new Error(`docId invalide : "${docId}"`);
   }
-  return `doc_${docId}`;
+  return `doc_${docId}__${source}`;
 }
 
 /**
  * Crée une vue DuckDB par source déclarée dans le `.vviz`.
  *
- * - Sans `docId` : `CREATE OR REPLACE VIEW "<name>" AS ...` dans le
- *   schéma `main` implicite (comportement historique, inchangé).
- * - Avec `docId` : crée d'abord `doc_<docId>` puis chaque vue qualifiée
- *   `doc_<docId>."<name>"` → isolation multi-documents (SP4).
+ * - Sans `docId` : `CREATE OR REPLACE VIEW "<name>" AS ...` (comportement
+ *   historique, inchangé).
+ * - Avec `docId` : `CREATE OR REPLACE VIEW "doc_<docId>__<name>" AS ...`
+ *   → isolation multi-documents par vues plates préfixées (SP4). PLUS de
+ *   `CREATE SCHEMA`.
  */
 export async function loadSources(
   conn: DuckConnector,
@@ -43,14 +50,10 @@ export async function loadSources(
   vvizDirPath: string,
   docId?: string,
 ): Promise<void> {
-  const schema = schemaName(docId); // valide docId, "" si absent
-  if (schema) {
-    await conn.query({
-      type: "exec",
-      sql: `CREATE SCHEMA IF NOT EXISTS ${schema}`,
-    });
+  // Valide docId en amont (throw avant tout SQL si invalide).
+  if (docId !== undefined && !DOC_ID.test(docId)) {
+    throw new Error(`docId invalide : "${docId}"`);
   }
-  const prefix = schema ? `${schema}.` : "";
   for (const src of doc.data.sources) {
     if (!SAFE_IDENT.test(src.name)) {
       throw new Error(
@@ -58,29 +61,33 @@ export async function loadSources(
       );
     }
     const resolved = resolvePath(src.path, vvizDirPath);
+    const view = viewName(docId, src.name);
     const sql =
-      `CREATE OR REPLACE VIEW ${prefix}"${src.name}" AS ` +
+      `CREATE OR REPLACE VIEW "${view}" AS ` +
       `SELECT * FROM read_parquet(${sqlString(resolved)})`;
     await conn.query({ type: "exec", sql });
   }
 }
 
 /**
- * Supprime le schéma d'un document et toutes ses vues (SP4).
+ * Supprime les vues plates préfixées d'un document (SP4).
  *
- * `DROP SCHEMA IF EXISTS doc_<docId> CASCADE`. À appeler à la fermeture
- * d'un document pour libérer les vues isolées.
+ * Exécute `DROP VIEW IF EXISTS "doc_<docId>__<name>"` pour chaque source.
+ * À appeler à la fermeture d'un document pour libérer les vues isolées.
  */
-export async function dropDocSchema(
+export async function dropDocViews(
   conn: DuckConnector,
   docId: string,
+  sourceNames: string[],
 ): Promise<void> {
-  const schema = schemaName(docId); // valide docId (throw si invalide)
-  if (!schema) {
-    throw new Error("dropDocSchema requiert un docId");
+  if (!DOC_ID.test(docId)) {
+    throw new Error(`docId invalide : "${docId}"`);
   }
-  await conn.query({
-    type: "exec",
-    sql: `DROP SCHEMA IF EXISTS ${schema} CASCADE`,
-  });
+  for (const name of sourceNames) {
+    const view = viewName(docId, name);
+    await conn.query({
+      type: "exec",
+      sql: `DROP VIEW IF EXISTS "${view}"`,
+    });
+  }
 }

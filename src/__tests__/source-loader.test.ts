@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 
 import {
   loadSources,
-  dropDocSchema,
-  schemaName,
+  dropDocViews,
+  viewName,
 } from "../viz-engine/source-loader";
 import type { DuckConnector } from "../viz-engine/duck-connector";
 import type { VVizDocument } from "../viz-engine/types";
@@ -85,24 +85,24 @@ describe("loadSources", () => {
 });
 
 // ---------------------------------------------------------------------------
-// SP4 — namespacing par schéma DuckDB
+// SP4 — namespacing par vues plates préfixées (doc_<id>__src)
 // ---------------------------------------------------------------------------
 
-describe("schemaName", () => {
-  it("retourne doc_<id> pour un docId valide", () => {
-    expect(schemaName("d1")).toBe("doc_d1");
+describe("viewName", () => {
+  it("retourne doc_<id>__<src> pour un docId valide", () => {
+    expect(viewName("d1", "effectifs")).toBe("doc_d1__effectifs");
   });
-  it("retourne '' sans docId (rétro-compat)", () => {
-    expect(schemaName()).toBe("");
+  it("retourne <src> sans docId (rétro-compat)", () => {
+    expect(viewName(undefined, "effectifs")).toBe("effectifs");
   });
   it("throw pour un docId invalide", () => {
-    expect(() => schemaName("bad-id")).toThrow(/docId/i);
-    expect(() => schemaName("x".repeat(33))).toThrow(/docId/i);
+    expect(() => viewName("bad-id", "s")).toThrow(/docId/i);
+    expect(() => viewName("x".repeat(33), "s")).toThrow(/docId/i);
   });
 });
 
 describe("loadSources — SP4 docId", () => {
-  it("crée le schéma puis les vues qualifiées", async () => {
+  it("crée des vues plates préfixées (pas de CREATE SCHEMA)", async () => {
     const { conn, sqls } = fakeConn();
     await loadSources(
       conn,
@@ -113,17 +113,16 @@ describe("loadSources — SP4 docId", () => {
       "/home/x",
       "d1",
     );
-    expect(sqls).toHaveLength(3);
-    expect(sqls[0]).toBe("CREATE SCHEMA IF NOT EXISTS doc_d1");
-    expect(sqls[1]).toBe(
-      `CREATE OR REPLACE VIEW doc_d1."effectifs" AS SELECT * FROM read_parquet('/home/x/sample.parquet')`,
+    expect(sqls).toHaveLength(2);
+    expect(sqls[0]).toBe(
+      `CREATE OR REPLACE VIEW "doc_d1__effectifs" AS SELECT * FROM read_parquet('/home/x/sample.parquet')`,
     );
-    expect(sqls[2]).toBe(
-      `CREATE OR REPLACE VIEW doc_d1."geo" AS SELECT * FROM read_parquet('/abs/geo.parquet')`,
+    expect(sqls[1]).toBe(
+      `CREATE OR REPLACE VIEW "doc_d1__geo" AS SELECT * FROM read_parquet('/abs/geo.parquet')`,
     );
   });
 
-  it("sans docId : pas de CREATE SCHEMA, vues non qualifiées (rétro-compat)", async () => {
+  it("sans docId : vues non préfixées (rétro-compat)", async () => {
     const { conn, sqls } = fakeConn();
     await loadSources(
       conn,
@@ -150,16 +149,19 @@ describe("loadSources — SP4 docId", () => {
   });
 });
 
-describe("dropDocSchema", () => {
-  it("exécute DROP SCHEMA IF EXISTS ... CASCADE", async () => {
+describe("dropDocViews", () => {
+  it("exécute DROP VIEW IF EXISTS par source préfixée", async () => {
     const { conn, sqls } = fakeConn();
-    await dropDocSchema(conn, "d1");
-    expect(sqls).toEqual(["DROP SCHEMA IF EXISTS doc_d1 CASCADE"]);
+    await dropDocViews(conn, "d1", ["effectifs", "geo"]);
+    expect(sqls).toEqual([
+      `DROP VIEW IF EXISTS "doc_d1__effectifs"`,
+      `DROP VIEW IF EXISTS "doc_d1__geo"`,
+    ]);
   });
 
   it("throw pour un docId invalide", async () => {
     const { conn, sqls } = fakeConn();
-    await expect(dropDocSchema(conn, "bad-id")).rejects.toThrow(/docId/i);
+    await expect(dropDocViews(conn, "bad-id", ["s"])).rejects.toThrow(/docId/i);
     expect(sqls).toHaveLength(0);
   });
 });

@@ -482,11 +482,11 @@ describe("compileView — SP3 table colonnes riches", () => {
 });
 
 // ---------------------------------------------------------------------------
-// SP4 — namespacing par schéma DuckDB (docId)
+// SP4 — namespacing par vues plates préfixées (doc_<id>__src)
 // ---------------------------------------------------------------------------
 
 describe("compileView — SP4 docId qualification", () => {
-  it("kpi avec docId : FROM doc_d1.\"source\"", () => {
+  it("kpi avec docId : FROM \"doc_d1__source\"", () => {
     const v: ViewSpec = {
       id: "k1",
       type: "kpi",
@@ -495,7 +495,7 @@ describe("compileView — SP4 docId qualification", () => {
     };
     const c = compileView(v, "d1");
     if (c.kind !== "kpi") throw new Error("kind");
-    expect(c.sql).toBe(`SELECT SUM("n") AS v FROM doc_d1."effectifs"`);
+    expect(c.sql).toBe(`SELECT SUM("n") AS v FROM "doc_d1__effectifs"`);
   });
 
   it("kpi sans docId : SQL strictement inchangé (rétro-compat)", () => {
@@ -510,7 +510,7 @@ describe("compileView — SP4 docId qualification", () => {
     expect(c.sql).toBe(`SELECT SUM("n") AS v FROM "effectifs"`);
   });
 
-  it("choropleth avec docId : FROM doc_d1.\"source\" (default + metrics)", () => {
+  it("choropleth avec docId : FROM \"doc_d1__source\" (default + metrics)", () => {
     const v: ViewSpec = {
       id: "m1",
       type: "map_choropleth",
@@ -525,12 +525,12 @@ describe("compileView — SP4 docId qualification", () => {
     const c = compileView(v, "d1");
     if (c.kind !== "choropleth") throw new Error("kind");
     expect(c.sql).toBe(
-      `SELECT "dc" AS key, SUM("n") AS v FROM doc_d1."effectifs" GROUP BY "dc"`,
+      `SELECT "dc" AS key, SUM("n") AS v FROM "doc_d1__effectifs" GROUP BY "dc"`,
     );
-    expect(c.metrics?.[0].sql).toContain(`FROM doc_d1."effectifs"`);
+    expect(c.metrics?.[0].sql).toContain(`FROM "doc_d1__effectifs"`);
   });
 
-  it("ranked_bars avec docId : FROM doc_d1.\"source\"", () => {
+  it("ranked_bars avec docId : FROM \"doc_d1__source\"", () => {
     const v: ViewSpec = {
       id: "b1",
       type: "bar",
@@ -542,11 +542,13 @@ describe("compileView — SP4 docId qualification", () => {
     if (c.kind !== "ranked_bars") throw new Error("kind");
     expect(c.sql).toBe(
       `SELECT "cat" AS k, SUM("val") AS v ` +
-        `FROM doc_d1."effectifs" GROUP BY "cat" ORDER BY v DESC`,
+        `FROM "doc_d1__effectifs" GROUP BY "cat" ORDER BY v DESC`,
     );
+    // SP4 : source = nom plat → injectWhere (view-mounter) matchera FROM.
+    expect(c.source).toBe("doc_d1__effectifs");
   });
 
-  it("grouped_bars avec docId : FROM doc_d1.\"source\"", () => {
+  it("grouped_bars avec docId : FROM \"doc_d1__source\"", () => {
     const v: ViewSpec = {
       id: "b2",
       type: "bar",
@@ -558,11 +560,12 @@ describe("compileView — SP4 docId qualification", () => {
     if (c.kind !== "grouped_bars") throw new Error("kind");
     expect(c.sql).toBe(
       `SELECT "cat" AS k, SUM("val") AS v1, SUM("val_prev") AS v2 ` +
-        `FROM doc_d1."effectifs" GROUP BY "cat"`,
+        `FROM "doc_d1__effectifs" GROUP BY "cat"`,
     );
+    expect(c.source).toBe("doc_d1__effectifs");
   });
 
-  it("bar nu avec docId : source field qualifié pour vgplot", () => {
+  it("bar nu avec docId : source = nom plat préfixé pour vgplot", () => {
     const v: ViewSpec = {
       id: "b3",
       type: "bar",
@@ -571,7 +574,7 @@ describe("compileView — SP4 docId qualification", () => {
     };
     const c = compileView(v, "d1");
     if (c.kind !== "bar") throw new Error("kind");
-    expect(c.source).toBe(`doc_d1."effectifs"`);
+    expect(c.source).toBe("doc_d1__effectifs");
   });
 
   it("bar nu sans docId : source field brut (rétro-compat)", () => {
@@ -595,7 +598,7 @@ describe("compileView — SP4 docId qualification", () => {
     };
     const c = compileView(v, "d1");
     if (c.kind !== "plot") throw new Error("kind");
-    expect(c.source).toBe(`doc_d1."ts"`);
+    expect(c.source).toBe("doc_d1__ts");
   });
 
   it("docId échappe les guillemets dans la source", () => {
@@ -607,7 +610,7 @@ describe("compileView — SP4 docId qualification", () => {
     };
     const c = compileView(v, "d1");
     if (c.kind !== "kpi") throw new Error("kind");
-    expect(c.sql).toBe(`SELECT SUM("n") AS v FROM doc_d1."evil""name"`);
+    expect(c.sql).toBe(`SELECT SUM("n") AS v FROM "doc_d1__evil""name"`);
   });
 
   it("docId invalide : throw", () => {

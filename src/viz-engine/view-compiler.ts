@@ -15,27 +15,36 @@ function ident(s: string): string {
 const DOC_ID = /^[a-zA-Z0-9_]{1,32}$/;
 
 /**
- * Référence SQL qualifiée d'une source (SP4 — namespacing par schéma).
+ * Nom de vue PLAT préfixé d'une source (SP4 — namespacing par vues
+ * plates, et non par schéma DuckDB).
  *
- * - Sans `docId` : comportement historique, identifiant simple `"src"`.
- * - Avec `docId` : `doc_<docId>."src"` (chaque segment échappé).
+ * - Sans `docId` : `<source>` brut (rétro-compat).
+ * - Avec `docId` valide : `doc_<docId>__<source>`.
  *
- * Pour les kinds SQL-path (kpi, choropleth, ranked/grouped_bars), cette
- * chaîne est interpolée dans le SQL brut envoyé à DuckDB → isolation
- * correcte. Pour vgplot (bar/plot), cf. note dans compileView.
- *
- * LIMITE cross-filter sous docId : `injectWhere` (view-mounter.ts)
- * cherche le token `FROM ${ident(source)}` = `FROM "src"`, qui ne match
- * pas le `FROM doc_<id>."src"` qualifié. Sous docId, l'injection du
- * WHERE de cross-filter no-op (rendu non filtré, pas de crash). Le fix
- * appartient à view-mounter.ts (hors périmètre de cette story).
+ * C'est un identifiant SQL SIMPLE (sans `.`), ce qui le rend valide à la
+ * fois pour vgplot (`vg.from(source)` le quote en UN seul identifiant
+ * correct) et pour l'injection de WHERE (`injectWhere` cherche
+ * `FROM "<source>"` = `FROM "doc_<id>__<source>"`). Doit rester aligné
+ * sur `viewName` de source-loader.ts.
  */
-function qualifiedSource(docId: string | undefined, source: string): string {
-  if (docId === undefined) return ident(source);
+function flatName(docId: string | undefined, source: string): string {
+  if (docId === undefined) return source;
   if (!DOC_ID.test(docId)) {
     throw new Error(`docId invalide : "${docId}"`);
   }
-  return `doc_${docId}.${ident(source)}`;
+  return `doc_${docId}__${source}`;
+}
+
+/**
+ * Référence SQL qualifiée d'une source : nom de vue plat, échappé et
+ * quoté (`"<source>"` ou `"doc_<docId>__<source>"`). Interpolée dans le
+ * SQL brut envoyé à DuckDB (kpi, choropleth, ranked/grouped_bars).
+ *
+ * - Sans `docId` : `"src"` → SQL strictement inchangé (rétro-compat).
+ * - Avec `docId` : `"doc_<docId>__src"`.
+ */
+function qualifiedSource(docId: string | undefined, source: string): string {
+  return ident(flatName(docId, source));
 }
 
 function aggExpr(field: string | undefined, agg: string | undefined): string {
@@ -179,9 +188,13 @@ function normSort(raw: unknown): string {
 }
 
 export function compileView(view: ViewSpec, docId?: string): CompiledView {
-  // SP4 : source qualifiée par schéma `doc_<docId>` quand docId fourni.
-  // Sans docId, `src` == `ident(view.source)` → SQL strictement inchangé.
+  // SP4 : source = vue plate préfixée `doc_<docId>__<src>` quand docId
+  // fourni. `src` (quoté) est interpolé dans le SQL brut ; `flatSource`
+  // (non quoté) est le nom porté par le CompiledView, consommé par
+  // vgplot (bar/plot) et par fetchTableRows / injectWhere (view-mounter).
+  // Sans docId, les deux valent `view.source` → SQL et source inchangés.
   const src = qualifiedSource(docId, view.source);
+  const flatSource = flatName(docId, view.source);
   switch (view.type) {
     case "map_choropleth": {
       const geo = getChannel(view, "geo");
@@ -233,7 +246,7 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
         kind: "choropleth",
         id: view.id,
         title: view.title,
-        source: view.source,
+        source: flatSource,
         sql,
         geoField: geo.field,
         filterBy: view.filterBy,
@@ -274,7 +287,7 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
           kind: "grouped_bars",
           id: view.id,
           title: view.title,
-          source: view.source,
+          source: flatSource,
           sql,
           kField: x.field,
           seriesLabels,
@@ -298,7 +311,7 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
           kind: "ranked_bars",
           id: view.id,
           title: view.title,
-          source: view.source,
+          source: flatSource,
           sql,
           kField: x.field,
           valueFormat: stringOpt(opts, "format"),
@@ -311,19 +324,15 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
       }
 
       // Rétro-compat total : bar nu inchangé.
-      // SP4 : source qualifiée pour vgplot quand docId fourni.
+      // SP4 : source = vue plate préfixée `doc_<docId>__src` quand docId
+      // fourni. C'est UN identifiant simple → `vg.from(source)` le quote
+      // correctement (`"doc_d1__effectifs"`), isolation réelle du plot.
       // Sans docId → `view.source` brut (vgplot quote tel quel : "src").
-      // LIMITE : vg.from(string) (cf. asTableRef→tableRef) traite la
-      // chaîne comme UN identifiant unique et la re-quote en bloc
-      // (`doc_d1.""effectifs"""`). L'isolation réelle bar/plot nécessite
-      // un suivi côté renderer (passer un tableau ["doc_d1","src"] à
-      // vg.from). Les kinds SQL-path (kpi/choropleth/ranked/grouped)
-      // sont, eux, correctement isolés via la qualification du SQL brut.
       return {
         kind: "bar",
         id: view.id,
         title: view.title,
-        source: docId ? qualifiedSource(docId, view.source) : view.source,
+        source: flatSource,
         xField: x.field,
         yField: y?.field,
         yAggregate: yAgg,
@@ -357,7 +366,7 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
         kind: "table",
         id: view.id,
         title: view.title,
-        source: view.source,
+        source: flatSource,
         columns,
         search: view.options?.search === true ? true : undefined,
         filterBy: view.filterBy,
@@ -394,7 +403,7 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
         kind: "kpi",
         id: view.id,
         title: view.title,
-        source: view.source,
+        source: flatSource,
         sql,
         ...(hasDelta ? { hasDelta } : {}),
         format: stringOpt(opts, "format"),
@@ -418,12 +427,12 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
       }
       const y = getChannel(view, "y");
       const series = getChannel(view, "series");
-      // SP4 : même logique que bar (cf. note LIMITE vgplot ci-dessus).
+      // SP4 : même logique que bar — source = vue plate préfixée.
       return {
         kind: "plot",
         id: view.id,
         title: view.title,
-        source: docId ? qualifiedSource(docId, view.source) : view.source,
+        source: flatSource,
         plotType: view.type,
         xField: x.field,
         yField: y?.field,

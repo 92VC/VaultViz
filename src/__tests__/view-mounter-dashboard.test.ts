@@ -239,4 +239,23 @@ describe("injectWhere — clause de cross-filter bespoke", () => {
   it("renvoie le SQL inchangé si le token FROM est introuvable", () => {
     expect(injectWhere('SELECT 1', "t", "f", "x")).toBe("SELECT 1");
   });
+
+  // SP4 : sous docId, la source est un nom de vue PLAT préfixé
+  // (`doc_d1__cg`). injectWhere doit reconnaître `FROM "doc_d1__cg"` sans
+  // aucune adaptation (c'est un identifiant unique quoté) → cross-filter
+  // fonctionnel sous docId.
+  it("injecte WHERE sur un nom de vue préfixé (SP4 docId)", () => {
+    const sql = 'SELECT SUM("ca") AS v FROM "doc_d1__cg"';
+    expect(injectWhere(sql, "doc_d1__cg", "code", "75")).toBe(
+      'SELECT SUM("ca") AS v FROM "doc_d1__cg" WHERE "code" = \'75\'',
+    );
+  });
+
+  it("injecte WHERE avant GROUP BY sur un nom préfixé (ranked SP4)", () => {
+    const sql =
+      'SELECT "cat" AS k, SUM("v") AS v FROM "doc_d1__cat" GROUP BY "cat" ORDER BY v DESC';
+    expect(injectWhere(sql, "doc_d1__cat", "code", "69")).toBe(
+      'SELECT "cat" AS k, SUM("v") AS v FROM "doc_d1__cat" WHERE "code" = \'69\' GROUP BY "cat" ORDER BY v DESC',
+    );
+  });
 });
