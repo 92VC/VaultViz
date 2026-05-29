@@ -47,13 +47,13 @@
 | V1 — V1-3 Watcher | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-4 Exports | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
-| V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 4 | 0 | 0 | 0 |
+| V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 3 | 0 | 1 | 0 |
 | V1 — V1-6 Signature DSI | 1 | 1 | 0 | 0 | 0 |
 | V1 — V1-7 RGAA | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **49** | **22** | **0** | **24** | **3** |
+| **Total** | **49** | **21** | **0** | **25** | **3** |
 
 ### 0.4 Conventions champs
 
@@ -610,7 +610,7 @@ Chaque story porte les champs :
 - **PRD** : §4.1, §15 ; ADR-012
 - **Complexité** : S
 
-### B-200 — [ ] SP1 — Design system (tokens + polices + icônes + CSS base)
+### B-200 — [x] SP1 — Design system (tokens + polices + icônes + CSS base)
 
 - **Itération** : V1-5 / SP1
 - **Livrable** : design tokens (dark/light), polices Inter + JetBrains Mono **embarquées** (.woff2 + @font-face), jeu d'icônes SVG, CSS de base des composants
