@@ -1,28 +1,14 @@
 @import "./tokens.css";
 @import "./components.css";
+@import "./layout.css";
 
-:root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #1a1a1a;
-}
+/* Reset, shell (#app), layout et thème : définis par tokens.css + layout.css
+   (portés de la maquette). Ci-dessous : uniquement les classes héritées
+   encore utilisées par certains composants (table vv-table, carte
+   vv-choropleth/vv-legend, layout vstack de repli vv-layout…). */
 
 * {
   box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-}
-
-#app {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
 }
 
 .vv-header h1 {
@@ -370,9 +356,3 @@ body {
 .vv-layout-hstack > .vv-view-frame { flex: 1 1 360px; min-width: 0; }
 .vv-view-title { font-size: 1.1rem; margin: 0 0 0.5rem; }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #f6f6f6;
-  }
-}
