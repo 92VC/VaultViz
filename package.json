@@ -12,6 +12,8 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "@tauri-apps/cli": "^2.1.0",
     "@types/d3-geo": "^3.1.0",
     "happy-dom": "^20.9.0",

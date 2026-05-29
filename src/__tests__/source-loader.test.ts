@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 
-import { loadSources } from "../viz-engine/source-loader";
+import {
+  loadSources,
+  dropDocViews,
+  viewName,
+} from "../viz-engine/source-loader";
 import type { DuckConnector } from "../viz-engine/duck-connector";
 import type { VVizDocument } from "../viz-engine/types";
 
@@ -77,5 +81,87 @@ describe("loadSources", () => {
     await expect(
       loadSources(conn, doc([{ name: "my source", path: "/x.parquet" }]), "/home/x"),
     ).rejects.toThrow(/nom de source/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SP4 — namespacing par vues plates préfixées (doc_<id>__src)
+// ---------------------------------------------------------------------------
+
+describe("viewName", () => {
+  it("retourne doc_<id>__<src> pour un docId valide", () => {
+    expect(viewName("d1", "effectifs")).toBe("doc_d1__effectifs");
+  });
+  it("retourne <src> sans docId (rétro-compat)", () => {
+    expect(viewName(undefined, "effectifs")).toBe("effectifs");
+  });
+  it("throw pour un docId invalide", () => {
+    expect(() => viewName("bad-id", "s")).toThrow(/docId/i);
+    expect(() => viewName("x".repeat(33), "s")).toThrow(/docId/i);
+  });
+});
+
+describe("loadSources — SP4 docId", () => {
+  it("crée des vues plates préfixées (pas de CREATE SCHEMA)", async () => {
+    const { conn, sqls } = fakeConn();
+    await loadSources(
+      conn,
+      doc([
+        { name: "effectifs", path: "./sample.parquet" },
+        { name: "geo", path: "/abs/geo.parquet" },
+      ]),
+      "/home/x",
+      "d1",
+    );
+    expect(sqls).toHaveLength(2);
+    expect(sqls[0]).toBe(
+      `CREATE OR REPLACE VIEW "doc_d1__effectifs" AS SELECT * FROM read_parquet('/home/x/sample.parquet')`,
+    );
+    expect(sqls[1]).toBe(
+      `CREATE OR REPLACE VIEW "doc_d1__geo" AS SELECT * FROM read_parquet('/abs/geo.parquet')`,
+    );
+  });
+
+  it("sans docId : vues non préfixées (rétro-compat)", async () => {
+    const { conn, sqls } = fakeConn();
+    await loadSources(
+      conn,
+      doc([{ name: "effectifs", path: "./sample.parquet" }]),
+      "/home/x",
+    );
+    expect(sqls).toHaveLength(1);
+    expect(sqls[0]).toBe(
+      `CREATE OR REPLACE VIEW "effectifs" AS SELECT * FROM read_parquet('/home/x/sample.parquet')`,
+    );
+  });
+
+  it("docId invalide : throw avant tout SQL", async () => {
+    const { conn, sqls } = fakeConn();
+    await expect(
+      loadSources(
+        conn,
+        doc([{ name: "x", path: "/x.parquet" }]),
+        "/home/x",
+        "bad-id",
+      ),
+    ).rejects.toThrow(/docId/i);
+    expect(sqls).toHaveLength(0);
+  });
+});
+
+describe("dropDocViews", () => {
+  it("exécute DROP VIEW IF EXISTS par source préfixée", async () => {
+    const { conn, sqls } = fakeConn();
+    await dropDocViews(conn, "d1", ["effectifs", "geo"]);
+    expect(sqls).toEqual([
+      `DROP VIEW IF EXISTS "doc_d1__effectifs"`,
+      `DROP VIEW IF EXISTS "doc_d1__geo"`,
+    ]);
+  });
+
+  it("throw pour un docId invalide", async () => {
+    const { conn, sqls } = fakeConn();
+    await expect(dropDocViews(conn, "bad-id", ["s"])).rejects.toThrow(/docId/i);
+    expect(sqls).toHaveLength(0);
   });
 });

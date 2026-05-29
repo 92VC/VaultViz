@@ -1,0 +1,135 @@
+{
+  "$schema": "../schema/vviz-v1.json",
+  "vviz": {
+    "version": "1.0",
+    "title": "Performance réseau France — Exercice 2025",
+    "description": "Chiffre d'affaires, marge et suivi budgétaire par département · 96 entités · clôture provisoire",
+    "author": "Contrôle de gestion",
+    "created": "2026-05-29"
+  },
+  "data": {
+    "sources": [
+      { "name": "cg_dep", "path": "./controle_gestion_departements.parquet" },
+      { "name": "cg_cat", "path": "./controle_gestion_categories.parquet" },
+      { "name": "cg_q", "path": "./controle_gestion_quarters.parquet" }
+    ]
+  },
+  "spec": {
+    "engine": "mosaic",
+    "layout": "dashboard",
+    "selections": [
+      { "id": "dept", "kind": "single" }
+    ],
+    "views": [
+      {
+        "id": "kpi_ca",
+        "type": "kpi",
+        "source": "cg_dep",
+        "title": "CA réalisé · total",
+        "filterBy": "dept",
+        "encoding": {
+          "value": { "field": "ca", "aggregate": "sum" },
+          "delta": { "field": "yoy_ca", "aggregate": "avg" }
+        },
+        "options": { "region": "kpi", "format": "eur", "deltaUnit": " %", "foot": "vs 2024", "icon": "euro", "filterField": "code" }
+      },
+      {
+        "id": "kpi_marge",
+        "type": "kpi",
+        "source": "cg_dep",
+        "title": "Marge brute",
+        "filterBy": "dept",
+        "encoding": {
+          "value": { "field": "marge_pct", "aggregate": "avg" },
+          "delta": { "field": "yoy_marge", "aggregate": "avg" }
+        },
+        "options": { "region": "kpi", "format": "pct", "deltaUnit": " pt", "foot": "moy. pondérée", "icon": "margin", "filterField": "code" }
+      },
+      {
+        "id": "kpi_ecart",
+        "type": "kpi",
+        "source": "cg_dep",
+        "title": "Écart au budget",
+        "filterBy": "dept",
+        "encoding": {
+          "value": { "field": "ecart", "aggregate": "sum" }
+        },
+        "options": { "region": "kpi", "format": "eur", "foot": "réalisé − budget", "icon": "target", "filterField": "code" }
+      },
+      {
+        "id": "kpi_count",
+        "type": "kpi",
+        "source": "cg_dep",
+        "title": "Départements",
+        "filterBy": "dept",
+        "encoding": {
+          "value": { "aggregate": "count" }
+        },
+        "options": { "region": "kpi", "format": "number", "foot": "entités couvertes", "icon": "check", "filterField": "code" }
+      },
+      {
+        "id": "map_ca",
+        "type": "map_choropleth",
+        "source": "cg_dep",
+        "title": "Chiffre d'affaires par département",
+        "encoding": {
+          "geo": { "field": "code", "topology": "departements" },
+          "color": { "field": "ca", "aggregate": "sum" }
+        },
+        "options": {
+          "region": "main",
+          "emitsTo": "dept",
+          "subtitle": "Cliquez un département pour filtrer l'ensemble du tableau de bord",
+          "metrics": [
+            { "key": "ca", "label": "CA", "field": "ca", "aggregate": "sum", "format": "eur" },
+            { "key": "marge", "label": "Marge", "field": "marge_pct", "aggregate": "avg", "format": "pct" },
+            { "key": "ecart", "label": "Écart", "field": "ecart_pct", "aggregate": "avg", "format": "signed" }
+          ]
+        }
+      },
+      {
+        "id": "bars_cat",
+        "type": "barX",
+        "source": "cg_cat",
+        "title": "CA par ligne de produits",
+        "filterBy": "dept",
+        "encoding": {
+          "x": { "field": "categorie" },
+          "y": { "field": "montant", "aggregate": "sum" }
+        },
+        "options": { "region": "side", "sort": "desc", "valueLabels": true, "format": "eur", "filterField": "code", "subtitle": "Répartition du chiffre d'affaires" }
+      },
+      {
+        "id": "bars_q",
+        "type": "bar",
+        "source": "cg_q",
+        "title": "Budget vs réalisé",
+        "filterBy": "dept",
+        "encoding": {
+          "x": { "field": "trimestre" },
+          "y": { "field": "realise", "aggregate": "sum" }
+        },
+        "options": { "region": "side", "compareField": "budget", "compareAggregate": "sum", "format": "eur", "filterField": "code", "subtitle": "Par trimestre" }
+      },
+      {
+        "id": "table_dep",
+        "type": "table",
+        "source": "cg_dep",
+        "title": "Détail par département",
+        "filterBy": "dept",
+        "encoding": {
+          "columns": [
+            { "field": "nom", "label": "Département", "align": "text" },
+            { "field": "ca", "label": "CA", "align": "num", "format": "eur" },
+            { "field": "marge_pct", "label": "Marge", "align": "num", "format": "pct" },
+            { "field": "realise", "label": "Réalisé", "align": "num", "format": "eur" },
+            { "field": "budget", "label": "Budget", "align": "num", "format": "eur" },
+            { "field": "ecart_pct", "label": "Écart", "align": "num", "format": "signed" },
+            { "field": "statut", "label": "Statut", "type": "badge", "badgeMap": { "Atteint": "ok", "À risque": "warn", "Sous-objectif": "err" } }
+          ]
+        },
+        "options": { "region": "full", "search": true, "filterField": "code" }
+      }
+    ]
+  }
+}

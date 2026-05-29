@@ -76,7 +76,7 @@ La case « Obsidian-for-data » est encore libre en mai 2026 (cf. §13). Les con
 | **Manifest** | Fichier optionnel `vault.json` décrivant la liste des `.vviz` exposés, leur catégorisation, version. |
 | **Publisher** | Pipeline ETL contrôlé qui est le seul autorisé à écrire sur le partage (hors scope de VaultViz, mais condition de gouvernance). |
 | **Cadre cible** | Public utilisateur principal : collège cadres CPAM 92, non-technicien, poste Windows géré MECM/Intune. |
-| **DSFR** | Système de design de l'État français — référence visuelle à atteindre pour crédibilité institutionnelle. |
+| **DSFR** | Système de design de l'État français. Initialement visé comme référence visuelle ; abandonné au profit d'un design system custom (cf. [ADR-012](docs/adr/ADR-012-design-system.md)). |
 | **PSSI** | Politique de sécurité des systèmes d'information (ici PSSI-MCAS Sécurité Sociale, PSSI-E État). |
 
 ---
@@ -137,7 +137,7 @@ Objectif : démontrer en interne que l'architecture tient, sur le cas d'usage UC
 | Logging local en fichier (debug) | ✅ |
 | MSI propre généré via `tauri-bundler` (signature hors scope produit : artefact livré à la DSI pour test si nécessaire) | ✅ |
 | Installation manuelle (pas de déploiement MECM en V0) | ✅ |
-| **Hors V0** : MapLibre, watcher, export PDF, déploiement MECM, thème DSFR | ❌ |
+| **Hors V0** : MapLibre, watcher, export PDF, déploiement MECM, design system custom | ❌ |
 
 Critères de succès V0 (Go pour V1) :
 - UC-1, UC-3, UC-6 fonctionnent sur Parquet 50 Mo et 300 Mo réels CPAM.
@@ -158,7 +158,7 @@ Ajout par rapport à V0 :
 | MSI **signable** produit par la CI (signature opérée par la DSI, hors scope produit) | ✅ |
 | Déploiement MECM/Intune testé sur 10–20 postes pilotes Windows 11 | ✅ |
 | UI de chargement (loader, messages d'erreur, doc accessible F1) | ✅ |
-| Thème DSFR appliqué (palette, typographie Marianne) — crédibilité publique | ✅ |
+| Design system custom appliqué (thème sombre/clair, tokens, polices Inter + JetBrains Mono embarquées) — cf. [ADR-012](docs/adr/ADR-012-design-system.md) | ✅ |
 | Doc utilisateur 1 page (PDF) + doc auteur spec 5 pages | ✅ |
 | Schéma JSON `.vviz` versionné dans le repo (validation VS Code via `$schema` local ou raw GitHub) | ✅ |
 | **Hors V1** : éditeur visuel WYSIWYG, mobile, partage cloud, multi-utilisateur write, multi-plateforme (Linux, macOS) | ❌ |
@@ -298,7 +298,7 @@ Si `vault.json` est présent à la racine du share, VaultViz peut afficher une p
 │   │  • fs reader UNC │───▶│  • Parquet read  │───▶│  • Mosaic +   │  │
 │   │  • fs watcher    │    │  • SQL push-down │    │    vgplot     │  │
 │   │  • capabilities  │    │  • Arrow IPC out │    │  • MapLibre   │  │
-│   │  • IPC channel   │    │                  │    │  • DSFR theme │  │
+│   │  • IPC channel   │    │                  │    │  • theme (cust)│  │
 │   └──────────────────┘    └──────────────────┘    └───────────────┘  │
 │                                                                       │
 │   Cache local %LOCALAPPDATA%\VaultViz\  (LRU, plafond 2 Go)           │
@@ -600,7 +600,7 @@ Hors scope V1 et V2 : Linux, macOS, mobile, web. Aucun build multi-plateforme pr
 | R-1 | Le MSI produit ne passe pas les procédures DSI (incompatibilité bundler / politique de signature interne) | Faible | Moyen | Livrer un MSI de test à la DSI dès I6 du V0 pour validation rapide |
 | R-2 | UNC scope Tauri non opérationnel out-of-the-box | Moyenne | Élevé | POC itération 0 dédiée, plan B = mapper en lettre de lecteur via MECM |
 | R-3 | Performance Parquet > 1 Go inacceptable | Faible | Élevé | Partitionnement publisher, spilling DuckDB local SSD |
-| R-4 | Concurrent OSS publie un wrapper desktop équivalent (ex. Evidence.dev en .exe) | Moyenne | Élevé | Veille active, accélérer V1 ; différenciation : no-code, DSFR, intégration parc CPAM |
+| R-4 | Concurrent OSS publie un wrapper desktop équivalent (ex. Evidence.dev en .exe) | Moyenne | Élevé | Veille active, accélérer V1 ; différenciation : no-code, design soigné, intégration parc CPAM |
 | R-5 | Rendu PDF dégradé sur certaines vues (carto MapLibre WebGL) | Moyenne | Moyen | Tester pipeline export PDF dès V0 sur la carte ; fallback : capture canvas → PDF via pdf-lib |
 | R-6 | RGPD : données nominatives exposées via mauvaise ACL share | Faible | Très élevé | Hors scope VaultViz — relève de la gouvernance des ACL du partage par la DSI ; VaultViz n'est qu'un interprétateur |
 | R-7 | Adoption cadres en deçà de 50 % | Moyenne | Élevé | Test terrain V1 sur 10–20 cadres pilotes avant push large, itération UX |
@@ -635,7 +635,7 @@ Approche **vibe coding** : itérations courtes, valeur démontrée à chaque ét
 | V1-2 | TopoJSON IGN ADMIN EXPRESS 2026 + drill carto |
 | V1-3 | Watcher FS + bannière rafraîchissement |
 | V1-4 | **Export PDF A4** (exigence) + PNG + CSV |
-| V1-5 | Thème DSFR + typo Marianne |
+| V1-5 | Intégration du design custom (maquette) — cf. ADR-012 |
 | V1-6 | Coordination DSI pour signature production du MSI (hors scope produit, point de jonction) |
 | V1-7 | Audit RGAA niveau AA + corrections |
 | V1-8 | Doc utilisateur + doc auteur + schéma JSON dans le repo |
@@ -648,7 +648,7 @@ Approche **vibe coding** : itérations courtes, valeur démontrée à chaque ét
 - DuckLake support
 - Mode présentation
 - Commentaires (`.vviz.notes.md`)
-- Galerie templates (DSFR)
+- Galerie templates (design custom)
 - MSIX si la DSI le demande
 - Repli Vega-Lite si Mosaic V1 se révèle insuffisant à l'usage (cf. R-8)
 
@@ -669,6 +669,7 @@ Approche **vibe coding** : itérations courtes, valeur démontrée à chaque ét
 | ADR-009 | Carto = MapLibre GL JS + TopoJSON IGN ADMIN EXPRESS COG simplifiée | [ADR-009](docs/adr/ADR-009-maplibre-ign.md) | [IGN ADMIN EXPRESS](https://geoservices.ign.fr/adminexpress), [MapLibre](https://maplibre.org/) |
 | ADR-010 | **Windows 11 exclusivement** — pas de build multi-plateforme | [ADR-010](docs/adr/ADR-010-windows-11-only.md) | — |
 | ADR-011 | **Export PDF A4** comme exigence V1 explicite (UC-4) | [ADR-011](docs/adr/ADR-011-export-pdf-v1.md) | — |
+| ADR-012 | **Design system custom** (sombre/clair, tokens, polices embarquées) supersede DSFR/Marianne | [ADR-012](docs/adr/ADR-012-design-system.md) | Maquette `mockups/VaultViz/` |
 
 ### 15.1 RACI des ADRs
 
@@ -836,7 +837,7 @@ vaultviz/
 │   ├── index.html
 │   ├── viz-engine/             # wrapper Mosaic + repli éventuel
 │   ├── map/                    # MapLibre wrappers
-│   ├── theme/                  # DSFR
+│   ├── theme/                  # design system custom (tokens, thèmes)
 │   └── ui/
 ├── schema/
 │   ├── vviz-v1.json            # schéma JSON publié

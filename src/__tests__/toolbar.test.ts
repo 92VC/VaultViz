@@ -1,51 +1,105 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { renderToolbar } from "../components/toolbar";
+import { mountToolbar } from "../components/toolbar";
 
-describe("renderToolbar", () => {
-  it("rend un bouton 'Ouvrir' qui appelle onOpen", () => {
-    const c = document.createElement("div");
+beforeEach(() => {
+  // Repart d'un thème connu pour stabiliser l'icône du bouton thème.
+  document.documentElement.setAttribute("data-theme", "dark");
+});
+
+describe("mountToolbar", () => {
+  it("rend les boutons d'action (ouvrir, exporter, thème, paramètres)", () => {
+    const el = document.createElement("div");
+    mountToolbar(el, { onOpen: () => {} });
+    expect(el.querySelector('[data-action="open"]')).not.toBeNull();
+    expect(el.querySelector('[data-action="export"]')).not.toBeNull();
+    expect(el.querySelector('[data-action="theme"]')).not.toBeNull();
+    expect(el.querySelector('[data-action="settings"]')).not.toBeNull();
+    expect(el.querySelector('[data-action="open"]')?.textContent).toMatch(
+      /ouvrir/i,
+    );
+  });
+
+  it("appelle onOpen au clic sur Ouvrir", () => {
+    const el = document.createElement("div");
     const onOpen = vi.fn();
-    renderToolbar(c, { onOpen, currentPath: null });
-    const btn = c.querySelector<HTMLButtonElement>(".vv-open-btn");
-    expect(btn).not.toBeNull();
-    expect(btn!.textContent).toMatch(/ouvrir/i);
-    btn!.click();
+    mountToolbar(el, { onOpen });
+    el.querySelector<HTMLButtonElement>('[data-action="open"]')!.click();
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
-  it("affiche le nom court du chemin courant", () => {
-    const c = document.createElement("div");
-    renderToolbar(c, { onOpen: () => {}, currentPath: "/tmp/dashboards/x.vviz" });
-    expect(c.querySelector<HTMLElement>(".vv-toolbar-file code")?.textContent)
-      .toBe("x.vviz");
+  it("appelle onExport au clic sur Exporter", () => {
+    const el = document.createElement("div");
+    const onExport = vi.fn();
+    mountToolbar(el, { onOpen: () => {}, onExport });
+    el.querySelector<HTMLButtonElement>('[data-action="export"]')!.click();
+    expect(onExport).toHaveBeenCalledTimes(1);
   });
 
-  it("affiche 'Aucun fichier' si pas de chemin", () => {
-    const c = document.createElement("div");
-    renderToolbar(c, { onOpen: () => {}, currentPath: null });
-    expect(c.textContent).toMatch(/aucun fichier/i);
+  it("ne plante pas au clic Exporter sans callback", () => {
+    const el = document.createElement("div");
+    mountToolbar(el, { onOpen: () => {} });
+    expect(() =>
+      el.querySelector<HTMLButtonElement>('[data-action="export"]')!.click(),
+    ).not.toThrow();
   });
 
-  it("normalise les antislashes Windows pour l'affichage", () => {
-    const c = document.createElement("div");
-    renderToolbar(c, {
-      onOpen: () => {},
-      currentPath: "C:\\Users\\x\\dash.vviz",
-    });
-    expect(c.querySelector<HTMLElement>(".vv-toolbar-file code")?.textContent)
-      .toBe("dash.vviz");
+  it("setStatus('loading') pose data-s='loading' et le libellé", () => {
+    const el = document.createElement("div");
+    const h = mountToolbar(el, { onOpen: () => {} });
+    h.setStatus("loading");
+    const status = el.querySelector<HTMLElement>(".status")!;
+    expect(status.dataset.s).toBe("loading");
+    expect(status.querySelector(".s-txt")?.textContent).toBe("Chargement");
   });
 
-  it("échappe les caractères HTML dans le code affiché", () => {
-    const c = document.createElement("div");
-    renderToolbar(c, {
-      onOpen: () => {},
-      currentPath: "/dir/<weird>.vviz",
-    });
-    const codeEl = c.querySelector<HTMLElement>(".vv-toolbar-file code");
-    // Le textContent reflète le nom court ; pas d'injection HTML possible.
-    expect(codeEl?.textContent).toBe("<weird>.vviz");
-    expect(c.querySelector("weird")).toBeNull();
+  it("setStatus('error') pose data-s='error'", () => {
+    const el = document.createElement("div");
+    const h = mountToolbar(el, { onOpen: () => {} });
+    h.setStatus("error");
+    expect(el.querySelector<HTMLElement>(".status")!.dataset.s).toBe("error");
+  });
+
+  it("setStatusVisible(false) masque le badge de statut", () => {
+    const el = document.createElement("div");
+    const h = mountToolbar(el, { onOpen: () => {} });
+    h.setStatusVisible(false);
+    expect(el.querySelector<HTMLElement>(".status")!.style.visibility).toBe(
+      "hidden",
+    );
+    h.setStatusVisible(true);
+    expect(el.querySelector<HTMLElement>(".status")!.style.visibility).toBe(
+      "visible",
+    );
+  });
+
+  it("setPath rend les segments, dernier = fichier", () => {
+    const el = document.createElement("div");
+    const h = mountToolbar(el, { onOpen: () => {} });
+    h.setPath(["share", "dashboards", "ventes.vviz"]);
+    const segs = el.querySelectorAll(".path .seg");
+    expect(segs.length).toBe(3);
+    expect(segs[0].textContent).toBe("share");
+    expect(segs[2].textContent).toBe("ventes.vviz");
+    expect(segs[2].classList.contains("file")).toBe(true);
+    expect(el.querySelectorAll(".path .sep").length).toBe(2);
+  });
+
+  it("setPath([]) masque le breadcrumb", () => {
+    const el = document.createElement("div");
+    const h = mountToolbar(el, { onOpen: () => {} });
+    h.setPath(["a", "b"]);
+    h.setPath([]);
+    expect(el.querySelector<HTMLElement>(".path-wrap")!.style.display).toBe(
+      "none",
+    );
+  });
+
+  it("le bouton thème bascule le thème au clic", () => {
+    const el = document.createElement("div");
+    mountToolbar(el, { onOpen: () => {} });
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    el.querySelector<HTMLButtonElement>('[data-action="theme"]')!.click();
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
   });
 });

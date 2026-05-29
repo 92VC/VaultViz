@@ -15,11 +15,38 @@ export interface VVizSource {
   path: string;
 }
 
-/** Canal d'encoding (geo, color, x, y, value). */
+/** Canal d'encoding (geo, color, x, y, value, delta, series). */
 export interface EncodingChannel {
   field?: string;
   aggregate?: "sum" | "avg" | "count" | "min" | "max" | "none";
   topology?: string;
+}
+
+/**
+ * Définition d'une colonne de table après normalisation (SP3). Une
+ * colonne déclarée en simple `string` dans le `.vviz` est normalisée en
+ * `{ field }`. Les colonnes riches portent label/align/format/badge.
+ */
+export interface ColumnDef {
+  field: string;
+  label?: string;
+  align?: "num" | "text";
+  format?: string;
+  type?: "badge";
+  badgeMap?: Record<string, string>;
+}
+
+/**
+ * Définition d'une métrique alternative pour une carte choroplèthe
+ * (SP3) — permet de basculer la mesure affichée sans changer la vue.
+ */
+export interface MetricDef {
+  key: string;
+  label: string;
+  field: string;
+  format?: string;
+  aggregate?: "sum" | "avg" | "count" | "min" | "max";
+  sql: string;
 }
 
 /** Type de vue supporté en V0 (cf. schema enum). */
@@ -59,7 +86,7 @@ export interface SelectionSpec {
 /** Spec complète d'un .vviz. */
 export interface VVizSpec {
   engine: "mosaic";
-  layout?: "vstack" | "hstack" | "grid";
+  layout?: "vstack" | "hstack" | "grid" | "dashboard";
   selections?: SelectionSpec[];
   views: ViewSpec[];
 }

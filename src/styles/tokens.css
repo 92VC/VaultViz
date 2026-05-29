@@ -1,0 +1,156 @@
+/* ============================================================
+   VaultViz — design tokens & themes
+   Porté depuis mockups/VaultViz/assets/styles.css (SP1).
+   Polices : Inter (UI) + JetBrains Mono (data/paths), chargées
+   LOCALEMENT via @fontsource (cf. src/main.ts) — aucun CDN (I-2).
+   ============================================================ */
+
+/* ---------- Tokens ---------- */
+:root {
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --accent: #0066FF;
+  --accent-ink: #ffffff;
+
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+
+  /* spacing scale */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s7: 32px;
+  --s8: 40px;
+
+  /* type scale */
+  --fs-micro: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-body: 14px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 28px;
+  --fs-kpi: 34px;
+  --fs-display: 40px;
+
+  --speed: .16s;
+  --ease: cubic-bezier(.4, 0, .2, 1);
+
+  /* density defaults */
+  --pad-card: 18px;
+  --gap-grid: 16px;
+  --row-h: 36px;
+  --kpi-pad: 20px;
+}
+
+/* ---------- Dark theme (default) ---------- */
+[data-theme="dark"] {
+  --bg-app: #0a0d12;
+  --bg-sunken: #070a0e;
+  --surface-1: #10151d;
+  --surface-2: #151b25;
+  --surface-3: #1a212d;
+  --surface-hover: #1c2531;
+  --border-1: #212834;
+  --border-2: #2b3441;
+  --border-strong: #3a4555;
+  --text-1: #e7ecf3;
+  --text-2: #9aa6b8;
+  --text-3: #697384;
+  --text-faint: #4b5564;
+  --accent: #0066FF;
+  --accent-bright: #3b86ff;
+  --accent-soft: color-mix(in oklab, #0066FF 16%, #10151d);
+  --accent-tint: color-mix(in oklab, #0066FF 12%, transparent);
+  --ok: #27ac63;
+  --ok-soft: color-mix(in oklab, #27ac63 16%, #10151d);
+  --warn: #e09031;
+  --warn-soft: color-mix(in oklab, #e09031 16%, #10151d);
+  --err: #e5484d;
+  --err-soft: color-mix(in oklab, #e5484d 16%, #10151d);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow-pop: 0 8px 28px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .4);
+  --shadow-elev: 0 2px 4px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .45);
+  --grid-line: color-mix(in oklab, #ffffff 5%, transparent);
+  color-scheme: dark;
+}
+
+/* ---------- Light theme ---------- */
+[data-theme="light"] {
+  --bg-app: #eef1f5;
+  --bg-sunken: #e4e8ee;
+  --surface-1: #ffffff;
+  --surface-2: #f7f9fb;
+  --surface-3: #eef1f5;
+  --surface-hover: #f0f3f7;
+  --border-1: #e3e8ee;
+  --border-2: #d6dce4;
+  --border-strong: #c2cad5;
+  --text-1: #101725;
+  --text-2: #56616f;
+  --text-3: #828d9c;
+  --text-faint: #a8b1bd;
+  --accent: #0066FF;
+  --accent-bright: #0a5cf0;
+  --accent-soft: color-mix(in oklab, #0066FF 9%, #ffffff);
+  --accent-tint: color-mix(in oklab, #0066FF 9%, transparent);
+  --ok: #168a4e;
+  --ok-soft: color-mix(in oklab, #168a4e 12%, #ffffff);
+  --warn: #bf7411;
+  --warn-soft: color-mix(in oklab, #bf7411 12%, #ffffff);
+  --err: #cf2b30;
+  --err-soft: color-mix(in oklab, #cf2b30 12%, #ffffff);
+  --shadow-card: 0 1px 2px rgba(16, 28, 48, .06);
+  --shadow-pop: 0 12px 32px rgba(16, 28, 48, .14), 0 3px 8px rgba(16, 28, 48, .08);
+  --shadow-elev: 0 1px 3px rgba(16, 28, 48, .08), 0 10px 26px rgba(16, 28, 48, .12);
+  --grid-line: color-mix(in oklab, #101725 6%, transparent);
+  color-scheme: light;
+}
+
+/* ---------- Accent overrides (tweak) ---------- */
+[data-accent="indigo"] { --accent: #5b6bff; --accent-bright: #7b88ff; }
+[data-accent="teal"] { --accent: #00a892; --accent-bright: #1ec3ab; }
+[data-accent="violet"] { --accent: #7c5cff; --accent-bright: #9479ff; }
+
+[data-accent="indigo"][data-theme="dark"],
+[data-theme="dark"][data-accent="indigo"] {
+  --accent-soft: color-mix(in oklab, #5b6bff 16%, #10151d);
+  --accent-tint: color-mix(in oklab, #5b6bff 12%, transparent);
+}
+[data-accent="teal"][data-theme="dark"] {
+  --accent-soft: color-mix(in oklab, #00a892 16%, #10151d);
+  --accent-tint: color-mix(in oklab, #00a892 12%, transparent);
+}
+[data-accent="violet"][data-theme="dark"] {
+  --accent-soft: color-mix(in oklab, #7c5cff 16%, #10151d);
+  --accent-tint: color-mix(in oklab, #7c5cff 12%, transparent);
+}
+[data-accent="indigo"][data-theme="light"] {
+  --accent-soft: color-mix(in oklab, #5b6bff 9%, #fff);
+  --accent-tint: color-mix(in oklab, #5b6bff 9%, transparent);
+}
+[data-accent="teal"][data-theme="light"] {
+  --accent-soft: color-mix(in oklab, #00a892 9%, #fff);
+  --accent-tint: color-mix(in oklab, #00a892 9%, transparent);
+}
+[data-accent="violet"][data-theme="light"] {
+  --accent-soft: color-mix(in oklab, #7c5cff 9%, #fff);
+  --accent-tint: color-mix(in oklab, #7c5cff 9%, transparent);
+}
+
+/* ---------- Density (tweak) ---------- */
+[data-density="compact"] { --pad-card: 14px; --gap-grid: 12px; --row-h: 32px; --kpi-pad: 16px; }
+[data-density="comfort"] { --pad-card: 20px; --gap-grid: 18px; --row-h: 38px; --kpi-pad: 22px; }
+
+/* ---------- Card styles (tweak) ---------- */
+.card { background: var(--surface-1); border-radius: var(--r-md); position: relative; }
+[data-cards="borders"] .card { border: 1px solid var(--border-1); box-shadow: none; }
+[data-cards="shadows"] .card { border: 1px solid var(--border-1); box-shadow: var(--shadow-card); }
+[data-cards="elevated"] .card { border: 1px solid transparent; background: var(--surface-2); box-shadow: var(--shadow-elev); }
+[data-theme="light"][data-cards="elevated"] .card { background: #fff; }

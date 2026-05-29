@@ -1,0 +1,90 @@
+{
+  "$schema": "../schema/vviz-v1.json",
+  "vviz": {
+    "version": "1.0",
+    "title": "Suivi mensuel de l'activité — Exercice 2024-2025",
+    "description": "Chiffre d'affaires, objectif et marge sur 24 mois · répartition par canal · tableau de bord BI sans cartographie",
+    "author": "Pilotage de l'activité",
+    "created": "2026-05-29"
+  },
+  "data": {
+    "sources": [
+      { "name": "sm_mois", "path": "./suivi_mensuel_mois.parquet" },
+      { "name": "sm_canal", "path": "./suivi_mensuel_canal.parquet" }
+    ]
+  },
+  "spec": {
+    "engine": "mosaic",
+    "layout": "dashboard",
+    "views": [
+      {
+        "id": "kpi_ca",
+        "type": "kpi",
+        "source": "sm_mois",
+        "title": "CA cumulé · 24 mois",
+        "encoding": {
+          "value": { "field": "ca", "aggregate": "sum" }
+        },
+        "options": { "region": "kpi", "format": "eur", "foot": "sur la période", "icon": "euro" }
+      },
+      {
+        "id": "kpi_marge",
+        "type": "kpi",
+        "source": "sm_mois",
+        "title": "Marge moyenne",
+        "encoding": {
+          "value": { "field": "marge_pct", "aggregate": "avg" }
+        },
+        "options": { "region": "kpi", "format": "pct", "foot": "moyenne mensuelle", "icon": "margin" }
+      },
+      {
+        "id": "line_ca",
+        "type": "line",
+        "source": "sm_mois",
+        "title": "Évolution du CA mensuel",
+        "encoding": {
+          "x": { "field": "mois" },
+          "y": { "field": "ca", "aggregate": "sum" }
+        },
+        "options": { "region": "main", "format": "eur", "subtitle": "Chiffre d'affaires réalisé par mois" }
+      },
+      {
+        "id": "area_objectif",
+        "type": "area",
+        "source": "sm_mois",
+        "title": "Objectif mensuel",
+        "encoding": {
+          "x": { "field": "mois" },
+          "y": { "field": "objectif", "aggregate": "sum" }
+        },
+        "options": { "region": "main", "format": "eur", "subtitle": "Trajectoire cible" }
+      },
+      {
+        "id": "bars_canal",
+        "type": "barX",
+        "source": "sm_canal",
+        "title": "CA par canal",
+        "encoding": {
+          "x": { "field": "canal" },
+          "y": { "field": "ca", "aggregate": "sum" }
+        },
+        "options": { "region": "side", "sort": "desc", "valueLabels": true, "format": "eur", "subtitle": "Répartition du chiffre d'affaires" }
+      },
+      {
+        "id": "table_mois",
+        "type": "table",
+        "source": "sm_mois",
+        "title": "Détail mensuel",
+        "encoding": {
+          "columns": [
+            { "field": "mois", "label": "Mois", "align": "text" },
+            { "field": "ca", "label": "CA", "align": "num", "format": "eur" },
+            { "field": "objectif", "label": "Objectif", "align": "num", "format": "eur" },
+            { "field": "marge_pct", "label": "Marge", "align": "num", "format": "pct" }
+          ]
+        },
+        "options": { "region": "full", "search": true }
+      }
+    ]
+  }
+}

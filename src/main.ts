@@ -1,157 +1,58 @@
-// VaultViz V0 — bootstrap front (interpréteur réel .vviz).
+// VaultViz V0 — bootstrap front (interpréteur réel .vviz) sur l'app shell.
 //
 // Flux :
-//   1. resolveStartupPath() (argv / VVIZ_DEFAULT / bundle resource)
-//   2. Toolbar permanente avec bouton "Ouvrir un fichier .vviz..."
-//   3. Si Some(path) au boot → openVViz(path), sinon welcome
-//   4. openVViz(path) :
-//        - read_vviz + parse + Ajv (spec-loader)
-//        - loadSources : CREATE VIEW par source du .vviz
-//        - pour chaque view : compileView + mountCompiledView
+//   1. mountAppShell(#root) → ShellHandles ; createRouter(handles).
+//   2. Montage UNE FOIS de titlebar / toolbar / home / loader dans leurs
+//      conteneurs respectifs.
+//   3. resolveStartupPath() (argv / VVIZ_DEFAULT / bundle resource) ;
+//      drag-drop (onFileDrop) ; dialog natif (openViaDialog).
+//   4. openFlow(path) : loader → pipeline loadVViz + loadSources + montage
+//      des vues dans handles.dashboard ; succès → dashboard, échec → bandeau
+//      d'erreur. Récents persistés (recents.ts), breadcrumb toolbar.
 //
-// Plus aucune démo hardcodée. Le .vviz ouvert pilote intégralement le
-// rendu (paths, fields, agrégats, layout, selections).
+// Le pipeline de rendu des vues (init Mosaic, loadSources, compileView,
+// mountCompiledView) est PRÉSERVÉ tel quel — seule la cible de montage
+// devient handles.dashboard. La grille par zones « dashboard » arrive en
+// Wave 3.
+
+// Polices chargées LOCALEMENT via @fontsource (woff2 dans node_modules,
+// url() relatifs vers ./files/*) — aucun appel réseau (invariant I-2).
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/500.css";
 
 import { invoke } from "@tauri-apps/api/core";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
 
-import { loadVViz } from "./viz-engine/spec-loader";
-import { loadSources } from "./viz-engine/source-loader";
-import { compileView } from "./viz-engine/view-compiler";
-import { mountCompiledView } from "./viz-engine/view-mounter";
-import { vvizDir } from "./viz-engine/path-resolver";
 import { createDuckConnector } from "./viz-engine/duck-connector";
-import { createRuntime, ensureSelection } from "./viz-engine/mosaic-runtime";
-import { initMosaicRuntime } from "./viz-engine";
 
-import { renderToolbar } from "./components/toolbar";
-import { renderWelcome } from "./components/welcome";
-import { renderErrorBanner, fromVVizError } from "./components/error-banner";
+import { mountAppShell, type ShellHandles } from "./shell/layout";
+import { createRouter, type Router } from "./shell/router";
+import { mountTitlebar, type TitlebarHandle } from "./components/titlebar";
+import { mountToolbar, type ToolbarHandle } from "./components/toolbar";
+import { mountHome, type HomeHandle } from "./components/home";
+import { mountLoader, type LoaderHandle } from "./components/loader";
+import { openViaDialog, onFileDrop } from "./services/file-open";
+import { createTabsManager, type TabsManager } from "./shell/tabs";
 
-const HELP_HREF = "https://github.com/92VC/VaultViz/tree/main/docs/user";
+let handles: ShellHandles;
+let router: Router;
+let toolbar: ToolbarHandle;
+let titlebar: TitlebarHandle;
+let home: HomeHandle;
+let loader: LoaderHandle;
+let tabs: TabsManager;
 
-let toolbarHost: HTMLElement | null = null;
-let contentHost: HTMLElement | null = null;
-let currentPath: string | null = null;
-
-function refreshToolbar(): void {
-  if (!toolbarHost) return;
-  renderToolbar(toolbarHost, {
-    onOpen: () => {
-      pickAndOpen().catch((err) => console.error("[VaultViz] dialog error", err));
-    },
-    currentPath,
-  });
-}
-
+/** Ouverture via dialog natif (toolbar « Ouvrir »). */
 async function pickAndOpen(): Promise<void> {
-  const picked = await openDialog({
-    title: "Ouvrir un fichier .vviz",
-    filters: [{ name: "VaultViz spec", extensions: ["vviz"] }],
-    multiple: false,
-    directory: false,
-  });
-  if (typeof picked === "string") {
-    await openVViz(picked);
-  }
-}
-
-async function openVViz(path: string): Promise<void> {
-  currentPath = path;
-  refreshToolbar();
-  if (!contentHost) return;
-
-  contentHost.innerHTML = `<p class="vv-note">Chargement de ${escapeText(path)}…</p>`;
-
-  // 1. Read + parse + validate
-  const { doc, error } = await loadVViz(path);
-  if (error || !doc) {
-    renderErrorBanner(
-      contentHost,
-      error ?? fromVVizError({ kind: "Io", message: "doc indisponible" }, path),
-      {
-        onRetry: () => openVViz(path),
-        helpHref: HELP_HREF,
-      },
-    );
-    return;
-  }
-
-  // 2. Init runtime Mosaic (idempotent — best-effort hors Tauri)
-  try {
-    initMosaicRuntime();
-  } catch (err) {
-    console.warn("[VaultViz] init Mosaic indisponible :", err);
-  }
-  const ctx = createRuntime();
-  for (const s of doc.spec.selections ?? []) {
-    ensureSelection(ctx, s.id, s.kind);
-  }
-
-  // 3. Charger les sources DuckDB depuis doc.data.sources[]
-  const conn = createDuckConnector();
-  try {
-    await loadSources(conn, doc, vvizDir(path));
-  } catch (err) {
-    renderErrorBanner(
-      contentHost,
-      {
-        kind: "Io",
-        path,
-        message: `Chargement des sources : ${(err as Error).message}`,
-      },
-      { onRetry: () => openVViz(path), helpHref: HELP_HREF },
-    );
-    return;
-  }
-
-  // 4. Rendu : titre + description + grid des vues
-  contentHost.innerHTML = "";
-  const title = document.createElement("h1");
-  title.className = "vv-doc-title";
-  title.textContent = doc.vviz.title;
-  contentHost.appendChild(title);
-  if (doc.vviz.description) {
-    const sub = document.createElement("p");
-    sub.className = "vv-doc-sub";
-    sub.textContent = doc.vviz.description;
-    contentHost.appendChild(sub);
-  }
-
-  const layout = document.createElement("div");
-  layout.className = `vv-layout vv-layout-${doc.spec.layout ?? "vstack"}`;
-  contentHost.appendChild(layout);
-
-  for (const v of doc.spec.views) {
-    const frame = document.createElement("section");
-    frame.className = `vv-view-frame vv-view-${v.type}`;
-    frame.dataset.viewId = v.id;
-    if (v.title) {
-      const h = document.createElement("h2");
-      h.className = "vv-view-title";
-      h.textContent = v.title;
-      frame.appendChild(h);
-    }
-    const mount = document.createElement("div");
-    mount.className = "vv-view-mount";
-    frame.appendChild(mount);
-    layout.appendChild(frame);
-
-    try {
-      const compiled = compileView(v);
-      await mountCompiledView(compiled, mount, ctx, conn);
-    } catch (err) {
-      const msg = (err as Error).message ?? String(err);
-      const note = document.createElement("p");
-      note.className = "vv-note vv-note-error";
-      note.textContent = `Vue "${v.id}" (${v.type}) : ${msg}`;
-      mount.appendChild(note);
-    }
-  }
+  const picked = await openViaDialog();
+  if (picked) await tabs.open(picked);
 }
 
 async function resolveStartupPath(): Promise<string | null> {
-  // Garde-fou : si l'IPC ne répond pas en 2 s, on bascule sur welcome
+  // Garde-fou : si l'IPC ne répond pas en 2 s, on bascule sur home
   // au lieu de bloquer indéfiniment sur une page blanche.
   try {
     const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
@@ -166,32 +67,70 @@ async function resolveStartupPath(): Promise<string | null> {
   }
 }
 
-function escapeText(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
 async function bootstrap(): Promise<void> {
-  const root = document.getElementById("app");
-  if (!root) return;
-  root.innerHTML = `
-    <div class="vv-toolbar-host"></div>
-    <div class="vv-content-host"></div>
-  `;
-  toolbarHost = root.querySelector(".vv-toolbar-host");
-  contentHost = root.querySelector(".vv-content-host");
-  refreshToolbar();
+  const root = document.getElementById("root") ?? document.body;
+
+  handles = mountAppShell(root);
+  router = createRouter(handles);
+
+  // Montage UNE FOIS des composants permanents.
+  titlebar = mountTitlebar(handles.titlebar);
+  toolbar = mountToolbar(handles.toolbar, {
+    onOpen: () => {
+      pickAndOpen().catch((err) =>
+        console.error("[VaultViz] dialog error", err),
+      );
+    },
+  });
+  home = mountHome(handles.home, {
+    onOpenPath: (path) => {
+      void tabs.open(path);
+    },
+  });
+  loader = mountLoader(handles.overlay);
+
+  // Gestionnaire d'onglets multi-documents : un docId + un RuntimeContext +
+  // un conteneur DOM par document, connector DuckDB partagé.
+  tabs = createTabsManager({
+    handles,
+    router,
+    titlebar,
+    toolbar,
+    loader,
+    connector: createDuckConnector(),
+    onHome: () => {
+      void home.refresh();
+    },
+  });
+
+  // Câblage des onglets de la titlebar.
+  titlebar.onTabSelect((id) => tabs.activate(id));
+  titlebar.onTabClose((id) => {
+    void tabs.close(id);
+  });
+  titlebar.onNewTab(() => {
+    router.show("home");
+    void home.refresh();
+  });
+
+  // Aucun document ouvert au démarrage → pas d'onglet (l'onglet placeholder
+  // de la titlebar est remplacé par la liste réelle, ici vide).
+  titlebar.setTabs([]);
+
+  // Statut masqué tant qu'aucun .vviz n'est ouvert.
+  toolbar.setStatusVisible(false);
+
+  // Glisser-déposer d'un .vviz (no-op hors Tauri).
+  onFileDrop((path) => {
+    void tabs.open(path);
+  });
 
   const startupPath = await resolveStartupPath();
   if (startupPath) {
-    await openVViz(startupPath);
-  } else if (contentHost) {
-    renderWelcome(contentHost, {
-      onOpen: () => {
-        pickAndOpen().catch((err) =>
-          console.error("[VaultViz] dialog error", err),
-        );
-      },
-    });
+    await tabs.open(startupPath);
+  } else {
+    router.show("home");
+    await home.refresh();
   }
 }
 

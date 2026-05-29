@@ -5,15 +5,23 @@
 // - le render ne throw pas et attache un nœud au container
 // - la fonction tolère l'absence de filterSelectionName
 
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { renderBarChart } from "../components/bar-chart";
 import {
   createRuntime,
   ensureSelection,
 } from "../viz-engine/mosaic-runtime";
+import { installVgplotStubConnector } from "./_vgplot-stub";
 
 describe("bar-chart (B-041)", () => {
+  // Enregistre un connector stub sur le coordinator vgplot AVANT tout
+  // rendu : empêche les rejets « Socket closed » des requêtes async
+  // fire-and-forget de Mosaic en l'absence de Tauri. Cf. _vgplot-stub.ts.
+  beforeAll(() => {
+    installVgplotStubConnector();
+  });
+
   it("rend un nœud dans le container sans filterBy", () => {
     const c = document.createElement("div");
     const ctx = createRuntime();
