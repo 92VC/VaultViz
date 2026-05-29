@@ -1,0 +1,191 @@
+/* ============================================================
+   VaultViz — composants de base
+   Porté depuis mockups/VaultViz/assets/styles.css (SP1 / T1.3).
+   Styles RÉUTILISABLES de composants : boutons, chips, badges,
+   cards, segmented control, statut LED + scrollbars custom.
+   Utilise les tokens définis dans tokens.css. Aucune URL réseau (I-2).
+   La base .card et ses variantes [data-cards] vivent dans tokens.css.
+   ============================================================ */
+
+/* ---------- Boutons toolbar (.tbtn) ---------- */
+.tbtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-2);
+  border: 1px solid transparent;
+  transition: background var(--speed), color var(--speed);
+}
+.tbtn:hover { background: var(--surface-3); color: var(--text-1); }
+.tbtn svg { width: 15px; height: 15px; }
+.tbtn.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+}
+.tbtn.primary:hover { background: var(--accent-bright); }
+.tbtn.icon { width: 32px; padding: 0; justify-content: center; }
+
+/* ---------- Boutons standards (.btn) ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  font-weight: 550;
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
+  color: var(--text-1);
+  transition: background var(--speed);
+}
+.btn:hover { background: var(--surface-3); }
+.btn.danger { background: var(--err); color: #fff; border-color: transparent; }
+.btn.danger:hover { filter: brightness(1.08); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--text-2); }
+.btn.ghost:hover { color: var(--text-1); background: var(--surface-3); }
+
+/* ---------- Chips ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-pill);
+  padding: 3px 10px;
+}
+.chip .mono { color: var(--text-3); }
+
+.filter-chip {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  font-weight: 550;
+  background: var(--accent-soft);
+  color: var(--accent-bright);
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
+  border-radius: var(--r-pill);
+  padding: 5px 7px 5px 13px;
+}
+.filter-chip.on { display: inline-flex; }
+.filter-chip .x {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+  color: var(--accent-bright);
+}
+.filter-chip .x:hover { background: var(--accent); color: #fff; }
+
+/* ---------- Badges de statut ---------- */
+.badge {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.badge .bd { width: 5px; height: 5px; border-radius: 50%; }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.ok .bd { background: var(--ok); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.warn .bd { background: var(--warn); }
+.badge.err { background: var(--err-soft); color: var(--err); }
+.badge.err .bd { background: var(--err); }
+
+/* ---------- Cartes (en-têtes / corps) ---------- */
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--pad-card) var(--pad-card) 0;
+}
+.card-head .ch-l { min-width: 0; flex: 1; }
+.card-title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  letter-spacing: -.2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.card-sub { font-size: var(--fs-xs); color: var(--text-3); margin-top: 2px; }
+.card-body { padding: var(--pad-card); }
+
+/* ---------- Segmented control ---------- */
+.seg-ctrl {
+  display: flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-sm);
+  padding: 2px;
+}
+.seg-ctrl button {
+  padding: 5px 11px;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--text-2);
+  border-radius: 5px;
+}
+.seg-ctrl button.on {
+  background: var(--surface-1);
+  color: var(--text-1);
+  box-shadow: var(--shadow-card);
+}
+[data-theme="dark"] .seg-ctrl button.on { background: var(--surface-3); }
+
+/* ---------- Statut LED ---------- */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  padding: 5px 11px 5px 9px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-1);
+  background: var(--surface-2);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.status .led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px var(--ok-soft);
+}
+.status[data-s="ready"] .led { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.status[data-s="loading"] .led {
+  background: var(--warn);
+  box-shadow: 0 0 0 3px var(--warn-soft);
+  animation: pulse 1s var(--ease) infinite;
+}
+.status[data-s="error"] { color: var(--err); border-color: color-mix(in oklab, var(--err) 30%, transparent); }
+.status[data-s="error"] .led { background: var(--err); box-shadow: 0 0 0 3px var(--err-soft); }
+@keyframes pulse { 50% { opacity: .35; } }
+
+/* ---------- Scrollbars custom ---------- */
+.stage::-webkit-scrollbar { width: 11px; height: 11px; }
+.stage::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 6px;
+  border: 3px solid var(--bg-app);
+}
+.stage::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
