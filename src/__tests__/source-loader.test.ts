@@ -165,3 +165,35 @@ describe("dropDocViews", () => {
     expect(sqls).toHaveLength(0);
   });
 });
+
+describe("loadSources — timeout (anti-hang, UC-6)", () => {
+  // Si une source ne répond pas (read_parquet bloqué, chemin inaccessible…),
+  // l'indexation ne doit JAMAIS rester figée : timeout → erreur actionnable
+  // mentionnant la source ET son chemin résolu.
+  const hangConn = () =>
+    ({ query: () => new Promise<never>(() => {}) }) as unknown as DuckConnector;
+
+  it("rejette en mentionnant la source qui bloque", async () => {
+    await expect(
+      loadSources(
+        hangConn(),
+        doc([{ name: "assets", path: "./dli_assets.parquet" }]),
+        "/data/DLI",
+        undefined,
+        40,
+      ),
+    ).rejects.toThrow(/assets/);
+  });
+
+  it("le message d'erreur contient le chemin résolu (diagnostic)", async () => {
+    await expect(
+      loadSources(
+        hangConn(),
+        doc([{ name: "assets", path: "./dli_assets.parquet" }]),
+        "/data/DLI",
+        undefined,
+        40,
+      ),
+    ).rejects.toThrow(/\/data\/DLI\/dli_assets\.parquet/);
+  });
+});

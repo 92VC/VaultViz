@@ -16,6 +16,31 @@ function sqlString(s: string): string {
 }
 
 /**
+ * Garde-fou anti-blocage (UC-6) : une requête d'indexation qui ne répond
+ * pas (read_parquet sur un chemin inaccessible / DuckDB figé) ne doit JAMAIS
+ * laisser l'app sur un loader infini. Au-delà de `ms`, on rejette avec un
+ * message actionnable (le `label` porte la source + le chemin résolu).
+ *
+ * `CREATE VIEW … read_parquet(...)` ne lit que le schéma/footer du Parquet
+ * (rapide même sur 1 Go) → un délai généreux (30 s par défaut) ne crée pas
+ * de faux positif sur le cas share volumineux.
+ */
+async function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`délai dépassé (${Math.round(ms / 1000)} s) — ${label}`)),
+      ms,
+    );
+  });
+  try {
+    return await Promise.race([p, timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+/**
  * Nom de vue DuckDB d'une source (SP4 — multi-documents).
  *
  * Namespacing par NOM DE VUE PLAT préfixé (et non par schéma DuckDB, qui
@@ -49,6 +74,7 @@ export async function loadSources(
   doc: VVizDocument,
   vvizDirPath: string,
   docId?: string,
+  timeoutMs = 30_000,
 ): Promise<void> {
   // Valide docId en amont (throw avant tout SQL si invalide).
   if (docId !== undefined && !DOC_ID.test(docId)) {
@@ -65,7 +91,11 @@ export async function loadSources(
     const sql =
       `CREATE OR REPLACE VIEW "${view}" AS ` +
       `SELECT * FROM read_parquet(${sqlString(resolved)})`;
-    await conn.query({ type: "exec", sql });
+    await withTimeout(
+      conn.query({ type: "exec", sql }),
+      timeoutMs,
+      `indexation de la source « ${src.name} » (${resolved})`,
+    );
   }
 }
 
