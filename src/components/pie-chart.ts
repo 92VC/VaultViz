@@ -67,9 +67,10 @@ export function renderPieChart(
 
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("class", "vv-pie-svg");
+  // viewBox carré : le disque garde son aspect. La taille RÉELLE à l'écran
+  // est pilotée en CSS (responsive) — pas de width/height px figés ici, sinon
+  // le disque resterait minuscule quelle que soit la largeur du cadre.
   svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
-  svg.setAttribute("width", String(size));
-  svg.setAttribute("height", String(size));
 
   let angle = -Math.PI / 2; // démarre en haut
   slices.forEach((s, i) => {

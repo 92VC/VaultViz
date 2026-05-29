@@ -58,7 +58,6 @@ export function renderLineChart(
   const padL = 8;
   const padR = 12;
   const padT = 12;
-  const padB = 26;
   const colors = opts.palette && opts.palette.length ? opts.palette : DEFAULT_COLORS;
 
   // Axe X : ordre d'apparition des x (toutes séries confondues).
@@ -72,6 +71,11 @@ export function renderLineChart(
       }
     }
   }
+  // Rotation des libellés X seulement s'il y en a trop pour tenir à plat
+  // (au-delà de ~16). En-deçà, libellés horizontaux lisibles. La marge
+  // basse s'agrandit en mode pivoté pour ne JAMAIS rogner le texte.
+  const rotate = xs.length > 16;
+  const padB = rotate ? 52 : 28;
   const maxY = Math.max(
     1,
     ...series.flatMap((s) => s.points.map((p) => p.y)),
@@ -111,7 +115,6 @@ export function renderLineChart(
   const svg = el("svg", {
     class: "vv-line-svg",
     viewBox: `0 0 ${W} ${H}`,
-    preserveAspectRatio: "none",
     width: "100%",
   });
 
@@ -167,19 +170,31 @@ export function renderLineChart(
     }
   });
 
-  // Étiquettes X (premier, milieu, dernier) pour repère temporel.
-  const labelIdx = xs.length <= 1 ? [0] : [0, Math.floor((xs.length - 1) / 2), xs.length - 1];
-  for (const i of [...new Set(labelIdx)]) {
+  // Étiquettes X : TOUTES les valeurs (mois/années). Horizontales et
+  // lisibles tant qu'il y en a ≤ 16 ; au-delà, pivotées -40° dans la marge
+  // basse élargie (padB) pour ne jamais être rognées.
+  const axisY = padT + innerH;
+  xs.forEach((xv, i) => {
+    const x = xPos(xv);
     const tx = el("text", {
-      x: xPos(xs[i]).toFixed(1),
-      y: String(H - 8),
-      "text-anchor": i === 0 ? "start" : i === xs.length - 1 ? "end" : "middle",
-      "font-size": "10",
+      x: x.toFixed(1),
+      y: rotate ? String(axisY + 12) : String(axisY + 16),
+      "text-anchor": rotate
+        ? "end"
+        : i === 0
+          ? "start"
+          : i === xs.length - 1
+            ? "end"
+            : "middle",
+      "font-size": "9",
       fill: "var(--text-3, #94a3b8)",
     });
-    tx.textContent = xs[i];
+    if (rotate) {
+      tx.setAttribute("transform", `rotate(-40 ${x.toFixed(1)} ${axisY + 12})`);
+    }
+    tx.textContent = xv;
     svg.appendChild(tx);
-  }
+  });
 
   container.appendChild(svg);
 }

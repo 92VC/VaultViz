@@ -309,6 +309,7 @@ export async function mountCompiledView(
             format: view.valueFormat,
             title: view.title,
             donut: numberOpt(view.options, "donut"),
+            size: numberOpt(view.options, "size"),
             palette: Array.isArray(palette) ? (palette as string[]) : undefined,
           },
         );

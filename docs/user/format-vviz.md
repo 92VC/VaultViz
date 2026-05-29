@@ -184,8 +184,4 @@ Aucune stack trace n'est exposée à l'utilisateur. Logs détaillés dans
 
 | Fichier | Couvre |
 |---|---|
-| `examples/effectifs_2026.vviz` | KPI + bar + table (smoke sur `sample.parquet`) |
-| `examples/demo_dept.vviz` | UC-1 + UC-3 carte choro + cross-filter (sur `demo_dept.parquet`) |
-
-Le binaire `cargo run --release --example gen_demo_dept` régénère
-`demo_dept.parquet` (4 ko, 96 deps × 8 catégories).
+| `examples/DLI/dli_inventaire_autoporteur.vviz` | KPI + bar + table + carte choro (parquet embarqué en base64 `inline` — fichier autoporteur, aucun `.parquet` externe requis) |

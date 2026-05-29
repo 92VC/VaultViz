@@ -854,6 +854,29 @@ button {
   font-weight: 600;
 }
 
+/* Camembert : SVG à gauche, légende verticale à droite (remplit la largeur). */
+.pie-wrap {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.pie-wrap .vv-pie-svg {
+  /* Le DISQUE est l'élément dominant : il prend une large part du cadre
+     (~42 %, borné), grandit avec la fenêtre, reste circulaire. La légende
+     occupe le reste. C'est la taille du disque lui-même, pas de l'ensemble. */
+  flex: 0 0 clamp(220px, 42%, 420px);
+  width: clamp(220px, 42%, 420px);
+  height: auto;
+  aspect-ratio: 1 / 1;
+}
+.pie-legend {
+  flex: 1 1 240px;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
 /* Tooltip custom (survol des barres appariées). */
 .vv-tooltip {
   position: fixed;

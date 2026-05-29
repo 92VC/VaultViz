@@ -316,11 +316,15 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
       const hasValueLabels = opts?.valueLabels !== undefined;
       const hasSort = opts?.sort !== undefined;
       const hasFormat = opts?.format !== undefined;
-      if (hasValueLabels || hasSort || hasFormat) {
+      if (hasValueLabels || hasSort || hasFormat || opts?.orderByKey === true) {
         const sort = normSort(opts?.sort);
+        // `orderByKey` : tri par la clé (ex. mois/année) plutôt que par
+        // valeur → garde l'ordre chronologique d'un histogramme temporel.
+        const orderBy =
+          opts?.orderByKey === true ? `${ident(x.field)} ASC` : `v ${sort}`;
         const sql =
           `SELECT ${ident(x.field)} AS k, ${aggExpr(y?.field, yAgg)} AS v ` +
-          `FROM ${src} GROUP BY ${ident(x.field)} ORDER BY v ${sort}`;
+          `FROM ${src} GROUP BY ${ident(x.field)} ORDER BY ${orderBy}`;
         return {
           kind: "ranked_bars",
           id: view.id,
