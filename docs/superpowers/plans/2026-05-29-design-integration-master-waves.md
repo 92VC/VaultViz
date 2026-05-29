@@ -51,6 +51,11 @@ Le schéma `vviz-v1.json` est déjà permissif (`encoding`/`options` = `addition
 - **Layout dashboard** : `spec.layout` accepte la valeur `"dashboard"`. Placement par `view.options.region` ∈ `{"kpi","main","side","full"}` (zone de la maquette : bandeau KPI / colonne principale carte / colonne latérale / pleine largeur table). Sans region : flux vstack (rétro-compat).
 - **Chip de filtre** : pas de champ DSL — dérivé de l'état de la Selection active (UI shell).
 
+> **Généralité BI (correction de périmètre) :** VaultViz est un **interpréteur générique de dashboards BI**, la carte choroplèthe est **optionnelle**. Deux familles de rendu coexistent, pilotées par le même DSL + Selections :
+> - **Widgets bespoke** (DOM stylé fidèle maquette) : `kpi` (delta), `barX`/`barY` classées, barres appariées (séries), `map_choropleth`, `table` (badges).
+> - **Catalogue BI générique** via **vgplot thémé aux tokens** : `line`, `area`, `dot` (scatter), `bar` génériques. Le `view-compiler` ne doit plus **throw** sur `line`/`area`/`dot` — ils sont compilés et rendus.
+> Un dashboard valide peut ne contenir **aucune** carte (ex. 100 % séries temporelles + table + KPIs). Le layout `dashboard` accepte tout type de vue dans chaque zone.
+
 `CompiledView` (union dans `view-compiler.ts`) gagne les champs correspondants ; `types.ts` aligne `ViewSpec.encoding`/`options` typés. **Rétro-compatibilité totale** : tous les `.vviz` existants compilent à l'identique.
 
 ### 1.5 Dataset canonique d'acceptation
@@ -59,8 +64,9 @@ Le schéma `vviz-v1.json` est déjà permissif (`encoding`/`options` = `addition
   - `cg_departements(code, nom, region, ca, marge_pct, budget, realise, ecart, ecart_pct, statut, yoy_ca, yoy_marge)` — 96 lignes.
   - `cg_categories(code, categorie, montant)` — 96×5 lignes (Logiciel/Services/Matériel/Formation/Support).
   - `cg_quarters(code, trimestre, realise, budget)` — 96×4 lignes (T1..T4).
-- `examples/controle_gestion.vviz` déclare ces 3 sources et reproduit la maquette via le DSL étendu (KPIs, carte+métriques, barres classées sur `cg_categories`, barres appariées sur `cg_quarters`, table sur `cg_departements`).
-- **Gate d'acceptation** : moteur rend `controle_gestion.vviz` **sans erreur**, cross-filter émet les requêtes attendues ; capture Playwright produite pour comparaison visuelle humaine.
+- `examples/controle_gestion.vviz` déclare ces 3 sources et reproduit la maquette via le DSL étendu (KPIs, carte+métriques, barres classées sur `cg_categories`, barres appariées sur `cg_quarters`, table sur `cg_departements`). **Exemple map-centric.**
+- **Second exemple SANS carte** `examples/suivi_mensuel.vviz` (+ Parquet généré) : dashboard BI générique prouvant la généralité — série temporelle (`line`/`area`), barres, KPIs, table ; **zéro `map_choropleth`**. Valide que le moteur n'est pas map-dépendant.
+- **Gate d'acceptation** : le moteur rend **les deux** exemples **sans erreur**, cross-filter émet les requêtes attendues ; captures Playwright produites pour comparaison visuelle humaine.
 
 ### 1.6 Gates objectives par wave (toutes machine-vérifiables)
 1. `npm test` vert + `cargo test` vert (non-régression).
@@ -148,8 +154,10 @@ Fan-out (subagents, composants disjoints, rendu DOM fidèle maquette + données 
 - [ ] **T3.3** `src/components/ranked-bars.ts` — barres horizontales classées, colorées, labels de valeurs (catégories).
 - [ ] **T3.4** `src/components/grouped-bars.ts` — barres appariées (budget vs réalisé par trimestre).
 - [ ] **T3.5** `src/components/table-view.ts` (évolution) — recherche ILIKE push-down + colonnes riches + badges statut. Conserver `table-view.test.ts`.
-- [ ] **T3.6** `src/components/filter-chip.ts` + intégration dashboard layout (`src/shell/dashboard.ts`) — chip de filtre lié à la Selection ; grille `dashboard` (zones kpi/main/side/full).
-- [ ] **Gate Wave 3 :** `npm test` (+ nouveaux tests compilateur/composants), `cargo test`, ajv, build, **chargement headless de `controle_gestion.vviz` sans erreur**, I-2/I-3 — verts. BACKLOG B-220 `[x]`. Commit.
+- [ ] **T3.6** `src/components/filter-chip.ts` + intégration dashboard layout (`src/shell/dashboard.ts`) — chip de filtre lié à la Selection ; grille `dashboard` (zones kpi/main/side/full), **sans carte obligatoire**.
+- [ ] **T3.7** `src/components/plot-view.ts` — **catalogue BI générique via vgplot thémé** : `line`, `area`, `dot` (scatter) + `bar`/`barX`/`barY` génériques, axes/grille aux tokens, `filterBy` Selection. Le `view-compiler` (T3.0b) compile désormais line/area/dot (plus de `throw`). TDD : cas line/area/dot.
+- [ ] **T3.8** `examples/suivi_mensuel.vviz` + `src-tauri/examples/gen_suivi_mensuel.rs` → Parquet série temporelle mensuelle ; dashboard **sans carte** (line/area + barres + KPIs + table). ajv vert.
+- [ ] **Gate Wave 3 :** `npm test` (+ nouveaux tests compilateur/composants), `cargo test`, ajv, build, **chargement headless de `controle_gestion.vviz` ET `suivi_mensuel.vviz` sans erreur**, I-2/I-3 — verts. BACKLOG B-220 `[x]`. Commit.
 
 ---
 

@@ -95,9 +95,9 @@
         },
         "layout": {
           "type": "string",
-          "enum": ["vstack", "hstack", "grid"],
+          "enum": ["vstack", "hstack", "grid", "dashboard"],
           "default": "vstack",
-          "description": "Disposition macro des vues."
+          "description": "Disposition macro des vues. `dashboard` : placement par zones via view.options.region (kpi/main/side/full)."
         },
         "selections": {
           "type": "array",
