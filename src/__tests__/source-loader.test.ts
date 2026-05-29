@@ -197,3 +197,27 @@ describe("loadSources — timeout (anti-hang, UC-6)", () => {
     ).rejects.toThrow(/\/data\/DLI\/dli_assets\.parquet/);
   });
 });
+
+describe("loadSources — sources embarquées (.vviz autoporteur)", () => {
+  it("matérialise une source inline puis CREATE VIEW sur le chemin retourné", async () => {
+    const { conn, sqls } = fakeConn();
+    const materialize = vi.fn(async (name: string) => `/cache/${name}.parquet`);
+    await loadSources(
+      conn,
+      doc([{ name: "assets", inline: "QkFTRTY0" } as never]),
+      "/ignored",
+      undefined,
+      30_000,
+      materialize,
+    );
+    expect(materialize).toHaveBeenCalledWith("assets", "QkFTRTY0");
+    expect(sqls[0]).toContain("read_parquet('/cache/assets.parquet')");
+  });
+
+  it("throw si une source n'a ni inline ni path", async () => {
+    const { conn } = fakeConn();
+    await expect(
+      loadSources(conn, doc([{ name: "x" } as never]), "/d"),
+    ).rejects.toThrow(/inline.*path|path.*inline|ni/i);
+  });
+});

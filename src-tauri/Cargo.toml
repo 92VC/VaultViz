@@ -22,6 +22,10 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 
+# Décodage des sources Parquet embarquées (base64) d'un .vviz autoporteur
+# (cf. commands::cache::materialize_source). Petit crate sans transitive.
+base64 = "0.22"
+
 # B-062 — timestamps + résolution du dossier `%LOCALAPPDATA%\VaultViz\logs`
 # (PRD §6.4). `chrono` en `default-features = false` + `clock` + `serde`
 # suffit pour `Utc::now()` et le formatage ISO-8601 — on n'a pas besoin

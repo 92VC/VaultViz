@@ -4,9 +4,18 @@
 // JSON : `^[a-zA-Z_][a-zA-Z0-9_]{0,63}$`). On revalide ici par
 // défense en profondeur.
 
+import { invoke } from "@tauri-apps/api/core";
+
 import { resolvePath } from "./path-resolver";
 import type { DuckConnector } from "./duck-connector";
 import type { VVizDocument } from "./types";
+
+/** Type de la fonction qui matérialise une source embarquée (base64 → chemin). */
+export type Materialize = (name: string, b64: string) => Promise<string>;
+
+/** Implémentation réelle : commande Tauri `materialize_source`. */
+const defaultMaterialize: Materialize = (name, b64) =>
+  invoke<string>("materialize_source", { name, b64 });
 
 const SAFE_IDENT = /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/;
 const DOC_ID = /^[a-zA-Z0-9_]{1,32}$/;
@@ -75,6 +84,7 @@ export async function loadSources(
   vvizDirPath: string,
   docId?: string,
   timeoutMs = 30_000,
+  materialize: Materialize = defaultMaterialize,
 ): Promise<void> {
   // Valide docId en amont (throw avant tout SQL si invalide).
   if (docId !== undefined && !DOC_ID.test(docId)) {
@@ -86,7 +96,22 @@ export async function loadSources(
         `nom de source invalide (identifiant SQL attendu) : "${src.name}"`,
       );
     }
-    const resolved = resolvePath(src.path, vvizDirPath);
+    // Source EMBARQUÉE (.vviz autoporteur) → extraite au cache local, puis
+    // lue comme un Parquet classique. Sinon source EXTERNE par chemin.
+    let resolved: string;
+    if (src.inline) {
+      resolved = await withTimeout(
+        materialize(src.name, src.inline),
+        timeoutMs,
+        `extraction de la source embarquée « ${src.name} »`,
+      );
+    } else if (src.path) {
+      resolved = resolvePath(src.path, vvizDirPath);
+    } else {
+      throw new Error(
+        `source « ${src.name} » : ni « inline » ni « path » fourni`,
+      );
+    }
     const view = viewName(docId, src.name);
     const sql =
       `CREATE OR REPLACE VIEW "${view}" AS ` +

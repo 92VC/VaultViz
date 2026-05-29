@@ -367,6 +367,8 @@ Toute version précise mentionnée par ailleurs dans ce document doit être lue 
 
 **Conséquence** : le pipeline ETL publisher **doit** sortir du Parquet. Toute exception (CSV legacy) est traitée par conversion en amont, pas dans VaultViz.
 
+**Amendement 2026-05-29 — fichier `.vviz` AUTOPORTEUR (modèle par défaut).** L'intention fondatrice (« comme une note Obsidian : on clique, ça marche, sans dépendance ») prime : un `.vviz` **embarque ses données** via `data.sources[].inline` (Parquet **base64** dans le fichier). Un seul fichier, double-clic, aucune donnée externe à copier. À l'ouverture, chaque source embarquée est extraite au cache local (`%LOCALAPPDATA%\VaultViz\cache`) puis lue par DuckDB. Le format pivot reste **Parquet** (pas de JSON pour la donnée — l'`inline` est du Parquet encodé, pas une sérialisation JSON des lignes), donc l'esprit ADR-003 est préservé. Le mode **externe** (`data.sources[].path` vers le share/UNC) **reste supporté** pour les gros volumes gouvernés en amont, mais n'est plus le défaut. Taille/perf du fichier autoporteur : non prioritaires (arbitrage produit explicite).
+
 #### ADR-004 — Tauri 2.x, pas Electron ni Wails v3
 
 **Décision** : Tauri 2.x (dernière minor stable).
