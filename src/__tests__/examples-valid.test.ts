@@ -39,4 +39,14 @@ describe("examples valides contre schema vviz-v1", () => {
     }
     expect(ok).toBe(true);
   });
+
+  it("examples/controle_gestion.vviz", () => {
+    const doc = loadExample("controle_gestion.vviz");
+    const ok = validate(doc);
+    if (!ok) {
+      // eslint-disable-next-line no-console
+      console.error(validate.errors);
+    }
+    expect(ok).toBe(true);
+  });
 });
