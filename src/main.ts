@@ -12,6 +12,15 @@
 // Plus aucune démo hardcodée. Le .vviz ouvert pilote intégralement le
 // rendu (paths, fields, agrégats, layout, selections).
 
+// Polices chargées LOCALEMENT via @fontsource (woff2 dans node_modules,
+// url() relatifs vers ./files/*) — aucun appel réseau (invariant I-2).
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/500.css";
+
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 
