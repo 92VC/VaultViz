@@ -119,15 +119,18 @@ export async function mountCompiledView(
 
     case "table": {
       const limit = numberOpt(view.options, "limit") ?? 5000;
+      // SP3 : columns est désormais ColumnDef[] ; le mounter actuel ne
+      // consomme que les noms de champ (rendu riche en T3.x).
+      const fields = view.columns.map((c) => c.field);
       const initial = await fetchTableRows(
         view.source,
-        view.columns,
+        fields,
         undefined,
         null,
         limit,
       );
       const api = renderTable(container, initial, {
-        columns: view.columns.map((field) => ({ field })),
+        columns: view.columns.map((c) => ({ field: c.field })),
         visibleRows: numberOpt(view.options, "visibleRows") ?? 15,
       });
       if (view.filterBy && view.filterField) {
@@ -136,7 +139,7 @@ export async function mountCompiledView(
         onSelectionValue(ctx, view.filterBy, async (code) => {
           const t = await fetchTableRows(
             view.source,
-            view.columns,
+            fields,
             filterField,
             code,
             limit,
@@ -157,6 +160,15 @@ export async function mountCompiledView(
           }</div>
         </div>
       `;
+      return;
+    }
+
+    // SP3 : nouveaux kinds compilés mais non encore rendus — conteneurs
+    // vides no-op pour garder build/tests verts. Rendu implémenté en T3.x.
+    case "grouped_bars":
+    case "ranked_bars":
+    case "plot": {
+      // TODO(T3.x) : composants de rendu dédiés (barres groupées/classées, plot vgplot).
       return;
     }
   }
