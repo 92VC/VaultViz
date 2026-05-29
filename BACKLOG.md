@@ -47,13 +47,13 @@
 | V1 — V1-3 Watcher | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-4 Exports | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
-| V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 2 | 0 | 2 | 0 |
+| V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 1 | 0 | 3 | 0 |
 | V1 — V1-6 Signature DSI | 1 | 1 | 0 | 0 | 0 |
 | V1 — V1-7 RGAA | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **49** | **20** | **0** | **26** | **3** |
+| **Total** | **49** | **19** | **0** | **27** | **3** |
 
 ### 0.4 Conventions champs
 
@@ -637,7 +637,7 @@ Chaque story porte les champs :
 - **PRD** : §4.1 V1, UC-2 ; ADR-012
 - **Complexité** : L (épopée — spec dédiée)
 
-### B-220 — [ ] SP3 — Dashboard spec-driven
+### B-220 — [x] SP3 — Dashboard spec-driven
 
 - **Itération** : V1-5 / SP3
 - **Livrable** : extensions `schema/vviz-v1.json` + `view-compiler` pour KPI-avec-delta, carte+sélecteur de métrique, barres classées, barres appariées, table+recherche+badges, chip de filtre ; exemple canonique `examples/controle-gestion.vviz` + Parquet
