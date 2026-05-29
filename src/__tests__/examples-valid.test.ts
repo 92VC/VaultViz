@@ -49,4 +49,14 @@ describe("examples valides contre schema vviz-v1", () => {
     }
     expect(ok).toBe(true);
   });
+
+  it("examples/suivi_mensuel.vviz", () => {
+    const doc = loadExample("suivi_mensuel.vviz");
+    const ok = validate(doc);
+    if (!ok) {
+      // eslint-disable-next-line no-console
+      console.error(validate.errors);
+    }
+    expect(ok).toBe(true);
+  });
 });
