@@ -428,11 +428,18 @@ button {
 }
 
 /* ============================================================ DASHBOARD ============================================================ */
-.dash {
+/* `.dash` (markup maquette) et `.dash-grid` (conteneur émis par
+   dashboard.ts) : même mise en page — colonne avec espacement entre la
+   bande KPI, la rangée graphiques et la table (sinon chevauchement). */
+.dash,
+.dash-grid {
   padding: var(--gap-grid);
   display: flex;
   flex-direction: column;
   gap: var(--gap-grid);
+}
+.dash-filter {
+  display: flex;
 }
 .dash-head {
   display: flex;
