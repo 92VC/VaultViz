@@ -86,7 +86,7 @@ export interface SelectionSpec {
 /** Spec complète d'un .vviz. */
 export interface VVizSpec {
   engine: "mosaic";
-  layout?: "vstack" | "hstack" | "grid";
+  layout?: "vstack" | "hstack" | "grid" | "dashboard";
   selections?: SelectionSpec[];
   views: ViewSpec[];
 }

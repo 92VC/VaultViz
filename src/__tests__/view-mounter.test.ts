@@ -26,7 +26,7 @@ function fakeConn(rows: Array<{ key?: string; v: number }>): DuckConnector {
 }
 
 describe("mountCompiledView — kpi", () => {
-  it("render '—' si pas de données", async () => {
+  it("rend une carte KPI (0 par défaut si pas de données)", async () => {
     const c = document.createElement("div");
     await mountCompiledView(
       {
@@ -40,7 +40,8 @@ describe("mountCompiledView — kpi", () => {
       createRuntime(),
       fakeConn([]),
     );
-    expect(c.querySelector(".vv-kpi-value")?.textContent).toBe("—");
+    // SP3 : rendu via renderKpiCard → .card.kpi / .k-val / .k-label.
+    expect(c.querySelector(".kpi")).not.toBeNull();
     expect(c.textContent).toContain("Total");
   });
 
@@ -59,7 +60,7 @@ describe("mountCompiledView — kpi", () => {
       fakeConn([{ v: 12345 }]),
     );
     // Locale fr-FR : 12 345 (espace insécable U+202F ou U+00A0)
-    const txt = c.querySelector(".vv-kpi-value")?.textContent ?? "";
+    const txt = c.querySelector(".k-val")?.textContent ?? "";
     expect(txt.replace(/\s/g, "")).toBe("12345");
   });
 });

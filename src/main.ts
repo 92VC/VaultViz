@@ -30,6 +30,7 @@ import { loadVViz } from "./viz-engine/spec-loader";
 import { loadSources } from "./viz-engine/source-loader";
 import { compileView } from "./viz-engine/view-compiler";
 import { mountCompiledView } from "./viz-engine/view-mounter";
+import { mountDashboard } from "./shell/dashboard";
 import { vvizDir } from "./viz-engine/path-resolver";
 import { createDuckConnector } from "./viz-engine/duck-connector";
 import { createRuntime, ensureSelection } from "./viz-engine/mosaic-runtime";
@@ -131,34 +132,58 @@ async function openFlow(path: string): Promise<void> {
     dash.appendChild(sub);
   }
 
-  const layout = document.createElement("div");
-  layout.className = `vv-layout vv-layout-${doc.spec.layout ?? "vstack"}`;
-  dash.appendChild(layout);
+  if (doc.spec.layout === "dashboard") {
+    // SP3 : layout par zones. On compile toutes les vues (les erreurs de
+    // compile par-vue sont rendues en notes par mountDashboard via son
+    // try/catch interne — ici on tolère un compile qui jette en isolant
+    // la vue fautive).
+    const region = document.createElement("div");
+    region.className = "vv-layout vv-layout-dashboard";
+    dash.appendChild(region);
 
-  for (const v of doc.spec.views) {
-    const frame = document.createElement("section");
-    frame.className = `vv-view-frame vv-view-${v.type}`;
-    frame.dataset.viewId = v.id;
-    if (v.title) {
-      const h = document.createElement("h2");
-      h.className = "vv-view-title";
-      h.textContent = v.title;
-      frame.appendChild(h);
+    const compiled: ReturnType<typeof compileView>[] = [];
+    for (const v of doc.spec.views) {
+      try {
+        compiled.push(compileView(v));
+      } catch (err) {
+        const msg = (err as Error).message ?? String(err);
+        const note = document.createElement("p");
+        note.className = "vv-note vv-note-error";
+        note.textContent = `Vue "${v.id}" (${v.type}) : ${msg}`;
+        region.appendChild(note);
+      }
     }
-    const mount = document.createElement("div");
-    mount.className = "vv-view-mount";
-    frame.appendChild(mount);
-    layout.appendChild(frame);
+    await mountDashboard(region, compiled, ctx, conn);
+  } else {
+    const layout = document.createElement("div");
+    layout.className = `vv-layout vv-layout-${doc.spec.layout ?? "vstack"}`;
+    dash.appendChild(layout);
 
-    try {
-      const compiled = compileView(v);
-      await mountCompiledView(compiled, mount, ctx, conn);
-    } catch (err) {
-      const msg = (err as Error).message ?? String(err);
-      const note = document.createElement("p");
-      note.className = "vv-note vv-note-error";
-      note.textContent = `Vue "${v.id}" (${v.type}) : ${msg}`;
-      mount.appendChild(note);
+    for (const v of doc.spec.views) {
+      const frame = document.createElement("section");
+      frame.className = `vv-view-frame vv-view-${v.type}`;
+      frame.dataset.viewId = v.id;
+      if (v.title) {
+        const h = document.createElement("h2");
+        h.className = "vv-view-title";
+        h.textContent = v.title;
+        frame.appendChild(h);
+      }
+      const mount = document.createElement("div");
+      mount.className = "vv-view-mount";
+      frame.appendChild(mount);
+      layout.appendChild(frame);
+
+      try {
+        const compiled = compileView(v);
+        await mountCompiledView(compiled, mount, ctx, conn);
+      } catch (err) {
+        const msg = (err as Error).message ?? String(err);
+        const note = document.createElement("p");
+        note.className = "vv-note vv-note-error";
+        note.textContent = `Vue "${v.id}" (${v.type}) : ${msg}`;
+        mount.appendChild(note);
+      }
     }
   }
 
