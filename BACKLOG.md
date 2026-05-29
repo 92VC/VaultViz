@@ -47,13 +47,13 @@
 | V1 — V1-3 Watcher | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-4 Exports | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
-| V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 3 | 0 | 1 | 0 |
+| V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 2 | 0 | 2 | 0 |
 | V1 — V1-6 Signature DSI | 1 | 1 | 0 | 0 | 0 |
 | V1 — V1-7 RGAA | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **49** | **21** | **0** | **25** | **3** |
+| **Total** | **49** | **20** | **0** | **26** | **3** |
 
 ### 0.4 Conventions champs
 
@@ -624,7 +624,7 @@ Chaque story porte les champs :
 - **Complexité** : L (épopée — spec dédiée)
 - **Notes** : la maquette importe les polices via Google Fonts CDN — interdit ; embarquer en local.
 
-### B-210 — [ ] SP2 — App shell
+### B-210 — [x] SP2 — App shell
 
 - **Itération** : V1-5 / SP2
 - **Livrable** : titlebar custom (contrôles fenêtre Tauri), toolbar (path/statut/actions), home (hero/dropzone/récents persistés), glisser-déposer, loader à étapes, dialog natif thémé, bandeau d'erreur câblé sur erreurs typées
