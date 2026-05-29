@@ -51,7 +51,11 @@ function subtitleOf(view: CompiledView): string | undefined {
  */
 function makeCard(view: CompiledView): { card: HTMLElement; body: HTMLElement } {
   const card = document.createElement("div");
-  card.className = "card";
+  // `options.bare` (DSL) : carte sans fond/bordure (se fond avec le fond
+  // de l'app) — ex. carte choroplèthe centrée sur fond transparent.
+  const bare =
+    (view.options as Record<string, unknown> | undefined)?.["bare"] === true;
+  card.className = bare ? "card bare" : "card";
   card.dataset.viewId = view.id;
 
   const title = view.title;

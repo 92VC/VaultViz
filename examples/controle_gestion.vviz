@@ -79,6 +79,7 @@
         },
         "options": {
           "region": "main",
+          "bare": true,
           "emitsTo": "dept",
           "subtitle": "Cliquez un département pour filtrer l'ensemble du tableau de bord",
           "metrics": [

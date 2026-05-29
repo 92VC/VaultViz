@@ -249,9 +249,13 @@
 }
 
 .vv-choropleth-svg {
-  background: rgba(127, 127, 127, 0.05);
-  border-radius: 6px;
+  /* Fond transparent (se fond avec la carte/l'app) ; carte centrée et
+     responsive dans sa zone. */
+  background: transparent;
   display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
 }
 
 .vv-choropleth-svg path:hover {

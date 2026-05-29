@@ -441,6 +441,21 @@ button {
 .dash-filter {
   display: flex;
 }
+/* Carte « bare » (view.options.bare) : pas de fond/bordure → se fond avec
+   le fond de l'app ; contenu centré verticalement dans la zone (le vide
+   autour de la carte devient invisible). */
+.card.bare {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.card.bare .card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+}
 .dash-head {
   display: flex;
   align-items: flex-end;
