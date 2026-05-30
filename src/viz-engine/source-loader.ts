@@ -4,15 +4,49 @@
 // JSON : `^[a-zA-Z_][a-zA-Z0-9_]{0,63}$`). On revalide ici par
 // défense en profondeur.
 
+import { invoke } from "@tauri-apps/api/core";
+
 import { resolvePath } from "./path-resolver";
 import type { DuckConnector } from "./duck-connector";
 import type { VVizDocument } from "./types";
+
+/** Type de la fonction qui matérialise une source embarquée (base64 → chemin). */
+export type Materialize = (name: string, b64: string) => Promise<string>;
+
+/** Implémentation réelle : commande Tauri `materialize_source`. */
+const defaultMaterialize: Materialize = (name, b64) =>
+  invoke<string>("materialize_source", { name, b64 });
 
 const SAFE_IDENT = /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/;
 const DOC_ID = /^[a-zA-Z0-9_]{1,32}$/;
 
 function sqlString(s: string): string {
   return `'${s.replace(/'/g, "''")}'`;
+}
+
+/**
+ * Garde-fou anti-blocage (UC-6) : une requête d'indexation qui ne répond
+ * pas (read_parquet sur un chemin inaccessible / DuckDB figé) ne doit JAMAIS
+ * laisser l'app sur un loader infini. Au-delà de `ms`, on rejette avec un
+ * message actionnable (le `label` porte la source + le chemin résolu).
+ *
+ * `CREATE VIEW … read_parquet(...)` ne lit que le schéma/footer du Parquet
+ * (rapide même sur 1 Go) → un délai généreux (30 s par défaut) ne crée pas
+ * de faux positif sur le cas share volumineux.
+ */
+async function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`délai dépassé (${Math.round(ms / 1000)} s) — ${label}`)),
+      ms,
+    );
+  });
+  try {
+    return await Promise.race([p, timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 /**
@@ -49,6 +83,8 @@ export async function loadSources(
   doc: VVizDocument,
   vvizDirPath: string,
   docId?: string,
+  timeoutMs = 30_000,
+  materialize: Materialize = defaultMaterialize,
 ): Promise<void> {
   // Valide docId en amont (throw avant tout SQL si invalide).
   if (docId !== undefined && !DOC_ID.test(docId)) {
@@ -60,12 +96,31 @@ export async function loadSources(
         `nom de source invalide (identifiant SQL attendu) : "${src.name}"`,
       );
     }
-    const resolved = resolvePath(src.path, vvizDirPath);
+    // Source EMBARQUÉE (.vviz autoporteur) → extraite au cache local, puis
+    // lue comme un Parquet classique. Sinon source EXTERNE par chemin.
+    let resolved: string;
+    if (src.inline) {
+      resolved = await withTimeout(
+        materialize(src.name, src.inline),
+        timeoutMs,
+        `extraction de la source embarquée « ${src.name} »`,
+      );
+    } else if (src.path) {
+      resolved = resolvePath(src.path, vvizDirPath);
+    } else {
+      throw new Error(
+        `source « ${src.name} » : ni « inline » ni « path » fourni`,
+      );
+    }
     const view = viewName(docId, src.name);
     const sql =
       `CREATE OR REPLACE VIEW "${view}" AS ` +
       `SELECT * FROM read_parquet(${sqlString(resolved)})`;
-    await conn.query({ type: "exec", sql });
+    await withTimeout(
+      conn.query({ type: "exec", sql }),
+      timeoutMs,
+      `indexation de la source « ${src.name} » (${resolved})`,
+    );
   }
 }
 

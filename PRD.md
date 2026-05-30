@@ -367,6 +367,8 @@ Toute version précise mentionnée par ailleurs dans ce document doit être lue 
 
 **Conséquence** : le pipeline ETL publisher **doit** sortir du Parquet. Toute exception (CSV legacy) est traitée par conversion en amont, pas dans VaultViz.
 
+**Amendement 2026-05-29 — fichier `.vviz` AUTOPORTEUR (modèle par défaut).** L'intention fondatrice (« comme une note Obsidian : on clique, ça marche, sans dépendance ») prime : un `.vviz` **embarque ses données** via `data.sources[].inline` (Parquet **base64** dans le fichier). Un seul fichier, double-clic, aucune donnée externe à copier. À l'ouverture, chaque source embarquée est extraite au cache local (`%LOCALAPPDATA%\VaultViz\cache`) puis lue par DuckDB. Le format pivot reste **Parquet** (pas de JSON pour la donnée — l'`inline` est du Parquet encodé, pas une sérialisation JSON des lignes), donc l'esprit ADR-003 est préservé. Le mode **externe** (`data.sources[].path` vers le share/UNC) **reste supporté** pour les gros volumes gouvernés en amont, mais n'est plus le défaut. Taille/perf du fichier autoporteur : non prioritaires (arbitrage produit explicite).
+
 #### ADR-004 — Tauri 2.x, pas Electron ni Wails v3
 
 **Décision** : Tauri 2.x (dernière minor stable).
@@ -484,7 +486,6 @@ VaultViz (consommation) — UNIQUEMENT en lecture
 | **PSSI-E** (État) | Indirect (CPAM = OSS) | Conformité indirecte si PSSI-MCAS validée |
 | **ANSSI / qualification** | Non requis | Outil interne non-cybersécurité ; pas d'obligation de qualification |
 | **RGPD** | Hors périmètre VaultViz | VaultViz n'est qu'un **interprétateur** au sens Obsidian : il ne crée pas de traitement de données nouveau, ne duplique pas, ne stocke pas, n'expose pas. La conformité RGPD est **assurée en amont** par : (1) la gouvernance du publisher (qui choisit ce qui est versé dans les Parquet), (2) les **permissions fichiers/ACL** sur l'arborescence du partage (qui peut lire quoi). Un utilisateur qui ne peut pas lire le fichier sur le share ne peut pas l'ouvrir avec VaultViz — la chaîne d'autorisation est celle du SI, pas celle de l'application. |
-| **Référentiel général d'accessibilité (RGAA dernière version applicable)** | Cible mesurable en V1 | Niveau **AA** sur le rendu de l'application (hors contenu des datasets, qui relève du publisher) — audit RGAA avant V1.10 (cf. §12.2) |
 
 ### 8.3 Logs & audit
 
@@ -589,7 +590,6 @@ Hors scope V1 et V2 : Linux, macOS, mobile, web. Aucun build multi-plateforme pr
 | MSI signable accepté par la DSI et déployable via MECM | ✅ | Refus DSI sur les artefacts produits |
 | Export PDF A4 fonctionnel sur tous les types de vues V1 | ✅ | PDF non générable ou rendu dégradé |
 | Performance V1 atteinte sur 90 % des cas testés | ✅ | < 70 % |
-| **Audit RGAA niveau AA** sur l'application (hors contenu data) | ✅ | Non-conformités bloquantes non résolues |
 
 ---
 
@@ -637,7 +637,6 @@ Approche **vibe coding** : itérations courtes, valeur démontrée à chaque ét
 | V1-4 | **Export PDF A4** (exigence) + PNG + CSV |
 | V1-5 | Intégration du design custom (maquette) — cf. ADR-012 |
 | V1-6 | Coordination DSI pour signature production du MSI (hors scope produit, point de jonction) |
-| V1-7 | Audit RGAA niveau AA + corrections |
 | V1-8 | Doc utilisateur + doc auteur + schéma JSON dans le repo |
 | V1-9 | Déploiement pilote MECM 10–20 postes Windows 11 |
 | **V1-10 — Go/No-Go déploiement large** | Critères §12.2 |
@@ -681,7 +680,6 @@ Approche **vibe coding** : itérations courtes, valeur démontrée à chaque ét
 | **Architecte SI** | Consulté sur ADRs techniques (001, 002, 003, 004, 007) |
 | **Data analyst lead** | Consulté sur ADRs format/grammaire (002, 003, 011) |
 | **Publisher ETL (équipe data)** | Consulté sur ADR-003 (Parquet pivot) |
-| **Référent accessibilité** | Consulté sur §8.2 RGAA, valide critère §12.2 |
 
 Toute modification d'ADR fait l'objet d'une **revue formelle** (PR sur le repo PRD) signée a minima par le Sponsor DSI et le RSSI quand le sujet l'implique.
 

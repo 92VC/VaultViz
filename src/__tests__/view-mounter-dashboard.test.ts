@@ -182,6 +182,18 @@ describe("mountDashboard — placement par zones", () => {
     expect(c.querySelector(".filter-chip")).not.toBeNull();
   });
 
+  it("monte le chip de filtre pour un émetteur ranked_bars (dashboard sans carte)", async () => {
+    const c = document.createElement("div");
+    const RANKED_EMITTER: CompiledView = {
+      ...RANKED,
+      emitsSelection: "bat",
+      filterField: "libelle",
+      options: { region: "main", emitsTo: "bat", filterField: "libelle" },
+    } as CompiledView;
+    await mountDashboard(c, [RANKED_EMITTER, KPI], createRuntime(), stubConn());
+    expect(c.querySelector(".filter-chip")).not.toBeNull();
+  });
+
   it("rend une carte choroplèthe avec switcher quand metrics présent", async () => {
     const c = document.createElement("div");
     const MAP_METRICS: CompiledView = {

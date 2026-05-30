@@ -27,6 +27,12 @@ export interface KpiCardData {
   foot?: string;
   /** Identifiant d'icône (cf. `IconName`). Affichée dans `.k-ico`. */
   icon?: string;
+  /**
+   * Si fourni, la carte devient cliquable (curseur pointer + rôle bouton) et
+   * invoque `onClick` au clic. Utilisé pour les raccourcis de navigation vers
+   * un onglet (drill-through KPI → page de détail).
+   */
+  onClick?: () => void;
 }
 
 /** Paths SVG des flèches delta (repris de `deltaEl`). */
@@ -85,4 +91,16 @@ export function renderKpiCard(container: HTMLElement, data: KpiCardData): void {
     `<div class="k-val">${val}</div>` +
     `<div class="k-foot">${delta}${foot}</div>` +
     `</div>`;
+
+  if (data.onClick) {
+    const card = container.querySelector<HTMLElement>(".card.kpi");
+    if (card) {
+      // `nav` = indicateur visuel (chevron + survol) signalant que la carte
+      // est un raccourci vers un onglet (cf. CSS `.card.kpi.nav`).
+      card.classList.add("nav");
+      card.style.cursor = "pointer";
+      card.setAttribute("role", "button");
+      card.addEventListener("click", () => data.onClick!());
+    }
+  }
 }

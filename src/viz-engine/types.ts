@@ -12,7 +12,14 @@ import type { Table } from "apache-arrow";
  */
 export interface VVizSource {
   name: string;
-  path: string;
+  /** Chemin du Parquet externe (share/dossier). Optionnel si `inline`. */
+  path?: string;
+  /**
+   * Parquet embarqué (base64) → fichier `.vviz` AUTOPORTEUR : un seul
+   * fichier, double-clic, aucune dépendance externe. Extrait au cache local
+   * à l'ouverture (cf. source-loader). Modèle par défaut.
+   */
+  inline?: string;
 }
 
 /** Canal d'encoding (geo, color, x, y, value, delta, series). */
@@ -58,6 +65,7 @@ export type ViewType =
   | "line"
   | "area"
   | "dot"
+  | "pie"
   | "table"
   | "kpi";
 
@@ -94,6 +102,8 @@ export interface VVizSpec {
    */
   gridRatio?: [number, number];
   selections?: SelectionSpec[];
+  /** Onglets internes du dashboard (cf. tab-bar). Absent → page unique. */
+  tabs?: { id: string; label: string }[];
   views: ViewSpec[];
 }
 

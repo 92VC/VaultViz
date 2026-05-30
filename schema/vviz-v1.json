@@ -54,19 +54,26 @@
           "maxItems": 64,
           "items": {
             "type": "object",
-            "required": ["name", "path"],
+            "required": ["name"],
             "additionalProperties": false,
+            "description": "Source de données : soit `inline` (Parquet embarqué, fichier .vviz autoporteur — modèle par défaut), soit `path` (Parquet externe sur share/dossier). Au moins l'un des deux.",
+            "anyOf": [{ "required": ["inline"] }, { "required": ["path"] }],
             "properties": {
               "name": {
                 "type": "string",
                 "pattern": "^[a-zA-Z_][a-zA-Z0-9_]{0,63}$",
                 "description": "Alias logique (identifiant SQL)."
               },
+              "inline": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Parquet embarqué encodé en base64 → fichier .vviz AUTOPORTEUR (un seul fichier, double-clic, aucune dépendance externe). Extrait au cache local à l'ouverture."
+              },
               "path": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 1024,
-                "description": "Chemin du Parquet. Acceptés : UNC posix (//host/share/...), relatif (./...), lettre de lecteur Windows (Z:/...). Cf. ADR-007.",
+                "description": "Chemin du Parquet externe. Acceptés : UNC posix (//host/share/...), relatif (./...), lettre de lecteur Windows (Z:/...). Cf. ADR-007.",
                 "not": {
                   "anyOf": [
                     { "pattern": "^https?://" },
@@ -125,6 +132,23 @@
             }
           }
         },
+        "tabs": {
+          "type": "array",
+          "description": "Onglets internes du dashboard. Chaque vue est rattachée via `options.tab` ; une carte KPI peut pointer vers un onglet via `options.navigateTo`. Absent → page unique.",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "required": ["id", "label"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z_][a-zA-Z0-9_]{0,63}$"
+              },
+              "label": { "type": "string" }
+            }
+          }
+        },
         "views": {
           "type": "array",
           "minItems": 1,
@@ -152,6 +176,7 @@
                   "line",
                   "area",
                   "dot",
+                  "pie",
                   "table",
                   "kpi"
                 ]

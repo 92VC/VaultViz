@@ -14,10 +14,7 @@
 
 - Poste Windows 11 (de préférence un poste « parc » MECM standard)
 - MSI v0.0.1-rc1 installé via association `.vviz`
-- Partage SMB de démo monté en `\\demo\share\` avec :
-  - `effectifs_2026.vviz` (spec canonique, cf. `examples/effectifs_2026.vviz`)
-  - `effectifs_2026.parquet` (~50 Mo synthétique, généré via
-    `docs/scripts/gen-synth-parquet.sh 50`)
+- Fichier de démo `examples/DLI/dli_inventaire_autoporteur.vviz` copié sur le poste (parquet embarqué `inline` — aucun `.parquet` séparé ni partage SMB requis pour ce fichier)
 - Réseau interne LAN (pas de routage internet — démontre invariant ADR-008)
 - Connexion partagée écran (projection ou Teams)
 
@@ -63,7 +60,7 @@ ADRs structurants à mentionner :
 
 **Scénario UC-1 + UC-3 + UC-6** :
 
-1. **Double-clic** sur `effectifs_2026.vviz` dans Explorer Windows
+1. **Double-clic** sur `dli_inventaire_autoporteur.vviz` dans Explorer Windows
    → VaultViz s'ouvre en ~2 s (citer cible PRD §9.1 < 3 s)
    → JSON pretty-print affiché + DuckDB en arrière-plan
 2. **Carte choroplèthe France** dessinée

@@ -28,7 +28,6 @@ Le **design system custom de la maquette** devient la **référence visuelle off
 
 **Conséquences opérationnelles :**
 - Les polices Inter + JetBrains Mono doivent être **embarquées** en `.woff2` local + `@font-face`, **sans aucun appel CDN** (invariant I-2 « zéro appel sortant »). La maquette importe actuellement les polices via Google Fonts — interdit en production.
-- **RGAA AA reste dû** (stories B-160/B-161 inchangées) : l'audit d'accessibilité s'applique désormais au design custom (contrastes des tokens dark/light à vérifier).
 - La persistance des préférences (thème, densité) se fait en `%LOCALAPPDATA%\VaultViz\` uniquement (invariant I-3).
 
 ## Références

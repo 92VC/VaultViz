@@ -23,6 +23,18 @@ export interface RankedBarsOpts {
   valueLabels?: boolean;
   /** Titre optionnel rendu au-dessus des barres. */
   title?: string;
+  /**
+   * Palette de couleurs (CSS) déclarée dans le `.vviz` (`options.palette`).
+   * Si fournie, chaque barre prend `palette[i % palette.length]` au lieu de
+   * la rampe d'accent monochrome par défaut. Apporte de la variété visuelle.
+   */
+  palette?: string[];
+  /**
+   * Émission de sélection : si fourni, chaque barre devient cliquable
+   * (curseur pointer) et invoque `onSelect(clé)` au clic. Le câblage vers
+   * une `vg.Selection` est fait par le `view-mounter` (cross-filter).
+   */
+  onSelect?: (k: string) => void;
 }
 
 /**
@@ -58,13 +70,20 @@ export function renderRankedBars(
   bars.className = "bars";
 
   const max = rows.reduce((m, r) => (r.v > m ? r.v : m), 0);
+  const palette = opts.palette;
 
   rows.forEach((r, i) => {
-    const col = barColor(i);
+    const col =
+      palette && palette.length > 0 ? palette[i % palette.length] : barColor(i);
     const w = max > 0 ? (r.v / max) * 100 : 0;
 
     const row = document.createElement("div");
     row.className = "bar-row";
+
+    if (opts.onSelect) {
+      row.style.cursor = "pointer";
+      row.addEventListener("click", () => opts.onSelect!(r.k));
+    }
 
     const lab = document.createElement("div");
     lab.className = "b-lab";

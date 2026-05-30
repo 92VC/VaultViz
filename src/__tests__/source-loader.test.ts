@@ -165,3 +165,59 @@ describe("dropDocViews", () => {
     expect(sqls).toHaveLength(0);
   });
 });
+
+describe("loadSources — timeout (anti-hang, UC-6)", () => {
+  // Si une source ne répond pas (read_parquet bloqué, chemin inaccessible…),
+  // l'indexation ne doit JAMAIS rester figée : timeout → erreur actionnable
+  // mentionnant la source ET son chemin résolu.
+  const hangConn = () =>
+    ({ query: () => new Promise<never>(() => {}) }) as unknown as DuckConnector;
+
+  it("rejette en mentionnant la source qui bloque", async () => {
+    await expect(
+      loadSources(
+        hangConn(),
+        doc([{ name: "assets", path: "./dli_assets.parquet" }]),
+        "/data/DLI",
+        undefined,
+        40,
+      ),
+    ).rejects.toThrow(/assets/);
+  });
+
+  it("le message d'erreur contient le chemin résolu (diagnostic)", async () => {
+    await expect(
+      loadSources(
+        hangConn(),
+        doc([{ name: "assets", path: "./dli_assets.parquet" }]),
+        "/data/DLI",
+        undefined,
+        40,
+      ),
+    ).rejects.toThrow(/\/data\/DLI\/dli_assets\.parquet/);
+  });
+});
+
+describe("loadSources — sources embarquées (.vviz autoporteur)", () => {
+  it("matérialise une source inline puis CREATE VIEW sur le chemin retourné", async () => {
+    const { conn, sqls } = fakeConn();
+    const materialize = vi.fn(async (name: string) => `/cache/${name}.parquet`);
+    await loadSources(
+      conn,
+      doc([{ name: "assets", inline: "QkFTRTY0" } as never]),
+      "/ignored",
+      undefined,
+      30_000,
+      materialize,
+    );
+    expect(materialize).toHaveBeenCalledWith("assets", "QkFTRTY0");
+    expect(sqls[0]).toContain("read_parquet('/cache/assets.parquet')");
+  });
+
+  it("throw si une source n'a ni inline ni path", async () => {
+    const { conn } = fakeConn();
+    await expect(
+      loadSources(conn, doc([{ name: "x" } as never]), "/d"),
+    ).rejects.toThrow(/inline.*path|path.*inline|ni/i);
+  });
+});

@@ -121,6 +121,8 @@ export type CompiledView =
       valueLabels?: boolean;
       filterBy?: string;
       filterField?: string;
+      /** Selection émise au clic d'une barre (cross-filter) — options.emitsTo. */
+      emitsSelection?: string;
       options?: Record<string, unknown>;
     }
   | {
@@ -134,6 +136,18 @@ export type CompiledView =
       yAggregate: string;
       seriesField?: string;
       filterBy?: string;
+      options?: Record<string, unknown>;
+    }
+  | {
+      kind: "pie";
+      id: string;
+      title?: string;
+      source: string;
+      sql: string;
+      kField: string;
+      valueFormat?: string;
+      filterBy?: string;
+      filterField?: string;
       options?: Record<string, unknown>;
     }
   | {
@@ -302,11 +316,15 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
       const hasValueLabels = opts?.valueLabels !== undefined;
       const hasSort = opts?.sort !== undefined;
       const hasFormat = opts?.format !== undefined;
-      if (hasValueLabels || hasSort || hasFormat) {
+      if (hasValueLabels || hasSort || hasFormat || opts?.orderByKey === true) {
         const sort = normSort(opts?.sort);
+        // `orderByKey` : tri par la clé (ex. mois/année) plutôt que par
+        // valeur → garde l'ordre chronologique d'un histogramme temporel.
+        const orderBy =
+          opts?.orderByKey === true ? `${ident(x.field)} ASC` : `v ${sort}`;
         const sql =
           `SELECT ${ident(x.field)} AS k, ${aggExpr(y?.field, yAgg)} AS v ` +
-          `FROM ${src} GROUP BY ${ident(x.field)} ORDER BY v ${sort}`;
+          `FROM ${src} GROUP BY ${ident(x.field)} ORDER BY ${orderBy}`;
         return {
           kind: "ranked_bars",
           id: view.id,
@@ -319,6 +337,7 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
           valueLabels: opts?.valueLabels === true ? true : undefined,
           filterBy: view.filterBy,
           filterField: filterFieldFromOpts(opts),
+          emitsSelection: emitsSelectionFromOpts(opts),
           options: opts,
         };
       }
@@ -412,6 +431,30 @@ export function compileView(view: ViewSpec, docId?: string): CompiledView {
         deltaUnit: stringOpt(opts, "deltaUnit"),
         filterField: filterFieldFromOpts(opts),
         filterBy: view.filterBy,
+        options: view.options,
+      };
+    }
+
+    case "pie": {
+      const x = getChannel(view, "x");
+      if (!x?.field) {
+        throw new Error(`view "${view.id}" : encoding.x.field requis pour pie`);
+      }
+      const y = getChannel(view, "y");
+      const yAgg = (y?.aggregate ?? "sum").toLowerCase();
+      const sql =
+        `SELECT ${ident(x.field)} AS k, ${aggExpr(y?.field, yAgg)} AS v ` +
+        `FROM ${src} GROUP BY ${ident(x.field)} ORDER BY v DESC`;
+      return {
+        kind: "pie",
+        id: view.id,
+        title: view.title,
+        source: flatSource,
+        sql,
+        kField: x.field,
+        valueFormat: stringOpt(view.options, "format"),
+        filterBy: view.filterBy,
+        filterField: filterFieldFromOpts(view.options),
         options: view.options,
       };
     }

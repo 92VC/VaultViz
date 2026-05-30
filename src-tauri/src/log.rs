@@ -19,12 +19,41 @@ use chrono::{DateTime, Duration, NaiveDate, Utc};
 use std::fs::{read_dir, remove_file, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogLevel {
     Info,
     Warn,
     Error,
+}
+
+/// Logger global, initialisé une fois au démarrage (`init_global`). Permet
+/// aux commandes Tauri (`run_query`, `log_event`) de tracer dans le même
+/// fichier rotatif que le message « started », sans threader le Logger
+/// partout. Thread-safe (le Logger l'est déjà en append).
+static GLOBAL: OnceLock<Logger> = OnceLock::new();
+
+/// Initialise le logger global (idempotent). À appeler au `setup` Tauri.
+pub fn init_global() {
+    let _ = GLOBAL.set(Logger::new_default());
+}
+
+/// Journalise via le logger global (no-op si non initialisé — ex. tests).
+pub fn log(level: LogLevel, msg: &str) {
+    if let Some(l) = GLOBAL.get() {
+        l.log(level, msg);
+    }
+}
+
+/// Tronque un message long (SQL) pour garder des lignes de log lisibles.
+pub fn truncate(s: &str, max: usize) -> String {
+    if s.chars().count() <= max {
+        s.to_string()
+    } else {
+        let head: String = s.chars().take(max).collect();
+        format!("{head}… (+{} car.)", s.chars().count() - max)
+    }
 }
 
 impl LogLevel {

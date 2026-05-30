@@ -49,11 +49,10 @@
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 0 | 0 | 4 | 0 |
 | V1 — V1-6 Signature DSI | 1 | 1 | 0 | 0 | 0 |
-| V1 — V1-7 RGAA | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **49** | **18** | **0** | **28** | **3** |
+| **Total** | **47** | **16** | **0** | **28** | **3** |
 
 ### 0.4 Conventions champs
 
@@ -585,7 +584,7 @@ Chaque story porte les champs :
   - [ ] PNG : capture haute-résolution de la vue active dans le presse-papier ET en fichier `.png`
   - [ ] CSV : données filtrées affichées (après cross-filter) avec en-têtes, encodage UTF-8 BOM
   - [ ] CSV s'ouvre directement dans Excel sans déformation de colonnes
-  - [ ] Boutons accessibles clavier (préparation RGAA)
+  - [ ] Boutons accessibles clavier
 - **Dépendances** : B-131
 - **PRD** : UC-4
 - **Complexité** : M
@@ -679,34 +678,6 @@ Chaque story porte les champs :
 - **Complexité** : S (côté dev) ; M (côté DSI, hors scope produit)
 - **Blocage potentiel** : `[!]` si refus DSI ou délais incompatibles
 
-### 3.7 V1-7 — RGAA
-
-### B-160 — [ ] Audit RGAA niveau AA sur l'application
-
-- **Itération** : V1-7
-- **Livrable** : rapport d'audit RGAA AA (interne ou externe) avec liste de non-conformités
-- **Critères d'acceptation** :
-  - [ ] Audit complet du référentiel (toutes les vues, navigation, raccourcis)
-  - [ ] Liste classée par criticité (bloquant / non bloquant)
-  - [ ] Recommandations actionnables
-  - [ ] Périmètre clair : application uniquement, pas le contenu des datasets
-- **Dépendances** : B-220 (design intégré)
-- **PRD** : §8.2 RGAA, §12.2
-- **Complexité** : M
-- **Notes** : impliquer le Référent accessibilité (cf. RACI §15.1).
-
-### B-161 — [ ] Corrections RGAA bloquantes
-
-- **Itération** : V1-7
-- **Livrable** : toutes les non-conformités bloquantes du B-160 corrigées
-- **Critères d'acceptation** :
-  - [ ] Chaque NC bloquante résolue, traçabilité dans un fichier `docs/rgaa-fix-log.md`
-  - [ ] Re-audit sur les correctifs OK
-  - [ ] Critère §12.2 RGAA atteint (Go pour déploiement large)
-- **Dépendances** : B-160
-- **PRD** : §12.2
-- **Complexité** : L
-
 ### 3.8 V1-8 — Documentation
 
 ### B-170 — [ ] Doc utilisateur 1 page
@@ -790,7 +761,7 @@ Chaque story porte les champs :
   - [ ] Décision motivée signée Sponsor DSI + RSSI
   - [ ] Si Go : plan de push parc large
   - [ ] Si No-Go : itération V1' identifiée
-- **Dépendances** : B-161, B-181
+- **Dépendances** : B-181
 - **PRD** : §12.2
 - **Complexité** : M
 
