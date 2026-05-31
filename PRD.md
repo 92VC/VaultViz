@@ -354,7 +354,13 @@ Toute version précise mentionnée par ailleurs dans ce document doit être lue 
 - Maintenir une **fine couche d'abstraction `viz-engine`** côté front pour isoler les appels Mosaic et permettre un repli sur Vega-Lite uniquement si Mosaic se révèle bloquant en POC (escalade I2 du V0).
 - Re-tester à chaque mise à jour Mosaic en CI.
 
-**Conséquence** : le champ `engine` du `.vviz` vaut `"mosaic"` par défaut. Format de spec = vgplot (à confirmer en POC : JSON pur ou DSL à transformer en JSON via préprocesseur côté Rust).
+**Conséquence** : le champ `engine` du `.vviz` vaut `"mosaic"` par défaut. Format de spec = DSL VaultViz prétraité (cf. ADR-002 fichier, §16 Q7).
+
+**Amendement 2026-05-30 — moteur de rendu HYBRIDE (principe retenu).** À l'usage, la grammaire vgplot pure s'est révélée insuffisante ou de qualité moindre sur plusieurs vues (carte, camembert, courbes, KPI, barres classées). Le principe retenu n'est plus « tout Mosaic, repli Vega-Lite » mais un **moteur hybride** structuré autour d'un **invariant unique : tout calcul est poussé dans DuckDB natif** (push-down SQL — ADR-001/ADR-003 intacts). Le **rendu** est libre :
+- **vgplot/Mosaic** là où il sert (`bar`, `plot`) ;
+- **rendu maison** (DOM/SVG : d3-geo pour la carte choroplèthe, composants TS pour `pie`/`line`/`area`/`dot`/`kpi`/barres classées et appariées) là où la qualité de visualisation y gagne.
+
+La **coordination cross-vues** (cross-filter, drill-down) est assurée par la couche `src/viz-engine/` de VaultViz (sélections, émission/abonnement), pas exclusivement par le coordinateur Mosaic. Le DSL `.vviz` reste stable et découplé du moteur (la liste des `type` de vues est enrichie sans casser les `.vviz` existants). **Le volume de JS de rendu n'est pas une contrainte** tant que (a) le push-down DuckDB est préservé et (b) la visualisation y gagne. Vega-Lite (R-8) reste une option de repli théorique, non activée.
 
 #### ADR-003 — Parquet comme format pivot, Arrow IPC pour transit
 
@@ -579,7 +585,7 @@ Hors scope V1 et V2 : Linux, macOS, mobile, web. Aucun build multi-plateforme pr
 | RAM Parquet 300 Mo | < 800 Mo | > 1,5 Go |
 | Avis RSSI préliminaire | Favorable avec conditions | Défavorable structurel |
 | Hypothèse H1 (UNC scope Tauri) validée | ✅ | ❌ |
-| Hypothèse H4 (drill via spec Mosaic/vgplot déclarative) validée | ✅ | Repli partiel JS toléré, > 50 lignes JS métier = No-Go |
+| Hypothèse H4 (drill via spec `.vviz` déclarative, push-down DuckDB) validée | ✅ | **Push-down DuckDB non préservé** (calcul exécuté côté JS au lieu de SQL) = No-Go. Le volume de JS de *rendu* n'est pas un critère (cf. ADR-002 amendé — moteur hybride). |
 
 ### 12.2 V1 → déploiement large
 
@@ -604,7 +610,7 @@ Hors scope V1 et V2 : Linux, macOS, mobile, web. Aucun build multi-plateforme pr
 | R-5 | Rendu PDF dégradé sur certaines vues (carto MapLibre WebGL) | Moyenne | Moyen | Tester pipeline export PDF dès V0 sur la carte ; fallback : capture canvas → PDF via pdf-lib |
 | R-6 | RGPD : données nominatives exposées via mauvaise ACL share | Faible | Très élevé | Hors scope VaultViz — relève de la gouvernance des ACL du partage par la DSI ; VaultViz n'est qu'un interprétateur |
 | R-7 | Adoption cadres en deçà de 50 % | Moyenne | Élevé | Test terrain V1 sur 10–20 cadres pilotes avant push large, itération UX |
-| R-8 | Mosaic (non production-ready à la rédaction) se révèle bloquant en POC (API mouvante, bug, feature manquante) | Moyenne | Élevé | Couche d'abstraction `viz-engine` permet repli sur Vega-Lite (ADR-002) ; verrouillage de version au lockfile ; escalade dès I2 du V0 |
+| R-8 | Mosaic (non production-ready à la rédaction) se révèle bloquant en POC (API mouvante, bug, feature manquante) | Moyenne | Élevé | **Résolu (2026-05-30) sans repli Vega-Lite** : moteur hybride (ADR-002 amendé) — les vues mal couvertes par vgplot passent en rendu maison (DOM/SVG), push-down DuckDB préservé. Vega-Lite reste repli théorique. Versions verrouillées au lockfile. |
 | R-9 | Tauri 3 sort avec breaking changes majeurs | Faible | Moyen | Verrouillage version dans `Cargo.lock`, migration planifiée |
 | R-10 | Pipeline publisher défaillant (un seul writer non garanti) | Moyenne | Moyen | Documenter exigences §7 et auditer publisher en amont |
 
@@ -658,8 +664,8 @@ Approche **vibe coding** : itérations courtes, valeur démontrée à chaque ét
 | # | Décision | Fichier | Source de référence |
 |---|---|---|---|
 | ADR-001 | DuckDB **natif** via `duckdb-rs` (bundled), pas WASM en V1 | [ADR-001](docs/adr/ADR-001-duckdb-natif.md) | [duckdb-rs](https://crates.io/crates/duckdb), [DuckDB](https://duckdb.org) |
-| ADR-002 | **Mosaic + vgplot** en V1 (push-down DuckDB) ; fine couche d'abstraction `viz-engine` pour repli éventuel | [ADR-002](docs/adr/ADR-002-mosaic-vgplot.md) | [Mosaic](https://idl.uw.edu/mosaic/), [Mosaic IEEE VIS 2024](https://idl.cs.washington.edu/files/2024-Mosaic-TVCG.pdf) |
-| ADR-003 | Parquet (pivot) + Arrow IPC (transit Rust↔JS) ; JSON banni pour data | [ADR-003](docs/adr/ADR-003-parquet-arrow.md) | [Apache Arrow](https://arrow.apache.org) |
+| ADR-002 | Moteur **hybride** (amendé 2026-05-30) : invariant push-down DuckDB ; rendu vgplot/Mosaic + **rendu maison** ; coordination cross-vues dans `viz-engine` | [ADR-002](docs/adr/ADR-002-mosaic-vgplot.md) | [Mosaic](https://idl.uw.edu/mosaic/), [Mosaic IEEE VIS 2024](https://idl.cs.washington.edu/files/2024-Mosaic-TVCG.pdf) |
+| ADR-003 | Parquet (pivot) + Arrow IPC (transit Rust↔JS) ; JSON banni pour data ; `.vviz` **autoporteur** (Parquet `inline` base64) par défaut (amendé 2026-05-29) | [ADR-003](docs/adr/ADR-003-parquet-arrow.md) | [Apache Arrow](https://arrow.apache.org) |
 | ADR-004 | Tauri 2.x ; Electron et Wails v3 (alpha) écartés | [ADR-004](docs/adr/ADR-004-tauri-2.md) | [Tauri 2](https://v2.tauri.app), [Wails v3](https://v3.wails.io/whats-new/) |
 | ADR-005 | MSI signable produit par la CI ; signature et déploiement = DSI (hors scope produit) | [ADR-005](docs/adr/ADR-005-signature-dsi.md) | — |
 | ADR-006 | MSI via `tauri-bundler` ; MSIX en V2 si demandé | [ADR-006](docs/adr/ADR-006-msi-bundler.md) | [Tauri distribute](https://v2.tauri.app/distribute/) |

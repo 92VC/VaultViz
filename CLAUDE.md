@@ -41,8 +41,8 @@ Si la session déborde, laisser la story en `[~]` et créer une sous-story dans 
 | I-3 | **Lecture seule** sur le share. VaultViz n'écrit jamais sur le partage réseau. | §5.2 PRD |
 | I-4 | **Pas de serveur applicatif** (Apache, Nginx, Node…). Aucune infra à exploiter. | §1.1, §10 |
 | I-5 | **Signature et déploiement parc = DSI**, hors scope produit. Le PRD ne tranche ni le type de cert, ni le HSM, ni la procédure. | ADR-005 |
-| I-6 | **Parquet pivot**, Arrow IPC transit, JSON banni pour les données métier. | ADR-003 |
-| I-7 | **Mosaic + vgplot en V1**, pas Vega-Lite (sauf repli si Mosaic se révèle bloquant — R-8). | ADR-002 |
+| I-6 | **Parquet pivot**, Arrow IPC transit, JSON banni pour les données métier. `.vviz` **autoporteur** (Parquet base64 `inline`) = modèle par défaut ; mode externe `path` supporté. | ADR-003 (amendé) |
+| I-7 | **Moteur de rendu HYBRIDE.** Invariant : **tout calcul poussé dans DuckDB** (push-down SQL). Rendu libre : vgplot/Mosaic là où il sert, **rendu maison** (DOM/SVG) là où la qualité y gagne. Coordination cross-vues dans `viz-engine/`. Volume de JS de rendu non contraint. | ADR-002 (amendé) |
 | I-8 | **GitHub privé** organisation CPAM pour le repo source. | §16 PRD |
 | I-9 | **Export PDF A4** est une exigence explicite V1 (pas une option). | ADR-011, UC-4 |
 | I-10 | **RGPD hors périmètre VaultViz** — la conformité passe par les ACL du share. L'outil n'est qu'un interprétateur. | §8.2 |

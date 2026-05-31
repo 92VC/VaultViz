@@ -2,8 +2,8 @@
 
 | Champ | Valeur |
 |---|---|
-| Statut | Accepté |
-| Date | 2026-05-28 |
+| Statut | **Amendé 2026-05-29 — `.vviz` AUTOPORTEUR par défaut** (Parquet embarqué) |
+| Date | 2026-05-28 (amendé 2026-05-29) |
 | Source | [PRD.md §6.3](../../PRD.md#63-décisions-architecturales-clés-adrs-synthétisés) |
 | Sponsor | DSI + Publisher ETL |
 
@@ -33,6 +33,30 @@ Parquet (Snappy par défaut, ZSTD pour gros volumes archivés) est le **seul** f
 - Pas de chargeur CSV dans VaultViz.
 - Compression : Snappy par défaut ; ZSTD pour Parquet archivés > 200 Mo après compression (cf. PRD §7.2).
 - Transit Rust↔JS : exclusivement bytes Arrow IPC (`Vec<u8>` → `Uint8Array` → `Table.from`).
+
+## Amendement 2026-05-29 — fichier `.vviz` AUTOPORTEUR (modèle par défaut, validé)
+
+**Décision** : l'intention fondatrice (« comme une note Obsidian : on clique,
+ça marche, sans dépendance ») prime. Un `.vviz` **embarque ses données** via
+`data.sources[].inline` : le Parquet est encodé **base64** dans le fichier.
+**Un seul fichier, double-clic, aucune donnée externe à copier.**
+
+- À l'ouverture, chaque source embarquée est **extraite au cache local**
+  (`%LOCALAPPDATA%\VaultViz\cache`, PRD §5.2) par la commande Rust
+  `materialize_source` (`src-tauri/src/commands/cache.rs`), puis lue par
+  DuckDB comme une source classique (`read_parquet`).
+- Le **format pivot reste Parquet** : l'`inline` est du Parquet encodé, **pas**
+  une sérialisation JSON des lignes. L'esprit ADR-003 (JSON banni pour la
+  donnée) est donc **préservé**.
+- Le schéma `schema/vviz-v1.json` impose `anyOf: [inline, path]` sur chaque
+  source : autoporteur **ou** externe, au moins l'un des deux.
+
+**Le mode externe (`data.sources[].path` → share/UNC) reste supporté** pour
+les gros volumes gouvernés en amont (ADR-007), mais **n'est plus le défaut**.
+
+**Statut : validé** comme modèle attendu (cas de référence :
+`examples/DLI/dli_inventaire_autoporteur.vviz`). Taille/perf du fichier
+autoporteur : non prioritaires (arbitrage produit explicite).
 
 ## Références
 

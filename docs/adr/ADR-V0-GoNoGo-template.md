@@ -38,7 +38,7 @@ Légende : 🟢 = Go, 🟧 = Go conditionnel, 🔴 = No-Go.
 | Drill-down Parquet 300 Mo | < 1 s | > 3 s | **14.9 ms** (Filter+AGG, B-080) | 🟢 large |
 | RAM stable Parquet 300 Mo | < 800 Mo | > 1,5 Go | **331 Mo** RSS process complet (B-080) | 🟢 |
 | Hypothèse H1 (UNC scope Tauri) validée | ✅ | ❌ | Partiel : chemin local + relatif OK ; UNC réel CPAM = handoff V1 (B-072 + B-012 reporté) | 🟧 |
-| Hypothèse H4 (drill spec déclarative, < 50 lignes JS métier) | ✅ | ❌ | ✅ (B-041 critère audité, `src/main.ts` = câblage haut-niveau uniquement, logique métier exclusivement dans `viz-engine/`) | 🟢 |
+| Hypothèse H4 (drill spec déclarative, **push-down DuckDB préservé**) | ✅ | ❌ | ✅ (calcul poussé en SQL DuckDB ; rendu hybride vgplot + maison, cf. ADR-002 amendé — le volume de JS de rendu n'est plus un critère) | 🟢 |
 
 ### Critères dépendants de décisions externes (3 stories `[!]`)
 
