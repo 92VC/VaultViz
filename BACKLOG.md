@@ -42,8 +42,8 @@
 | V0 — I5 Erreurs | 3 | 0 | 0 | 3 | 0 |
 | V0 — I6 MSI | 3 | 0 | 0 | 3 | 0 |
 | V0 — I7 Go/No-Go | 3 | 0 | 0 | 3 | 0 |
-| V1 — V1-1 MapLibre | 2 | 1 | 0 | 1 | 0 |
-| V1 — V1-2 TopoJSON IGN | 2 | 1 | 1 | 0 | 0 |
+| V1 — V1-1 MapLibre | 2 | 0 | 1 | 1 | 0 |
+| V1 — V1-2 TopoJSON IGN | 2 | 0 | 1 | 1 | 0 |
 | V1 — V1-3 Watcher | 2 | 0 | 0 | 2 | 0 |
 | V1 — V1-4 Exports | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
@@ -54,7 +54,7 @@
 | V1 — V1-8 Doc | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **55** | **9** | **1** | **45** | **0** |
+| **Total** | **55** | **8** | **1** | **46** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -467,7 +467,7 @@ Chaque story porte les champs :
 - **PRD** : §6.2 carto, ADR-009
 - **Complexité** : L
 
-### B-101 — [ ] PMTiles fond de carte embarqué offline
+### B-101 — [~] PMTiles fond de carte embarqué offline
 
 - **Itération** : V1-1
 - **Livrable** : fond OSM ou IGN distillé en PMTiles, embarqué dans le MSI
