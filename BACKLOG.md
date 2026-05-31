@@ -512,7 +512,7 @@ Chaque story porte les champs :
 
 ### 3.3 V1-3 — Watcher FS
 
-### B-120 — [ ] Watcher FS sur le share via `plugin-fs-watch`
+### B-120 — [~] Watcher FS sur le share via `plugin-fs-watch`
 
 - **Itération** : V1-3
 - **Livrable** : détection des modifications du Parquet référencé
