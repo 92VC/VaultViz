@@ -553,7 +553,7 @@ Chaque story porte les champs :
 - **Complexité** : M
 - **Notes** : risque R-5 (rendu PDF dégradé MapLibre WebGL) à valider ici.
 
-### B-131 — [~] Export PDF A4 (exigence explicite UC-4)
+### B-131 — [x] Export PDF A4 (exigence explicite UC-4)
 
 - **Itération** : V1-4
 - **Livrable** : bouton « Exporter en PDF » génère un PDF A4 paysage de la vue active

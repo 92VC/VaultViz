@@ -26,6 +26,8 @@ export interface ToolbarOptions {
   onOpen: () => void;
   /** Appelé au clic sur « Exporter » (placeholder V0 si absent). */
   onExport?: () => void;
+  /** Appelé au clic sur « Exporter PDF » (B-131). */
+  onExportPdf?: () => void;
 }
 
 /** États possibles du badge de statut. */
@@ -75,6 +77,7 @@ export function mountToolbar(
     <div class="tdiv"></div>
     <button type="button" class="tbtn" data-action="open">${icon("open")}Ouvrir</button>
     <button type="button" class="tbtn" data-action="export">${icon("export")}Exporter</button>
+    <button type="button" class="tbtn" data-action="export-pdf" title="Exporter en PDF (A4 paysage)">${icon("export")}PDF</button>
     <button type="button" class="tbtn icon" data-action="theme" title="Thème"></button>
     <button type="button" class="tbtn icon" data-action="settings" title="Paramètres">${icon("settings")}</button>
   `;
@@ -86,6 +89,9 @@ export function mountToolbar(
   const openBtn = el.querySelector<HTMLButtonElement>('[data-action="open"]')!;
   const exportBtn = el.querySelector<HTMLButtonElement>(
     '[data-action="export"]',
+  )!;
+  const exportPdfBtn = el.querySelector<HTMLButtonElement>(
+    '[data-action="export-pdf"]',
   )!;
   const themeBtn = el.querySelector<HTMLButtonElement>(
     '[data-action="theme"]',
@@ -100,6 +106,7 @@ export function mountToolbar(
 
   openBtn.addEventListener("click", () => opts.onOpen());
   exportBtn.addEventListener("click", () => opts.onExport?.());
+  exportPdfBtn.addEventListener("click", () => opts.onExportPdf?.());
 
   return {
     setPath(segments: string[]): void {

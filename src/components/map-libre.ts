@@ -48,6 +48,11 @@ export function createBaseMap(
     style: emptyStyle,
     center,
     zoom,
+    // Requis pour l'export PDF (B-131) : sans ce flag, getCanvas().toDataURL()
+    // renvoie une image vide (le GPU efface le back-buffer entre les frames).
+    // Coût : légère surconsommation mémoire GPU, uniquement pour engine=maplibre.
+    // MapLibre v5+ : le flag passe via canvasContextAttributes.
+    canvasContextAttributes: { preserveDrawingBuffer: true },
   });
 
   map.addControl(new maplibregl.NavigationControl());
