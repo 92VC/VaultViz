@@ -161,4 +161,105 @@ describe("exportToPdf (B-131)", () => {
     const reloaded = await PDFDocument.load(bytes);
     expect(reloaded.getAuthor()).toBe("VaultViz");
   });
+
+  it("vue ranked_bars (DOM sans SVG) : placeholder dessiné, pas ignorée", async () => {
+    // ranked_bars produit un div.bars (cf. ranked-bars.ts), sans <svg>.
+    const rb = document.createElement("div");
+    rb.className = "vv-view-frame vv-view-ranked_bars";
+    const bars = document.createElement("div");
+    bars.className = "bars";
+    const row = document.createElement("div");
+    row.className = "bar-row";
+    bars.appendChild(row);
+    rb.appendChild(bars);
+
+    const withRb = document.createElement("div");
+    withRb.appendChild(rb);
+
+    // Conteneur réellement vide (aucune vue) pour comparaison.
+    const empty = document.createElement("div");
+
+    const bytesRb = await exportToPdf({
+      container: withRb,
+      title: "Avec ranked_bars",
+      rasterizeSvg: mockRasterize,
+    });
+    const bytesEmpty = await exportToPdf({
+      container: empty,
+      title: "Avec ranked_bars", // même titre → même en-tête, isole le placeholder
+      rasterizeSvg: mockRasterize,
+    });
+
+    // Le PDF avec ranked_bars contient un dessin supplémentaire (rectangle +
+    // texte placeholder) → strictement plus d'octets que le PDF vide.
+    expect(bytesRb.length).toBeGreaterThan(bytesEmpty.length);
+  });
+
+  it("vue grouped_bars (.qbars) et table (.vv-table) : placeholders dessinés", async () => {
+    const c = document.createElement("div");
+    const gb = document.createElement("div");
+    gb.className = "qbars";
+    const tbl = document.createElement("div");
+    tbl.className = "vv-table";
+    c.appendChild(gb);
+    c.appendChild(tbl);
+
+    const empty = document.createElement("div");
+
+    const bytes = await exportToPdf({
+      container: c,
+      title: "T",
+      rasterizeSvg: mockRasterize,
+    });
+    const bytesEmpty = await exportToPdf({
+      container: empty,
+      title: "T",
+      rasterizeSvg: mockRasterize,
+    });
+    // 2 placeholders → plus d'octets que le PDF vide.
+    expect(bytes.length).toBeGreaterThan(bytesEmpty.length);
+  });
+
+  it("carte MapLibre : captureMap est appelé pour chaque canvas maplibre", async () => {
+    const c = document.createElement("div");
+    const mapFrame = document.createElement("div");
+    mapFrame.className = "vv-view-frame vv-view-choropleth";
+    // Simuler le canvas WebGL MapLibre (happy-dom ne fait pas de WebGL réel).
+    const canvas = document.createElement("canvas");
+    canvas.className = "maplibregl-canvas";
+    mapFrame.appendChild(canvas);
+    c.appendChild(mapFrame);
+
+    let captureCalls = 0;
+    const captureMap = async (_el: HTMLElement): Promise<Uint8Array> => {
+      captureCalls += 1;
+      return VALID_PNG_1x1;
+    };
+
+    const bytes = await exportToPdf({
+      container: c,
+      title: "Carte",
+      rasterizeSvg: mockRasterize,
+      captureMap,
+    });
+    expect(captureCalls).toBe(1);
+    const header = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+    expect(header).toBe("%PDF");
+  });
+
+  it("carte MapLibre : captureMap renvoyant null → pas de crash, placeholder", async () => {
+    const c = document.createElement("div");
+    const canvas = document.createElement("canvas");
+    canvas.className = "maplibregl-canvas";
+    c.appendChild(canvas);
+
+    const captureMap = async (): Promise<null> => null;
+    const result = await exportToPdf({
+      container: c,
+      title: "Carte vide",
+      rasterizeSvg: mockRasterize,
+      captureMap,
+    });
+    expect(result.length).toBeGreaterThan(0);
+  });
 });

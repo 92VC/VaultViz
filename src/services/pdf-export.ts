@@ -108,40 +108,44 @@ async function defaultRasterizeSvg(svg: SVGElement): Promise<Uint8Array | string
   // getComputedStyle() resolve les var(--*) de façon fiable.
   const offscreen = document.createElement("div");
   offscreen.style.cssText = "position:absolute;visibility:hidden;pointer-events:none;width:0;height:0;overflow:hidden";
-  document.body.appendChild(offscreen);
-  const clone = svg.cloneNode(true) as SVGElement;
-  offscreen.appendChild(clone);
 
-  // ── Étape 2 : dimensions explicites (piège viewBox-only) ──────────────────
-  const existingW = clone.getAttribute("width");
-  const existingH = clone.getAttribute("height");
   let width = 600;
   let height = 400;
-  if (existingW && existingH && !existingW.includes("%") && !existingH.includes("%")) {
-    width = parseInt(existingW, 10) || 600;
-    height = parseInt(existingH, 10) || 400;
-  } else {
-    const vb = clone.getAttribute("viewBox");
-    if (vb) {
-      const parts = vb.split(/[\s,]+/).filter(Boolean);
-      if (parts.length === 4) {
-        width = parseFloat(parts[2]) || 600;
-        height = parseFloat(parts[3]) || 400;
+  let svgStr: string;
+
+  document.body.appendChild(offscreen);
+  try {
+    const clone = svg.cloneNode(true) as SVGElement;
+    offscreen.appendChild(clone);
+
+    // ── Étape 2 : dimensions explicites (piège viewBox-only) ────────────────
+    const existingW = clone.getAttribute("width");
+    const existingH = clone.getAttribute("height");
+    if (existingW && existingH && !existingW.includes("%") && !existingH.includes("%")) {
+      width = parseInt(existingW, 10) || 600;
+      height = parseInt(existingH, 10) || 400;
+    } else {
+      const vb = clone.getAttribute("viewBox");
+      if (vb) {
+        const parts = vb.split(/[\s,]+/).filter(Boolean);
+        if (parts.length === 4) {
+          width = parseFloat(parts[2]) || 600;
+          height = parseFloat(parts[3]) || 400;
+        }
       }
+      clone.setAttribute("width", String(width));
+      clone.setAttribute("height", String(height));
     }
-    clone.setAttribute("width", String(width));
-    clone.setAttribute("height", String(height));
+
+    // ── Étape 3 : inline les styles calculés (var(--*) résolus via offscreen)
+    inlineComputedStyles(clone);
+
+    // ── Étape 4 : sérialisation + data URI ──────────────────────────────────
+    svgStr = new XMLSerializer().serializeToString(clone);
+  } finally {
+    // Cleanup garanti même si une exception survient pendant le traitement.
+    document.body.removeChild(offscreen);
   }
-
-  // ── Étape 3 : inline les styles calculés (var(--*) résolus via offscreen) ─
-  inlineComputedStyles(clone);
-
-  // ── Étape 4 : sérialisation + data URI ────────────────────────────────────
-  const serializer = new XMLSerializer();
-  const svgStr = serializer.serializeToString(clone);
-
-  // Nettoyer le nœud offscreen avant la rastérisation async
-  document.body.removeChild(offscreen);
 
   // charset=utf-8 + encodeURIComponent : gère les accents et caractères >ASCII
   const dataUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgStr);
@@ -216,6 +220,7 @@ export async function exportToPdf(opts: PdfExportOpts): Promise<Uint8Array> {
     author = "VaultViz",
     date = new Date(),
     rasterizeSvg = defaultRasterizeSvg,
+    captureMap,
   } = opts;
 
   const pdfDoc = await PDFDocument.create();
@@ -233,6 +238,27 @@ export async function exportToPdf(opts: PdfExportOpts): Promise<Uint8Array> {
   // On cherche les SVG de charts et les cartes KPI dans le conteneur.
   const svgEls = Array.from(container.querySelectorAll<SVGElement>("svg"));
   const kpiEls = Array.from(container.querySelectorAll<HTMLElement>(".card.kpi"));
+  // Canvas MapLibre (engine: "maplibre") — rendu WebGL, pas de SVG.
+  const mapCanvases = Array.from(
+    container.querySelectorAll<HTMLCanvasElement>("canvas.maplibregl-canvas"),
+  );
+  // Vues DOM sans SVG NI .card.kpi → non rastérisables ici : on pose un
+  // placeholder VISIBLE pour signaler qu'elles ne sont pas exportées.
+  // (.bars = ranked_bars, .qbars = grouped_bars, .vv-table = table)
+  const placeholderViews: Array<{ el: HTMLElement; label: string }> = [];
+  for (const sel of [
+    { selector: ".bars", type: "barres classées" },
+    { selector: ".qbars", type: "barres groupées" },
+    { selector: ".vv-table", type: "tableau" },
+  ]) {
+    for (const el of Array.from(
+      container.querySelectorAll<HTMLElement>(sel.selector),
+    )) {
+      // Éviter les doublons si une vue contient un SVG capturé par ailleurs.
+      if (el.querySelector("svg")) continue;
+      placeholderViews.push({ el, label: sel.type });
+    }
+  }
 
   // ── Page 1 : A4 paysage ───────────────────────────────────────────────────
   const page = pdfDoc.addPage(A4_LANDSCAPE);
@@ -313,56 +339,117 @@ export async function exportToPdf(opts: PdfExportOpts): Promise<Uint8Array> {
     cursorY -= KPI_CARD_H + 10;
   }
 
-  // ── Vues SVG ──────────────────────────────────────────────────────────────
-  if (svgEls.length > 0) {
-    const svgZoneW = PAGE_W - 2 * MARGIN;
-    const svgZoneH = cursorY - MARGIN;
+  // ── Tuiles de contenu : SVG + cartes MapLibre + placeholders ──────────────
+  // Chaque tuile porte une fonction de rendu prenant son rectangle cible.
+  // Une tuile « image » embed une image PNG (SVG rastérisé ou canvas WebGL) ;
+  // une tuile « placeholder » dessine un rectangle grisé + texte explicatif.
+  type Tile = (x: number, y: number, w: number, h: number) => Promise<void>;
 
-    if (svgZoneH > 20 && svgZoneW > 20) {
-      const cols = svgEls.length > 1 ? 2 : 1;
-      const rows = Math.ceil(svgEls.length / cols);
-      const cellW = (svgZoneW - (cols - 1) * 10) / cols;
-      const cellH = Math.min((svgZoneH - (rows - 1) * 10) / rows, 200);
+  /** Dessine un placeholder grisé visible pour une vue non exportable. */
+  function drawPlaceholder(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    text: string,
+  ): void {
+    page.drawRectangle({
+      x,
+      y,
+      width: w,
+      height: h,
+      color: rgb(0.95, 0.95, 0.95),
+      borderColor: COLOR_RULE,
+      borderWidth: 0.5,
+    });
+    page.drawText(text, {
+      x: x + 8,
+      y: y + h / 2 - 4,
+      size: 8,
+      font: helvetica,
+      color: COLOR_KPI_LBL,
+      maxWidth: w - 16,
+    });
+  }
 
-      for (let i = 0; i < svgEls.length; i++) {
-        const svg = svgEls[i];
+  /** Tuile image : embed des octets PNG dans le rectangle (scaleToFit). */
+  async function drawImageBytes(
+    bytes: Uint8Array,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+  ): Promise<void> {
+    const pdfImage = await pdfDoc.embedPng(bytes);
+    const scaled = pdfImage.scaleToFit(w, h);
+    page.drawImage(pdfImage, { x, y, width: scaled.width, height: scaled.height });
+  }
+
+  const tiles: Tile[] = [];
+
+  // Tuiles SVG (charts maison, choroplèthe SVG).
+  for (const svg of svgEls) {
+    tiles.push(async (x, y, w, h) => {
+      try {
+        const imageData = await rasterizeSvg(svg);
+        await drawImageBytes(normalizeImageData(imageData), x, y, w, h);
+      } catch {
+        drawPlaceholder(x, y, w, h, "[vue non disponible]");
+      }
+    });
+  }
+
+  // Tuiles MapLibre WebGL : captureMap injectable, défaut = canvas.toDataURL()
+  // (le canvas a preserveDrawingBuffer:true, cf. map-libre.ts).
+  for (const canvas of mapCanvases) {
+    tiles.push(async (x, y, w, h) => {
+      try {
+        const captured = captureMap
+          ? await captureMap(canvas)
+          : canvas.toDataURL("image/png");
+        if (captured == null) {
+          drawPlaceholder(x, y, w, h, "[carte non disponible]");
+          return;
+        }
+        await drawImageBytes(normalizeImageData(captured), x, y, w, h);
+      } catch {
+        drawPlaceholder(x, y, w, h, "[carte non disponible]");
+      }
+    });
+  }
+
+  // Tuiles placeholder : vues DOM non rastérisables (ranked/grouped/table).
+  for (const pv of placeholderViews) {
+    tiles.push(async (x, y, w, h) => {
+      drawPlaceholder(
+        x,
+        y,
+        w,
+        h,
+        `[vue ${pv.label} — export PDF non disponible dans cette version]`,
+      );
+    });
+  }
+
+  // ── Placement en grille des tuiles ────────────────────────────────────────
+  if (tiles.length > 0) {
+    const zoneW = PAGE_W - 2 * MARGIN;
+    const zoneH = cursorY - MARGIN;
+
+    if (zoneH > 20 && zoneW > 20) {
+      const cols = tiles.length > 1 ? 2 : 1;
+      const rows = Math.ceil(tiles.length / cols);
+      const cellW = (zoneW - (cols - 1) * 10) / cols;
+      const cellH = Math.min((zoneH - (rows - 1) * 10) / rows, 200);
+
+      for (let i = 0; i < tiles.length; i++) {
         const col = i % cols;
         const row = Math.floor(i / cols);
         const x = MARGIN + col * (cellW + 10);
         const y = cursorY - (row + 1) * (cellH + 10) + 10;
 
         if (y < MARGIN) break; // débordement — on s'arrête proprement
-
-        try {
-          const imageData = await rasterizeSvg(svg);
-          const pngBytes = normalizeImageData(imageData);
-          const pdfImage = await pdfDoc.embedPng(pngBytes);
-          const scaled = pdfImage.scaleToFit(cellW, cellH);
-          page.drawImage(pdfImage, {
-            x,
-            y,
-            width: scaled.width,
-            height: scaled.height,
-          });
-        } catch {
-          // En cas d'échec de rastérisation : placeholder texte
-          page.drawRectangle({
-            x,
-            y,
-            width: cellW,
-            height: cellH,
-            color: rgb(0.95, 0.95, 0.95),
-            borderColor: COLOR_RULE,
-            borderWidth: 0.5,
-          });
-          page.drawText("[vue non disponible]", {
-            x: x + 8,
-            y: y + cellH / 2 - 5,
-            size: 8,
-            font: helvetica,
-            color: COLOR_KPI_LBL,
-          });
-        }
+        await tiles[i](x, y, cellW, cellH);
       }
     }
   }
