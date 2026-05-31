@@ -454,7 +454,7 @@ Chaque story porte les champs :
 
 ### 3.1 V1-1 — MapLibre + PMTiles
 
-### B-100 — [ ] Intégrer MapLibre GL JS
+### B-100 — [~] Intégrer MapLibre GL JS
 
 - **Itération** : V1-1
 - **Livrable** : carte MapLibre interactive (zoom, pan) en remplacement du rendu carto I2
