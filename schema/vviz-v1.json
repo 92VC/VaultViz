@@ -157,8 +157,9 @@
               },
               "kind": {
                 "type": "string",
-                "enum": ["in", "interval"],
-                "default": "in"
+                "enum": ["in"],
+                "default": "in",
+                "description": "Type de filtre. 'in' = appartenance (= ou IN). 'interval' (bornes min/max) réservé pour une story future — non implémenté en V1 (YAGNI)."
               },
               "scope": {
                 "type": "string",
