@@ -67,7 +67,12 @@ function harness(docs: Record<string, VVizDocument>): Harness {
     loadSources: vi.fn(async () => {}),
     dropDocViews: dropSpy,
     mountDashboard: mountSpy,
-    createRuntime: () => ({ selections: new Map(), params: new Map(), sources: new Map() }),
+    createRuntime: () => ({
+      selections: new Map(),
+      params: new Map(),
+      sources: new Map(),
+      slicerState: new Map(),
+    }),
     initRuntime: () => {},
     addRecent: vi.fn(async () => {}),
     onHome: vi.fn(),
@@ -189,7 +194,12 @@ describe("createTabsManager", () => {
       "/b.vviz": doc("Doc B", ["sb"]),
     });
     base.deps.createRuntime = () => {
-      const c = { selections: new Map(), params: new Map(), sources: new Map() };
+      const c = {
+        selections: new Map(),
+        params: new Map(),
+        sources: new Map(),
+        slicerState: new Map(),
+      };
       ctxs.push(c);
       return c;
     };

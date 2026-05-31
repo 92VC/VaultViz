@@ -22,6 +22,7 @@ import type { RuntimeContext } from "./mosaic-runtime";
 import { bindMapSelection, createPointEmitter, ensureSelection } from "./mosaic-runtime";
 import { onSelectionValue } from "./drill-query";
 import { injectWhereAll, type Clause } from "./where-builder";
+import { ident, lit } from "./sql-helpers";
 import type { SlicerSpec } from "./types";
 import { renderChoropleth, renderMetricSwitcher } from "../components/map-view";
 import { renderBarChart } from "../components/bar-chart";
@@ -31,14 +32,6 @@ import { renderRankedBars } from "../components/ranked-bars";
 import { renderGroupedBars } from "../components/grouped-bars";
 import { renderLineChart, type LinePoint } from "../components/line-chart";
 import { renderPieChart } from "../components/pie-chart";
-
-function ident(s: string): string {
-  return `"${s.replace(/"/g, '""')}"`;
-}
-
-function sqlLit(s: string): string {
-  return `'${s.replace(/'/g, "''")}'`;
-}
 
 /**
  * Injecte une clause `WHERE "<field>" = '<value>'` dans une requête déjà
@@ -157,7 +150,7 @@ async function fetchTableRows(
   const cols = columns.map(ident).join(", ");
   const clauses: string[] = [];
   if (filterField && filterValue !== null) {
-    clauses.push(`${ident(filterField)} = ${sqlLit(filterValue)}`);
+    clauses.push(`${ident(filterField)} = ${lit(filterValue)}`);
   }
   if (searchExpr) clauses.push(searchExpr);
   const where = clauses.length ? ` WHERE ${clauses.join(" AND ")}` : "";
@@ -188,31 +181,40 @@ export interface MountViewOpts {
 }
 
 /**
- * Construit les Clause[] de slicers applicables à une vue donnée.
+ * Prédicat unique d'applicabilité d'un slicer à une vue (B-251).
+ * Source unique de vérité partagée par `buildSlicerClauses` (construction
+ * du SQL) et `subscribeSlicers` (abonnement aux re-renders).
+ * - source doit correspondre (un slicer sur source A ne filtre pas B).
  * - scope='global' : toujours applicable.
- * - scope='tab' (défaut) : applicable si currentTab correspond à la
- *   vue, ou si currentTab est absent (pas d'onglet).
- * Filtre aussi par source : seuls les slicers dont la source correspond
- * à `viewSource` sont inclus (un slicer sur source A ne filtre pas B).
+ * - scope='tab' (défaut) : applicable si l'onglet courant correspond à
+ *   la vue, ou si l'un des deux onglets est absent (pas d'onglet déclaré).
+ */
+function isSlicerApplicable(
+  s: SlicerSpec,
+  viewSource: string,
+  viewTab: string | undefined,
+  currentTab: string | undefined,
+): boolean {
+  if (s.source !== viewSource) return false;
+  if (s.scope === "global") return true;
+  if (currentTab === undefined || viewTab === undefined) return true;
+  return viewTab === currentTab;
+}
+
+/**
+ * Construit les Clause[] de slicers applicables à une vue donnée.
+ * Chaque clause porte les valeurs cochées courantes (ctx.slicerState) ;
+ * une clause à values=[] est ignorée par injectWhereAll.
  */
 function buildSlicerClauses(
   ctx: RuntimeContext,
   slicers: SlicerSpec[],
   viewSource: string,
-  currentTab: string | undefined,
   viewTab: string | undefined,
+  currentTab: string | undefined,
 ): Clause[] {
   return slicers
-    .filter((s) => {
-      // Source doit correspondre.
-      if (s.source !== viewSource) return false;
-      // scope='global' : toujours applicable.
-      if (s.scope === "global") return true;
-      // scope='tab' (défaut) : applicable si l'onglet courant correspond.
-      // Si pas d'onglet déclaré (currentTab absent), on applique.
-      if (currentTab === undefined || viewTab === undefined) return true;
-      return viewTab === currentTab;
-    })
+    .filter((s) => isSlicerApplicable(s, viewSource, viewTab, currentTab))
     .map((s) => ({
       field: s.field,
       values: ctx.slicerState.get(s.id) ?? [],
@@ -302,10 +304,9 @@ export async function mountCompiledView(
     case "plot": {
       // Rendu MAISON (SVG) alimenté par DuckDB — fiable, sans coordinator
       // vgplot. Générique : type de vue line/area, n'importe quelle source.
-      const q = (s: string): string => `"${s.replace(/"/g, '""')}"`;
       const agg = (view.yAggregate ?? "sum").toLowerCase();
       const yExpr =
-        !view.yField || agg === "count" ? "count(*)" : `${agg}(${q(view.yField)})`;
+        !view.yField || agg === "count" ? "count(*)" : `${agg}(${ident(view.yField)})`;
       const strOpt = (k: string): string | undefined => {
         const v = (view.options as Record<string, unknown> | undefined)?.[k];
         return typeof v === "string" ? v : undefined;
@@ -314,11 +315,11 @@ export async function mountCompiledView(
       const area = view.plotType === "area";
       const filterField = strOpt("filterField");
       const baseSql = view.seriesField
-        ? `SELECT ${q(view.xField)} AS x, ${q(view.seriesField)} AS s, ${yExpr} AS v ` +
-          `FROM ${q(view.source)} GROUP BY ${q(view.xField)}, ${q(view.seriesField)} ` +
-          `ORDER BY ${q(view.xField)}`
-        : `SELECT ${q(view.xField)} AS k, ${yExpr} AS v ` +
-          `FROM ${q(view.source)} GROUP BY ${q(view.xField)} ORDER BY ${q(view.xField)}`;
+        ? `SELECT ${ident(view.xField)} AS x, ${ident(view.seriesField)} AS s, ${yExpr} AS v ` +
+          `FROM ${ident(view.source)} GROUP BY ${ident(view.xField)}, ${ident(view.seriesField)} ` +
+          `ORDER BY ${ident(view.xField)}`
+        : `SELECT ${ident(view.xField)} AS k, ${yExpr} AS v ` +
+          `FROM ${ident(view.source)} GROUP BY ${ident(view.xField)} ORDER BY ${ident(view.xField)}`;
       // activeValue : valeur courante de la sélection single (cross-filter).
       // Variable de fermeture partagée par render ET le listener slicer pour
       // que les deux sources (single selection + slicer) soient combinées en
@@ -326,7 +327,7 @@ export async function mountCompiledView(
       let activeValue: string | null = null;
       const render = async (value: string | null): Promise<void> => {
         activeValue = value;
-        const sc = buildSlicerClauses(ctx, slicers, view.source, currentTab, viewTab);
+        const sc = buildSlicerClauses(ctx, slicers, view.source, viewTab, currentTab);
         const singleClause: Clause[] =
           value !== null && filterField ? [{ field: filterField, values: [value] }] : [];
         const sql = injectWhereAll(baseSql, view.source, [...sc, ...singleClause]);
@@ -361,7 +362,7 @@ export async function mountCompiledView(
       let activeValue: string | null = null;
       const render = async (value: string | null): Promise<void> => {
         activeValue = value;
-        const sc = buildSlicerClauses(ctx, slicers, view.source, currentTab, viewTab);
+        const sc = buildSlicerClauses(ctx, slicers, view.source, viewTab, currentTab);
         const singleClause: Clause[] =
           value !== null && view.filterField
             ? [{ field: view.filterField, values: [value] }]
@@ -396,7 +397,7 @@ export async function mountCompiledView(
       let activeValue: string | null = null;
       const render = async (value: string | null): Promise<void> => {
         activeValue = value;
-        const sc = buildSlicerClauses(ctx, slicers, view.source, currentTab, viewTab);
+        const sc = buildSlicerClauses(ctx, slicers, view.source, viewTab, currentTab);
         const singleClause: Clause[] =
           value !== null && view.filterField
             ? [{ field: view.filterField, values: [value] }]
@@ -424,7 +425,7 @@ export async function mountCompiledView(
       let activeValue: string | null = null;
       const render = async (value: string | null): Promise<void> => {
         activeValue = value;
-        const sc = buildSlicerClauses(ctx, slicers, view.source, currentTab, viewTab);
+        const sc = buildSlicerClauses(ctx, slicers, view.source, viewTab, currentTab);
         const singleClause: Clause[] =
           value !== null && view.filterField
             ? [{ field: view.filterField, values: [value] }]
@@ -463,7 +464,7 @@ export async function mountCompiledView(
       let activeValue: string | null = null;
       const render = async (value: string | null): Promise<void> => {
         activeValue = value;
-        const sc = buildSlicerClauses(ctx, slicers, view.source, currentTab, viewTab);
+        const sc = buildSlicerClauses(ctx, slicers, view.source, viewTab, currentTab);
         const singleClause: Clause[] =
           value !== null && view.filterField
             ? [{ field: view.filterField, values: [value] }]
@@ -488,6 +489,7 @@ export async function mountCompiledView(
     }
 
     case "table": {
+      // NOTE : table non filtrée par les slicers (fetch SQL propre) — filtrage slicer = story future.
       const limit = numberOpt(view.options, "limit") ?? 5000;
       const fields = view.columns.map((c) => c.field);
       // Colonnes texte = candidates au filtre de recherche ILIKE.
@@ -501,10 +503,10 @@ export async function mountCompiledView(
       const searchExpr = (q: string): string | null => {
         const term = q.trim();
         if (!term || textFields.length === 0) return null;
-        const lit = `'%${term.replace(/'/g, "''")}%'`;
+        const pattern = lit(`%${term}%`);
         return (
           "(" +
-          textFields.map((f) => `${ident(f)} ILIKE ${lit}`).join(" OR ") +
+          textFields.map((f) => `${ident(f)} ILIKE ${pattern}`).join(" OR ") +
           ")"
         );
       };
@@ -596,13 +598,10 @@ export function subscribeSlicers(
   currentTab: string | undefined,
   rerender: () => Promise<void>,
 ): void {
-  // Slicers applicables à cette vue.
-  const applicable = slicers.filter((s) => {
-    if (s.source !== viewSource) return false;
-    if (s.scope === "global") return true;
-    if (currentTab === undefined || viewTab === undefined) return true;
-    return viewTab === currentTab;
-  });
+  // Slicers applicables à cette vue (même prédicat que buildSlicerClauses).
+  const applicable = slicers.filter((s) =>
+    isSlicerApplicable(s, viewSource, viewTab, currentTab),
+  );
   if (applicable.length === 0) return;
 
   // Initialise le registre de listeners si absent.

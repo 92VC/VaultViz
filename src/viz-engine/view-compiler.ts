@@ -5,12 +5,9 @@
 // hardcodée.
 
 import type { ColumnDef, EncodingChannel, MetricDef, ViewSpec } from "./types";
+import { ident } from "./sql-helpers";
 
 const AGG = new Set(["sum", "avg", "count", "min", "max"]);
-
-function ident(s: string): string {
-  return `"${s.replace(/"/g, '""')}"`;
-}
 
 const DOC_ID = /^[a-zA-Z0-9_]{1,32}$/;
 

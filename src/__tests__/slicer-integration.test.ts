@@ -66,7 +66,7 @@ describe("slicer global — SQL porte la clause IN/=", () => {
 
     // Le SQL passé à conn.query doit porter WHERE "gestion" = '92'.
     const calls: string[] = conn.query.mock.calls.map(
-      (c: [{ sql: string }]) => c[0].sql,
+      (c: unknown[]) => (c[0] as { sql: string }).sql,
     );
     expect(calls.some((s) => s.includes(`WHERE "gestion" = '92'`))).toBe(true);
   });
@@ -98,7 +98,7 @@ describe("slicer global — SQL porte la clause IN/=", () => {
     );
 
     const calls: string[] = conn.query.mock.calls.map(
-      (c: [{ sql: string }]) => c[0].sql,
+      (c: unknown[]) => (c[0] as { sql: string }).sql,
     );
     expect(
       calls.some((s) => s.includes(`WHERE "type_contrat" IN ('CDI', 'CDD')`)),
@@ -147,7 +147,7 @@ describe("slicer global — SQL porte la clause IN/=", () => {
     );
 
     const calls: string[] = conn.query.mock.calls.map(
-      (c: [{ sql: string }]) => c[0].sql,
+      (c: unknown[]) => (c[0] as { sql: string }).sql,
     );
     const filtered = calls.filter((s) => s.includes(`WHERE "dept" = '92'`));
     expect(filtered.length).toBeGreaterThanOrEqual(2);
@@ -179,7 +179,7 @@ describe("rétro-compat — doc sans slicers", () => {
     );
 
     const calls: string[] = conn.query.mock.calls.map(
-      (c: [{ sql: string }]) => c[0].sql,
+      (c: unknown[]) => (c[0] as { sql: string }).sql,
     );
     expect(calls.some((s) => s === originalSql)).toBe(true);
     expect(calls.every((s) => !s.includes("WHERE"))).toBe(true);
@@ -205,7 +205,7 @@ describe("rétro-compat — doc sans slicers", () => {
     );
 
     const calls: string[] = conn.query.mock.calls.map(
-      (c: [{ sql: string }]) => c[0].sql,
+      (c: unknown[]) => (c[0] as { sql: string }).sql,
     );
     expect(calls.some((s) => s === originalSql)).toBe(true);
   });
@@ -242,7 +242,7 @@ describe("scope='tab' — filtre par onglet courant", () => {
     );
 
     const calls: string[] = conn.query.mock.calls.map(
-      (c: [{ sql: string }]) => c[0].sql,
+      (c: unknown[]) => (c[0] as { sql: string }).sql,
     );
     expect(calls.some((s) => s.includes(`WHERE "dept" = '92'`))).toBe(true);
   });
@@ -274,7 +274,7 @@ describe("scope='tab' — filtre par onglet courant", () => {
     );
 
     const calls: string[] = conn.query.mock.calls.map(
-      (c: [{ sql: string }]) => c[0].sql,
+      (c: unknown[]) => (c[0] as { sql: string }).sql,
     );
     // Pas de WHERE (slicer non applicable à cet onglet)
     expect(calls.every((s) => !s.includes("WHERE"))).toBe(true);
@@ -291,7 +291,6 @@ describe("slicer + sélection single → clauses combinées en AND", () => {
     //   2. On émets une sélection single (via createPointEmitter).
     //   3. On active le slicer → render déclenché → le SQL doit avoir LES DEUX clauses.
     const { createPointEmitter } = await import("../viz-engine/mosaic-runtime");
-    const { onSelectionValue } = await import("../viz-engine/drill-query");
 
     const ctx = createRuntime();
     const conn = fakeConn();
@@ -326,7 +325,7 @@ describe("slicer + sélection single → clauses combinées en AND", () => {
 
     {
       const calls: string[] = conn.query.mock.calls.map(
-        (c: [{ sql: string }]) => c[0].sql,
+        (c: unknown[]) => (c[0] as { sql: string }).sql,
       );
       // Single active → WHERE "region" = 'IDF' (slicer inactif)
       expect(calls.some((s) => s.includes(`"region" = 'IDF'`))).toBe(true);
@@ -339,7 +338,7 @@ describe("slicer + sélection single → clauses combinées en AND", () => {
 
     {
       const calls: string[] = conn.query.mock.calls.map(
-        (c: [{ sql: string }]) => c[0].sql,
+        (c: unknown[]) => (c[0] as { sql: string }).sql,
       );
       // Les deux clauses doivent être présentes dans le même SQL.
       const combined = calls.find(

@@ -2,6 +2,8 @@
 // combinées en AND. Multi-valeurs → IN (...).
 // Push-down DuckDB préservé : aucun filtrage JS, tout part en SQL.
 
+import { ident, lit } from "./sql-helpers";
+
 /**
  * Clause de filtre : un champ + une ou plusieurs valeurs.
  * - values=[] : clause inactive (ignorée).
@@ -13,14 +15,6 @@ export interface Clause {
   field: string;
   /** Valeurs cochées ; [] = clause inactive (ignorée). */
   values: string[];
-}
-
-function ident(name: string): string {
-  return `"${name.replace(/"/g, '""')}"`;
-}
-
-function lit(v: string): string {
-  return `'${v.replace(/'/g, "''")}'`;
 }
 
 function predicate(c: Clause): string | null {
