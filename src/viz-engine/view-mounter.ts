@@ -247,6 +247,13 @@ export async function mountCompiledView(
       // Note : les métriques alternatives (SP3) ne sont pas supportées avec
       // engine="maplibre" (hors scope B-111 / CLAUDE.md §4.3). Le switcher
       // segmenté reste disponible en mode SVG (défaut).
+      //
+      // LIMITATION V1 (B-111) : le cross-filter ENTRANT n'est pas câblé pour
+      // le moteur GL. La carte ÉMET sa sélection (onSelect → createPointEmitter),
+      // mais ne se RE-RENDER pas en réaction à une sélection externe (clic sur
+      // une autre vue), contrairement aux vues bespoke (kpi/ranked/grouped/pie)
+      // qui s'abonnent via subscribeCrossFilter. Le re-render maplibre sur
+      // sélection entrante est laissé à une story ultérieure.
       if (engine === "maplibre") {
         const data = await fetchKeyValueMap(conn, view.sql);
         const formatOpt = (view.options as Record<string, unknown> | undefined)?.[

@@ -362,7 +362,6 @@ export function renderChoroplethGL(
           { selected: false },
         );
         selectedCode = null;
-        console.debug("[B-111] selection cleared (maplibre)");
         opts.onSelect?.(null);
       } else {
         // Effacer l'ancienne sélection
@@ -376,10 +375,6 @@ export function renderChoroplethGL(
         map.setFeatureState(
           { source: SOURCE_ID, id: code },
           { selected: true },
-        );
-        console.debug(
-          "[B-111] selection push-down (maplibre) :",
-          `code = '${code}'`,
         );
         opts.onSelect?.(code);
       }

@@ -41,6 +41,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SOURCE_GEOJSON="$REPO_ROOT/src/assets/departements-v0.geojson"
 OUTPUT_DIR="$REPO_ROOT/ref"
 OUTPUT_TOPOJSON="$OUTPUT_DIR/departements.topojson"
+# Copie embarquée consommée par le bundler (import Vite ?raw) côté front
+# pour la choroplèthe MapLibre (B-111). GÉNÉRÉE par ce script à partir de
+# $OUTPUT_TOPOJSON — NE PAS éditer à la main (toute édition sera écrasée).
+ASSET_TOPOJSON="$REPO_ROOT/src/assets/departements.topojson"
 
 # ---------------------------------------------------------------------------
 # Vérifications préalables
@@ -103,6 +107,17 @@ fi
 
 echo "[build-geo] Infos mapshaper :"
 "$MAPSHAPER" "$OUTPUT_TOPOJSON" -info 2>&1 | grep -E "^Layer|features|Type" || true
+
+echo ""
+
+# ---------------------------------------------------------------------------
+# Sync de la copie embarquée front (B-111)
+# ---------------------------------------------------------------------------
+# src/assets/departements.topojson est importé par map-choropleth-gl.ts via
+# Vite ?raw. On le re-génère ici depuis la sortie canonique pour éviter toute
+# divergence entre ref/ (source de vérité) et src/assets/ (copie bundlée).
+cp "$OUTPUT_TOPOJSON" "$ASSET_TOPOJSON"
+echo "[build-geo] Sync asset front : $ASSET_TOPOJSON"
 
 echo ""
 echo "[build-geo] DONE → $OUTPUT_TOPOJSON"

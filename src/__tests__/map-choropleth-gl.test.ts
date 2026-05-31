@@ -189,6 +189,50 @@ describe("topoToGeoJSON (B-111)", () => {
     expect(avgLat).toBeGreaterThan(48.6);
     expect(avgLat).toBeLessThan(49.1);
   });
+
+  // Extrait tous les anneaux (rings) d'une feature, qu'elle soit Polygon
+  // (coordinates: ring[]) ou MultiPolygon (coordinates: polygon[][]).
+  function ringsOf(geom: {
+    type: string;
+    coordinates: unknown;
+  }): number[][][] {
+    if (geom.type === "Polygon") {
+      return geom.coordinates as number[][][];
+    }
+    // MultiPolygon : aplatit les polygones en liste de rings.
+    return (geom.coordinates as number[][][][]).flat();
+  }
+
+  function ringClosed(ring: number[][]): boolean {
+    if (ring.length < 4) return false;
+    const first = ring[0];
+    const last = ring[ring.length - 1];
+    return first[0] === last[0] && first[1] === last[1];
+  }
+
+  it("un département multi-arc (Haute-Corse 2B) a un ring FERMÉ", () => {
+    const fc = topoToGeoJSON();
+    // 2B est composé de plusieurs arcs (frontière partagée avec 2A) — bon
+    // candidat pour valider le stitching + la fermeture du ring.
+    const corse = fc.features.find((f) => f.properties.code === "2B");
+    expect(corse).toBeDefined();
+    const rings = ringsOf(corse!.geometry);
+    expect(rings.length).toBeGreaterThanOrEqual(1);
+    // Le ring extérieur doit être fermé (1er point == dernier point).
+    expect(ringClosed(rings[0])).toBe(true);
+  });
+
+  it("tous les rings des 96 départements sont fermés (décodeur verrouillé)", () => {
+    const fc = topoToGeoJSON();
+    expect(fc.features.length).toBe(96);
+    for (const f of fc.features) {
+      const rings = ringsOf(f.geometry);
+      expect(rings.length).toBeGreaterThanOrEqual(1);
+      for (const ring of rings) {
+        expect(ringClosed(ring)).toBe(true);
+      }
+    }
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
