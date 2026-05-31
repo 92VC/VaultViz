@@ -43,7 +43,7 @@
 | V0 — I6 MSI | 3 | 0 | 0 | 3 | 0 |
 | V0 — I7 Go/No-Go | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-1 MapLibre | 2 | 1 | 0 | 1 | 0 |
-| V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
+| V1 — V1-2 TopoJSON IGN | 2 | 1 | 1 | 0 | 0 |
 | V1 — V1-3 Watcher | 2 | 0 | 0 | 2 | 0 |
 | V1 — V1-4 Exports | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
@@ -51,10 +51,10 @@
 | V1 — V1-E Capacités moteur (viz-engine) | 2 | 0 | 0 | 2 | 0 |
 | V1 — V1-7 DLI/Power BI (1er test prod) | 6 | 3 | 0 | 3 | 0 |
 | V1 — V1-6 Signature DSI | 1 | 1 | 0 | 0 | 0 |
-| V1 — V1-8 Doc | 3 | 0 | 3 | 0 | 0 |
+| V1 — V1-8 Doc | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **55** | **10** | **3** | **42** | **0** |
+| **Total** | **55** | **9** | **1** | **45** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -483,7 +483,7 @@ Chaque story porte les champs :
 
 ### 3.2 V1-2 — TopoJSON IGN ADMIN EXPRESS COG
 
-### B-110 — [ ] Pipeline conversion IGN ADMIN EXPRESS → TopoJSON simplifié
+### B-110 — [~] Pipeline conversion IGN ADMIN EXPRESS → TopoJSON simplifié
 
 - **Itération** : V1-2
 - **Livrable** : script `scripts/build-geo.sh` qui télécharge IGN, simplifie, convertit en TopoJSON
