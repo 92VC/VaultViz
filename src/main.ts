@@ -35,6 +35,7 @@ import { mountToolbar, type ToolbarHandle } from "./components/toolbar";
 import { mountHome, type HomeHandle } from "./components/home";
 import { mountLoader, type LoaderHandle } from "./components/loader";
 import { openViaDialog, onFileDrop } from "./services/file-open";
+import { exportToPdf, downloadPdf } from "./services/pdf-export";
 import { createTabsManager, type TabsManager } from "./shell/tabs";
 import { mountRefreshBanner } from "./components/refresh-banner";
 import { onDataChanged } from "./services/watcher";
@@ -51,6 +52,26 @@ let tabs: TabsManager;
 async function pickAndOpen(): Promise<void> {
   const picked = await openViaDialog();
   if (picked) await tabs.open(picked);
+}
+
+/** Export PDF du document actif (B-131 / I-9). */
+async function exportActiveToPdf(): Promise<void> {
+  const id = tabs.activeId();
+  if (!id) return;
+  const tab = tabs.list().find((t) => t.docId === id);
+  if (!tab) return;
+  // Conteneur .vv-doc du document actif (monté dans handles.dashboard).
+  const container =
+    handles.dashboard.querySelector<HTMLElement>(`[data-doc-id="${id}"]`) ??
+    handles.dashboard;
+  const bytes = await exportToPdf({
+    container,
+    title: tab.title,
+    author: "VaultViz",
+  });
+  // Nom de fichier basé sur le titre (sans extension si présente dans le titre)
+  const fname = tab.title.replace(/[^a-zA-Z0-9_\-\s]/g, "_").trim() + ".pdf";
+  downloadPdf(bytes, fname);
 }
 
 async function resolveStartupPath(): Promise<string | null> {
@@ -81,6 +102,11 @@ async function bootstrap(): Promise<void> {
     onOpen: () => {
       pickAndOpen().catch((err) =>
         console.error("[VaultViz] dialog error", err),
+      );
+    },
+    onExportPdf: () => {
+      exportActiveToPdf().catch((err) =>
+        console.error("[VaultViz] export PDF erreur", err),
       );
     },
   });

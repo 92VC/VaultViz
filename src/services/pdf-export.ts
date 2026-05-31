@@ -93,43 +93,57 @@ function inlineComputedStyles(el: Element): void {
 
 /**
  * Rastérise un SVG en PNG via XMLSerializer → <canvas> → toDataURL.
- * Résout les var(--*) avant sérialisation (piège ADR-PDF §3).
+ *
+ * Trois pièges couverts (cf. ADR-PDF) :
+ *  1. viewBox-only : on fixe width/height explicites sur le clone.
+ *  2. var(--*) non résolues : on inline les styles calculés sur le clone
+ *     (pas sur l'original — évite de muter le DOM live).
+ *  3. Accents dans le SVG : data URI charset=utf-8 + encodeURIComponent.
+ *
  * Fonctionne uniquement en runtime navigateur (nécessite canvas et Image).
  */
 async function defaultRasterizeSvg(svg: SVGElement): Promise<Uint8Array | string> {
-  // Cloner pour ne pas polluer le DOM réel
+  // ── Étape 1 : cloner le SVG (ne pas muter l'original) ─────────────────────
+  // On attache temporairement le clone dans un off-screen pour que
+  // getComputedStyle() resolve les var(--*) de façon fiable.
+  const offscreen = document.createElement("div");
+  offscreen.style.cssText = "position:absolute;visibility:hidden;pointer-events:none;width:0;height:0;overflow:hidden";
+  document.body.appendChild(offscreen);
   const clone = svg.cloneNode(true) as SVGElement;
+  offscreen.appendChild(clone);
 
-  // S'assurer que le clone a des dimensions explicites (piège viewBox-only)
-  if (!clone.getAttribute("width") || !clone.getAttribute("height")) {
+  // ── Étape 2 : dimensions explicites (piège viewBox-only) ──────────────────
+  const existingW = clone.getAttribute("width");
+  const existingH = clone.getAttribute("height");
+  let width = 600;
+  let height = 400;
+  if (existingW && existingH && !existingW.includes("%") && !existingH.includes("%")) {
+    width = parseInt(existingW, 10) || 600;
+    height = parseInt(existingH, 10) || 400;
+  } else {
     const vb = clone.getAttribute("viewBox");
     if (vb) {
-      const parts = vb.split(/\s+|,/).filter(Boolean);
+      const parts = vb.split(/[\s,]+/).filter(Boolean);
       if (parts.length === 4) {
-        clone.setAttribute("width", parts[2]);
-        clone.setAttribute("height", parts[3]);
-      } else {
-        clone.setAttribute("width", "600");
-        clone.setAttribute("height", "400");
+        width = parseFloat(parts[2]) || 600;
+        height = parseFloat(parts[3]) || 400;
       }
-    } else {
-      clone.setAttribute("width", "600");
-      clone.setAttribute("height", "400");
     }
+    clone.setAttribute("width", String(width));
+    clone.setAttribute("height", String(height));
   }
 
-  // Inline les styles calculés sur le SVG ORIGINAL (dans le DOM, computed est dispo)
-  inlineComputedStyles(svg);
+  // ── Étape 3 : inline les styles calculés (var(--*) résolus via offscreen) ─
+  inlineComputedStyles(clone);
 
-  // Re-sérialiser le SVG original inline-stylé dans un clone
-  const inlined = svg.cloneNode(true) as SVGElement;
-
-  const width = parseInt(inlined.getAttribute("width") || clone.getAttribute("width") || "600", 10);
-  const height = parseInt(inlined.getAttribute("height") || clone.getAttribute("height") || "400", 10);
-
+  // ── Étape 4 : sérialisation + data URI ────────────────────────────────────
   const serializer = new XMLSerializer();
-  const svgStr = serializer.serializeToString(inlined);
-  // Utiliser charset=utf-8 + encodeURIComponent pour gérer les accents
+  const svgStr = serializer.serializeToString(clone);
+
+  // Nettoyer le nœud offscreen avant la rastérisation async
+  document.body.removeChild(offscreen);
+
+  // charset=utf-8 + encodeURIComponent : gère les accents et caractères >ASCII
   const dataUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgStr);
 
   return new Promise<string>((resolve, reject) => {
@@ -379,8 +393,11 @@ export async function exportToPdf(opts: PdfExportOpts): Promise<Uint8Array> {
  * Fonctionne en environnement navigateur (WebView2).
  * Pour Tauri : utiliser writeFile via IPC à la place.
  */
-export function downloadPdf(bytes: Uint8Array<ArrayBuffer>, filename = "vaultviz-export.pdf"): void {
-  const blob = new Blob([bytes], { type: "application/pdf" });
+export function downloadPdf(bytes: Uint8Array, filename = "vaultviz-export.pdf"): void {
+  // Copie systématique vers un ArrayBuffer garanti (SharedArrayBuffer non
+  // accepté par Blob) — pdf-lib.save() peut retourner Uint8Array<ArrayBufferLike>.
+  const safe = new Uint8Array(bytes) as Uint8Array<ArrayBuffer>;
+  const blob = new Blob([safe], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
