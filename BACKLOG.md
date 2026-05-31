@@ -42,7 +42,7 @@
 | V0 — I5 Erreurs | 3 | 0 | 0 | 3 | 0 |
 | V0 — I6 MSI | 3 | 0 | 0 | 3 | 0 |
 | V0 — I7 Go/No-Go | 3 | 0 | 0 | 3 | 0 |
-| V1 — V1-1 MapLibre | 2 | 0 | 1 | 1 | 0 |
+| V1 — V1-1 MapLibre | 2 | 0 | 0 | 2 | 0 |
 | V1 — V1-2 TopoJSON IGN | 2 | 0 | 1 | 1 | 0 |
 | V1 — V1-3 Watcher | 2 | 0 | 0 | 2 | 0 |
 | V1 — V1-4 Exports | 3 | 0 | 0 | 3 | 0 |
@@ -54,7 +54,7 @@
 | V1 — V1-8 Doc | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **55** | **8** | **1** | **46** | **0** |
+| **Total** | **55** | **7** | **1** | **47** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -497,7 +497,7 @@ Chaque story porte les champs :
 - **PRD** : §6.2, ADR-009, §7.3
 - **Complexité** : M
 
-### B-111 — [ ] Drill carto MapLibre + TopoJSON
+### B-111 — [~] Drill carto MapLibre + TopoJSON
 
 - **Itération** : V1-2
 - **Livrable** : choroplèthe MapLibre clic département → drill complet
