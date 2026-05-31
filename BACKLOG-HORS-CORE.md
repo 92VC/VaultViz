@@ -180,6 +180,23 @@ Le développement du cœur VaultViz (45 stories, toutes terminées) est tracé d
 
 ---
 
+## C. Orientation V2 — éditeur visuel (NOTE, pas une story ; à cadrer post-pilote)
+
+> **Statut : orientation conservée, à NE PAS construire ni cadrer formellement avant le Go pilote V1.** Ceci n'est pas une story exécutable — c'est une note de direction pour ne pas reperdre la réflexion. La V2 est conditionnée au succès du pilote (PRD §4.1 V2 / §14.3) ; le pilote peut invalider le besoin même d'un éditeur.
+
+**Décision d'orientation (réflexion 2026-05-31) :** si un éditeur visuel `.vviz` est retenu en V2, il ne sera **pas une seconde app** dupliquant le moteur (un éditeur *contient* un viewer : parser, schéma, `view-compiler`, rendu, bridge DuckDB ≈ 90 % de VaultViz). L'orientation est :
+
+1. **Cœur partagé** — extraire le moteur (`src/viz-engine` + cœur Rust) en bibliothèque réutilisable.
+2. **Deux profils de BUILD depuis un seul dépôt** (ni deux apps, ni un toggle runtime) :
+   - **Viewer** (déployé en masse MECM) : capabilities **sans écriture arbitraire** → n'écrit que dans `%LOCALAPPDATA%\VaultViz\` (cache/logs/thème), jamais un chemin choisi ni le share.
+   - **Éditeur** (déployé aux seuls auteurs) : capabilities **incluant** l'écriture `.vviz` vers des chemins locaux choisis.
+
+**Pourquoi pas un « mode runtime ».** Les capabilities Tauri sont compilées dans le binaire au build et appliquées par le cœur Rust — **pas** flippables au runtime. Sur un binaire installé en masse, un flag `profile=consumer` qui masque l'UI serait du théâtre de sécurité (commande d'écriture toujours invocable). La frontière auditable est le **binaire/build** : l'incapacité d'écrire du viewer est gravée au build ; la lever exige de remplacer un binaire signé (terrain AppLocker/MECM = DSI). Les capabilities protègent contre un `.vviz`/JS hostile (menace §8.1), pas contre du code natif arbitraire (hors menace).
+
+**À cadrer le moment venu** (brainstorm → ADR « cœur partagé + profils viewer/éditeur ») : ampleur de l'éditeur (JSON assisté / formulaires / WYSIWYG), round-trip JSON↔visuel (fichier = source de vérité, git-diffable), binding données (lecture schéma Parquet). Voir aussi PRD §1.3 (tension avec l'analogie Obsidian : un consommateur ≠ un auteur).
+
+---
+
 **Fin du backlog hors-core v1.0.**
 
 Les références croisées vers ces stories depuis `BACKLOG.md` (B-170 dépend de B-150 ; §4.2 H3/H5 ; §4.3 R-7) pointent vers des IDs qui existent dans ce fichier — pas de référence cassée, les IDs sont stables.
