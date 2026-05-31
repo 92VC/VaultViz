@@ -45,7 +45,7 @@
 | V1 — V1-1 MapLibre | 2 | 1 | 0 | 1 | 0 |
 | V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-3 Watcher | 2 | 2 | 0 | 0 | 0 |
-| V1 — V1-4 Exports | 3 | 3 | 0 | 0 | 0 |
+| V1 — V1-4 Exports | 3 | 2 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 0 | 0 | 4 | 0 |
 | V1 — V1-E Capacités moteur (viz-engine) | 2 | 0 | 0 | 2 | 0 |
@@ -54,7 +54,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **55** | **18** | **0** | **37** | **0** |
+| **Total** | **55** | **17** | **0** | **38** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -540,7 +540,7 @@ Chaque story porte les champs :
 
 ### 3.4 V1-4 — Exports
 
-### B-130 — [~] Décider stratégie export PDF (chrome.printing vs pdf-lib)
+### B-130 — [x] Décider stratégie export PDF (chrome.printing vs pdf-lib)
 
 - **Itération** : V1-4
 - **Livrable** : décision tracée dans `docs/adr/ADR-PDF.md`
