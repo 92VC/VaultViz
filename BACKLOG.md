@@ -45,16 +45,16 @@
 | V1 — V1-1 MapLibre | 2 | 1 | 0 | 1 | 0 |
 | V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-3 Watcher | 2 | 0 | 0 | 2 | 0 |
-| V1 — V1-4 Exports | 3 | 0 | 1 | 2 | 0 |
+| V1 — V1-4 Exports | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 0 | 0 | 4 | 0 |
 | V1 — V1-E Capacités moteur (viz-engine) | 2 | 0 | 0 | 2 | 0 |
 | V1 — V1-7 DLI/Power BI (1er test prod) | 6 | 3 | 0 | 3 | 0 |
 | V1 — V1-6 Signature DSI | 1 | 1 | 0 | 0 | 0 |
-| V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
+| V1 — V1-8 Doc | 3 | 0 | 3 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **55** | **13** | **1** | **41** | **0** |
+| **Total** | **55** | **10** | **3** | **42** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -790,7 +790,7 @@ Chaque story porte les champs :
 
 ### 3.8 V1-8 — Documentation
 
-### B-170 — [ ] Doc utilisateur 1 page
+### B-170 — [~] Doc utilisateur 1 page
 
 - **Itération** : V1-8
 - **Livrable** : `docs/user.md` (et PDF généré) en 1 page A4
@@ -804,7 +804,7 @@ Chaque story porte les champs :
 - **PRD** : §4.1 V1
 - **Complexité** : S
 
-### B-171 — [ ] Doc auteur de spec 5 pages
+### B-171 — [~] Doc auteur de spec 5 pages
 
 - **Itération** : V1-8
 - **Livrable** : `docs/author.md` (et PDF) — guide pour les data analysts
@@ -818,7 +818,7 @@ Chaque story porte les champs :
 - **PRD** : §4.1 V1, persona Mehdi
 - **Complexité** : M
 
-### B-172 — [ ] Publier le schéma JSON `.vviz` accessible aux auteurs
+### B-172 — [~] Publier le schéma JSON `.vviz` accessible aux auteurs
 
 - **Itération** : V1-8
 - **Livrable** : URL stable du schéma pour `$schema` dans les `.vviz`
