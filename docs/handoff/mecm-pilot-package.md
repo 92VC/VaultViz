@@ -71,17 +71,21 @@ Critères de sélection recommandés (à trancher avec le sponsor) :
 | Paramètre | Valeur |
 |---|---|
 | Commande d'installation silencieuse | `msiexec /i "VaultViz_X.Y.Z_x64_en-US.msi" /quiet /norestart` |
-| Commande de désinstallation silencieuse | `msiexec /x {6C594A1B-6917-44C8-9FA9-13394A781EE9} /quiet /norestart` |
-| WiX Upgrade GUID | `6C594A1B-6917-44C8-9FA9-13394A781EE9` |
+| Commande de désinstallation silencieuse | `msiexec /x "VaultViz_X.Y.Z_x64_en-US.msi" /quiet /norestart` (par chemin MSI) ou via action de désinstallation MECM standard |
+| WiX Upgrade GUID (stable, invariant) | `6C594A1B-6917-44C8-9FA9-13394A781EE9` |
 | Redémarrage requis | Non |
 | Droits requis | Administrateur local (standard MECM) |
 | Espace disque estimé | ~50 Mo (bundle Tauri + WebView2 si déjà présent) |
 
+> **Note** : le WiX Upgrade Code (`6C594A1B-...`) est stable d'une version à l'autre. Le Product Code (indexé par version) est régénéré par WiX à chaque build — c'est pourquoi la désinstallation et la détection MECM passent par le chemin MSI ou l'action MECM, pas par le Product Code nu.
+
 ### 3.2 Détection de présence
 
-Clé de registre créée à l'installation :
+MECM peut détecter l'installation en utilisant le **WiX Upgrade Code** (`{6C594A1B-6917-44C8-9FA9-13394A781EE9}`) — identifiant stable entre versions — ou en lisant le Product Code depuis le MSI buildé.
+
+Entrée de désinstallation créée dans le registre à l'installation :
 ```
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{6C594A1B-6917-44C8-9FA9-13394A781EE9}
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{<Product Code généré par WiX>}
 ```
 Valeur : `DisplayName` = `VaultViz`
 
