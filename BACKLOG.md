@@ -48,13 +48,13 @@
 | V1 — V1-4 Exports | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 0 | 0 | 4 | 0 |
-| V1 — V1-E Capacités moteur (viz-engine) | 2 | 1 | 0 | 1 | 0 |
+| V1 — V1-E Capacités moteur (viz-engine) | 2 | 0 | 0 | 2 | 0 |
 | V1 — V1-7 DLI/Power BI (1er test prod) | 6 | 3 | 0 | 3 | 0 |
 | V1 — V1-6 Signature DSI | 1 | 1 | 0 | 0 | 0 |
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **55** | **20** | **0** | **35** | **0** |
+| **Total** | **55** | **19** | **0** | **36** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -670,7 +670,7 @@ Chaque story porte les champs :
 - **Complexité** : L
 - **Notes** : story **rétroactive** — acte comme app-core un travail né dans les épopées design (SP3) et DLI (ex-« W1 courbe bespoke »). Le `type` de vue est générique ; aucun couplage au cas DLI.
 
-### B-251 — [ ] Slicers multi-valeurs & slicer global (DSL + moteur)
+### B-251 — [x] Slicers multi-valeurs & slicer global (DSL + moteur)
 
 - **Itération** : V1-E
 - **Livrable** : extension **générique** du mécanisme de sélection — déclarer dans n'importe quel `.vviz` des **slicers multi-valeurs** combinés en **AND**, et un **slicer global** cross-filtrant toutes les vues du document.

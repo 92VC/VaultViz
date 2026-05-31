@@ -91,6 +91,21 @@ export interface SelectionSpec {
   kind: "single" | "interval" | "crossfilter";
 }
 
+/**
+ * Slicer déclaré dans `spec.slicers[]` (B-251).
+ * Filtre multi-valeurs (cases à cocher) combiné en AND avec les
+ * autres clauses. scope='global' → toutes les vues du document ;
+ * scope='tab' → vues de l'onglet courant uniquement.
+ */
+export interface SlicerSpec {
+  id: string;
+  field: string;
+  source: string;
+  label?: string;
+  kind?: "in" | "interval";
+  scope?: "tab" | "global";
+}
+
 /** Spec complète d'un .vviz. */
 export interface VVizSpec {
   engine: "mosaic";
@@ -102,6 +117,8 @@ export interface VVizSpec {
    */
   gridRatio?: [number, number];
   selections?: SelectionSpec[];
+  /** Slicers multi-valeurs (B-251). scope tab|global. */
+  slicers?: SlicerSpec[];
   /** Onglets internes du dashboard (cf. tab-bar). Absent → page unique. */
   tabs?: { id: string; label: string }[];
   views: ViewSpec[];

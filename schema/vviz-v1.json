@@ -132,6 +132,42 @@
             }
           }
         },
+        "slicers": {
+          "type": "array",
+          "maxItems": 16,
+          "description": "Filtres multi-valeurs (cases à cocher) combinés en AND. scope:'global'=tout le document ; 'tab'=onglet courant.",
+          "items": {
+            "type": "object",
+            "required": ["id", "field", "source"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z_][a-zA-Z0-9_]{0,63}$"
+              },
+              "field": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string",
+                "pattern": "^[a-zA-Z_][a-zA-Z0-9_]{0,63}$"
+              },
+              "label": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["in", "interval"],
+                "default": "in"
+              },
+              "scope": {
+                "type": "string",
+                "enum": ["tab", "global"],
+                "default": "tab"
+              }
+            }
+          }
+        },
         "tabs": {
           "type": "array",
           "description": "Onglets internes du dashboard. Chaque vue est rattachée via `options.tab` ; une carte KPI peut pointer vers un onglet via `options.navigateTo`. Absent → page unique.",
