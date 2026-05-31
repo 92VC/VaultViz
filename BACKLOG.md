@@ -45,7 +45,7 @@
 | V1 — V1-1 MapLibre | 2 | 1 | 0 | 1 | 0 |
 | V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-3 Watcher | 2 | 0 | 0 | 2 | 0 |
-| V1 — V1-4 Exports | 3 | 1 | 0 | 2 | 0 |
+| V1 — V1-4 Exports | 3 | 0 | 1 | 2 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 0 | 0 | 4 | 0 |
 | V1 — V1-E Capacités moteur (viz-engine) | 2 | 0 | 0 | 2 | 0 |
@@ -54,7 +54,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **55** | **14** | **0** | **41** | **0** |
+| **Total** | **55** | **13** | **1** | **41** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -566,7 +566,7 @@ Chaque story porte les champs :
 - **PRD** : UC-4 (exigence explicite), ADR-011
 - **Complexité** : L
 
-### B-132 — [ ] Exports PNG (presse-papier + fichier) + CSV (données filtrées)
+### B-132 — [~] Exports PNG (presse-papier + fichier) + CSV (données filtrées)
 
 - **Itération** : V1-4
 - **Livrable** : 3 boutons d'export : PDF (B-131), PNG, CSV
