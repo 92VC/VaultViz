@@ -8,6 +8,7 @@
 
 import * as maplibregl from "maplibre-gl";
 import type { StyleSpecification } from "maplibre-gl";
+import { addPmtilesBasemap } from "./pmtiles-source";
 
 /** Options de création de la carte de fond. */
 export interface BaseMapOptions {
@@ -15,6 +16,18 @@ export interface BaseMapOptions {
   center?: [number, number];
   /** Niveau de zoom initial. Défaut : 5. */
   zoom?: number;
+  /**
+   * Chemin LOCAL vers un fichier .pmtiles à utiliser comme fond de carte.
+   *
+   * Si absent (défaut), la carte utilise un fond transparent ; la choroplèthe
+   * départementale (B-110/B-111) reste le seul fond visuel en V1.
+   *
+   * Ne jamais passer une URL http(s):// — invariant I-2.
+   * Exemple : `./resources/basemap.pmtiles`
+   *
+   * Décision §16 Q3 : voir docs/adr/ADR-PMTiles-basemap.md.
+   */
+  basemap?: string;
 }
 
 /**
@@ -56,6 +69,18 @@ export function createBaseMap(
   });
 
   map.addControl(new maplibregl.NavigationControl());
+
+  // Fond PMTiles optionnel — chargé après le style (événement "load").
+  // addLayer/addSource lèvent si appelés avant le chargement du style ;
+  // différer l'appel au "load" est obligatoire.
+  // Note : en test, le style mock ne déclenche pas "load" — ce câblage n'est
+  // pas couvert par le test unitaire mocké ; couverture réelle = test e2e.
+  if (opts.basemap) {
+    const basemapPath = opts.basemap;
+    map.on("load", () => {
+      addPmtilesBasemap(map, basemapPath);
+    });
+  }
 
   return map;
 }

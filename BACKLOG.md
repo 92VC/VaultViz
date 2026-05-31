@@ -467,7 +467,7 @@ Chaque story porte les champs :
 - **PRD** : §6.2 carto, ADR-009
 - **Complexité** : L
 
-### B-101 — [~] PMTiles fond de carte embarqué offline
+### B-101 — [x] PMTiles fond de carte embarqué offline
 
 - **Itération** : V1-1
 - **Livrable** : fond OSM ou IGN distillé en PMTiles, embarqué dans le MSI
