@@ -44,7 +44,7 @@
 | V0 — I7 Go/No-Go | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-1 MapLibre | 2 | 1 | 0 | 1 | 0 |
 | V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
-| V1 — V1-3 Watcher | 2 | 2 | 0 | 0 | 0 |
+| V1 — V1-3 Watcher | 2 | 1 | 0 | 1 | 0 |
 | V1 — V1-4 Exports | 3 | 2 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 0 | 0 | 4 | 0 |
@@ -512,7 +512,7 @@ Chaque story porte les champs :
 
 ### 3.3 V1-3 — Watcher FS
 
-### B-120 — [~] Watcher FS sur le share via `plugin-fs-watch`
+### B-120 — [x] Watcher FS sur le share via `plugin-fs-watch`
 
 - **Itération** : V1-3
 - **Livrable** : détection des modifications du Parquet référencé
