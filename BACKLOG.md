@@ -566,7 +566,7 @@ Chaque story porte les champs :
 - **PRD** : UC-4 (exigence explicite), ADR-011
 - **Complexité** : L
 
-### B-132 — [~] Exports PNG (presse-papier + fichier) + CSV (données filtrées)
+### B-132 — [x] Exports PNG (presse-papier + fichier) + CSV (données filtrées)
 
 - **Itération** : V1-4
 - **Livrable** : 3 boutons d'export : PDF (B-131), PNG, CSV
