@@ -1,6 +1,7 @@
 @import "./tokens.css";
 @import "./components.css";
 @import "./layout.css";
+@import "./map.css";
 
 /* Reset, shell (#app), layout et thème : définis par tokens.css + layout.css
    (portés de la maquette). Ci-dessous : uniquement les classes héritées
