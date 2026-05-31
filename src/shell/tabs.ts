@@ -32,8 +32,12 @@ import { dropDocViews as dropDocViewsReal } from "../viz-engine/source-loader";
 import { compileView } from "../viz-engine/view-compiler";
 import { mountCompiledView } from "../viz-engine/view-mounter";
 import { mountDashboard as mountDashboardReal } from "./dashboard";
-import { vvizDir } from "../viz-engine/path-resolver";
+import { vvizDir, resolvePath } from "../viz-engine/path-resolver";
 import { createDuckConnector } from "../viz-engine/duck-connector";
+import {
+  startWatch as startWatchReal,
+  stopWatch as stopWatchReal,
+} from "../services/watcher";
 import { logEvent } from "../services/diag";
 import {
   createRuntime as createRuntimeReal,
@@ -70,6 +74,12 @@ interface TabState {
   container: HTMLElement;
   ctx: RuntimeContext;
   sourceNames: string[];
+  /**
+   * Chemins résolus des sources EXTERNES (share/UNC) à surveiller (B-120).
+   * Les sources `inline` (autoporteur) n'ont aucun fichier externe → exclues.
+   * Vide pour un .vviz autoporteur pur (ex. DLI) → aucune surveillance.
+   */
+  watchPaths: string[];
 }
 
 export interface TabsManager {
@@ -118,6 +128,10 @@ export interface TabsDeps {
   /** Init du runtime Mosaic (idempotent ; best-effort hors Tauri). */
   initRuntime?: () => void;
   addRecent?: (item: RecentItem) => Promise<void>;
+  /** Démarre la surveillance FS des sources externes (B-120). Best-effort. */
+  startWatch?: (paths: string[]) => Promise<void>;
+  /** Arrête la surveillance FS en cours (B-120). Best-effort. */
+  stopWatch?: () => Promise<void>;
 }
 
 /** Découpe un chemin .vviz en segments POSIX (breadcrumb / nom fichier). */
@@ -141,6 +155,8 @@ export function createTabsManager(deps: TabsDeps): TabsManager {
   const conn = deps.connector ?? createDuckConnector();
   const initRuntime = deps.initRuntime ?? (() => initMosaicRuntime());
   const addRecent = deps.addRecent ?? (async () => {});
+  const startWatch = deps.startWatch ?? startWatchReal;
+  const stopWatch = deps.stopWatch ?? stopWatchReal;
   // Loader best-effort : injecté, sinon monté sur l'overlay, sinon no-op.
   const loader: LoaderHandle =
     deps.loader ?? safeLoader(handles.overlay);
@@ -188,6 +204,18 @@ export function createTabsManager(deps: TabsDeps): TabsManager {
     toolbar.setStatusVisible(true);
     toolbar.setStatus("ready");
     router.show("dashboard");
+
+    // Watcher FS (B-120) : ressource backend GLOBALE unique → elle suit
+    // TOUJOURS l'onglet actif. À chaque activation, on (re)cible la
+    // surveillance sur les sources externes du doc affiché. Un doc
+    // autoporteur pur (watchPaths vide) → on arrête toute surveillance pour
+    // ne pas signaler des changements d'un fichier sans rapport. Best-effort
+    // (ne throw pas) : fire-and-forget.
+    if (tab.watchPaths.length > 0) {
+      void startWatch(tab.watchPaths);
+    } else {
+      void stopWatch();
+    }
   }
 
   async function open(path: string): Promise<void> {
@@ -324,6 +352,13 @@ export function createTabsManager(deps: TabsDeps): TabsManager {
     }
 
     // 5. Enregistrer l'onglet APRÈS succès du chargement.
+    // Sources EXTERNES à surveiller : on exclut les sources `inline`
+    // (autoporteur, sans fichier externe — cf. source-loader où `inline`
+    // l'emporte sur `path`) et on résout les chemins exactement comme
+    // loadSources (resolvePath relatif au dossier du .vviz).
+    const watchPaths = doc.data.sources
+      .filter((s) => !s.inline && typeof s.path === "string" && s.path.length > 0)
+      .map((s) => resolvePath(s.path as string, vvizDir(path)));
     tabs.set(docId, {
       docId,
       path,
@@ -331,6 +366,7 @@ export function createTabsManager(deps: TabsDeps): TabsManager {
       container,
       ctx,
       sourceNames: doc.data.sources.map((s) => s.name),
+      watchPaths,
     });
 
     logEvent("info", `rendu OK docId=${docId} (${doc.spec.views.length} vues)`);
@@ -358,6 +394,8 @@ export function createTabsManager(deps: TabsDeps): TabsManager {
       if (next) {
         activate(next);
       } else {
+        // Plus aucun document ouvert → arrêter la surveillance FS (B-120).
+        void stopWatch();
         toolbar.setStatusVisible(false);
         toolbar.setPath([]);
         refreshTitlebar();

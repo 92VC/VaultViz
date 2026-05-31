@@ -21,6 +21,19 @@ function doc(title: string, sources: string[]): VVizDocument {
   } as unknown as VVizDocument;
 }
 
+/** Document .vviz autoporteur (source inline base64, aucun fichier externe). */
+function inlineDoc(title: string, name: string): VVizDocument {
+  return {
+    vviz: { version: "1.0", title },
+    data: { sources: [{ name, inline: "UEFSMQ==" }] },
+    spec: {
+      engine: "mosaic",
+      layout: "vstack",
+      views: [{ id: "v1", type: "table", source: name, encoding: { columns: ["a"] } }],
+    },
+  } as unknown as VVizDocument;
+}
+
 /** Loader no-op (évite de monter le vrai loader sur l'overlay). */
 const noopLoader = {
   start: () => {},
@@ -36,6 +49,8 @@ interface Harness {
   dropSpy: ReturnType<typeof vi.fn>;
   mountSpy: ReturnType<typeof vi.fn>;
   loadVVizSpy: ReturnType<typeof vi.fn>;
+  startWatchSpy: ReturnType<typeof vi.fn>;
+  stopWatchSpy: ReturnType<typeof vi.fn>;
 }
 
 function harness(docs: Record<string, VVizDocument>): Harness {
@@ -55,6 +70,8 @@ function harness(docs: Record<string, VVizDocument>): Harness {
   );
   const dropSpy = vi.fn(async () => {});
   const mountSpy = vi.fn(async () => {});
+  const startWatchSpy = vi.fn(async () => {});
+  const stopWatchSpy = vi.fn(async () => {});
 
   const deps: TabsDeps = {
     handles,
@@ -76,9 +93,11 @@ function harness(docs: Record<string, VVizDocument>): Harness {
     initRuntime: () => {},
     addRecent: vi.fn(async () => {}),
     onHome: vi.fn(),
+    startWatch: startWatchSpy,
+    stopWatch: stopWatchSpy,
   };
 
-  return { handles, deps, dropSpy, mountSpy, loadVVizSpy };
+  return { handles, deps, dropSpy, mountSpy, loadVVizSpy, startWatchSpy, stopWatchSpy };
 }
 
 describe("createTabsManager", () => {
@@ -220,5 +239,55 @@ describe("createTabsManager", () => {
     expect(tabs.list()).toEqual([]);
     expect(tabs.activeId()).toBeNull();
     expect(handles.error.style.display).toBe("flex");
+  });
+
+  it("ouvrir un doc à source externe → startWatch avec le path résolu (B-120)", async () => {
+    const { deps, startWatchSpy } = harness({
+      "/share/dash.vviz": doc("Doc A", ["effectifs"]),
+    });
+    const tabs = createTabsManager(deps);
+
+    await tabs.open("/share/dash.vviz");
+
+    // `./effectifs.parquet` résolu relativement au dossier `/share`.
+    expect(startWatchSpy).toHaveBeenCalledWith(["/share/effectifs.parquet"]);
+  });
+
+  it("ouvrir un doc AUTOPORTEUR (inline pur) → startWatch PAS appelé, stopWatch appelé", async () => {
+    const { deps, startWatchSpy, stopWatchSpy } = harness({
+      "/dli.vviz": inlineDoc("DLI autoporteur", "inv"),
+    });
+    const tabs = createTabsManager(deps);
+
+    await tabs.open("/dli.vviz");
+
+    expect(startWatchSpy).not.toHaveBeenCalled();
+    // Aucune source externe → on purge toute surveillance résiduelle.
+    expect(stopWatchSpy).toHaveBeenCalled();
+  });
+
+  it("changer d'onglet → le watcher suit l'onglet actif (B-120)", async () => {
+    const { deps, startWatchSpy } = harness({
+      "/share/a.vviz": doc("Doc A", ["sa"]),
+      "/share/b.vviz": doc("Doc B", ["sb"]),
+    });
+    const tabs = createTabsManager(deps);
+    await tabs.open("/share/a.vviz");
+    await tabs.open("/share/b.vviz");
+    startWatchSpy.mockClear();
+
+    tabs.activate("d1");
+    expect(startWatchSpy).toHaveBeenLastCalledWith(["/share/sa.parquet"]);
+  });
+
+  it("fermer le dernier onglet → stopWatch appelé (B-120)", async () => {
+    const { deps, stopWatchSpy } = harness({ "/share/a.vviz": doc("Doc A", ["src"]) });
+    const tabs = createTabsManager(deps);
+    await tabs.open("/share/a.vviz");
+    stopWatchSpy.mockClear();
+
+    await tabs.close("d1");
+
+    expect(stopWatchSpy).toHaveBeenCalled();
   });
 });
