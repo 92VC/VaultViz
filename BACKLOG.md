@@ -790,42 +790,42 @@ Chaque story porte les champs :
 
 ### 3.8 V1-8 — Documentation
 
-### B-170 — [~] Doc utilisateur 1 page
+### B-170 — [x] Doc utilisateur 1 page
 
 - **Itération** : V1-8
 - **Livrable** : `docs/user.md` (et PDF généré) en 1 page A4
 - **Critères d'acceptation** :
-  - [ ] Comment ouvrir un `.vviz`
-  - [ ] Comment exporter en PDF/PNG/CSV
-  - [ ] Comment réagir à la bannière « Données mises à jour »
-  - [ ] Que faire en cas d'erreur (numéro support DSI)
-  - [ ] Tient en une page A4 imprimable
+  - [x] Comment ouvrir un `.vviz`
+  - [x] Comment exporter en PDF/PNG/CSV
+  - [x] Comment réagir à la bannière « Données mises à jour »
+  - [x] Que faire en cas d'erreur (numéro support DSI)
+  - [x] Tient en une page A4 imprimable
 - **Dépendances** : B-150
 - **PRD** : §4.1 V1
 - **Complexité** : S
 
-### B-171 — [~] Doc auteur de spec 5 pages
+### B-171 — [x] Doc auteur de spec 5 pages
 
 - **Itération** : V1-8
 - **Livrable** : `docs/author.md` (et PDF) — guide pour les data analysts
 - **Critères d'acceptation** :
-  - [ ] Anatomie d'un `.vviz`
-  - [ ] Référence des champs vgplot supportés (avec exemples)
-  - [ ] Bonnes pratiques de chemins UNC
-  - [ ] Galerie d'au moins 3 exemples canoniques (carte, time series, tableau)
-  - [ ] Lien vers le schéma JSON pour validation VS Code
+  - [x] Anatomie d'un `.vviz`
+  - [x] Référence des champs vgplot supportés (avec exemples)
+  - [x] Bonnes pratiques de chemins UNC
+  - [x] Galerie d'au moins 3 exemples canoniques (carte, time series, tableau)
+  - [x] Lien vers le schéma JSON pour validation VS Code
 - **Dépendances** : B-170
 - **PRD** : §4.1 V1, persona Mehdi
 - **Complexité** : M
 
-### B-172 — [~] Publier le schéma JSON `.vviz` accessible aux auteurs
+### B-172 — [x] Publier le schéma JSON `.vviz` accessible aux auteurs
 
 - **Itération** : V1-8
 - **Livrable** : URL stable du schéma pour `$schema` dans les `.vviz`
 - **Critères d'acceptation** :
-  - [ ] Schéma servi via raw GitHub privé OU copié à l'installation dans `%ProgramFiles%\VaultViz\schema\` (cf. §16 Q4)
-  - [ ] Doc auteur référence l'URL ou le chemin local
-  - [ ] Test : VS Code avec extension JSON valide un `.vviz` contre le schéma
+  - [x] Schéma servi via raw GitHub privé OU copié à l'installation dans `%ProgramFiles%\VaultViz\schema\` (cf. §16 Q4)
+  - [x] Doc auteur référence l'URL ou le chemin local
+  - [x] Test : VS Code avec extension JSON valide un `.vviz` contre le schéma
 - **Dépendances** : B-171, B-033
 - **PRD** : §16 Q4
 - **Complexité** : M
