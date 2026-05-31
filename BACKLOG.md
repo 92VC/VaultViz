@@ -497,7 +497,7 @@ Chaque story porte les champs :
 - **PRD** : §6.2, ADR-009, §7.3
 - **Complexité** : M
 
-### B-111 — [~] Drill carto MapLibre + TopoJSON
+### B-111 — [x] Drill carto MapLibre + TopoJSON
 
 - **Itération** : V1-2
 - **Livrable** : choroplèthe MapLibre clic département → drill complet

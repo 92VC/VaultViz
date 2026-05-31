@@ -25,6 +25,7 @@ import { injectWhereAll, type Clause } from "./where-builder";
 import { ident, lit } from "./sql-helpers";
 import type { SlicerSpec } from "./types";
 import { renderChoropleth, renderMetricSwitcher } from "../components/map-view";
+import { renderChoroplethGL } from "../components/map-choropleth-gl";
 import { renderBarChart } from "../components/bar-chart";
 import { renderTable } from "../components/table-view";
 import { renderKpiCard } from "../components/kpi-card";
@@ -238,6 +239,35 @@ export async function mountCompiledView(
     case "choropleth": {
       const width = numberOpt(view.options, "width") ?? 480;
       const height = numberOpt(view.options, "height") ?? 480;
+      const engine = (view.options as Record<string, unknown> | undefined)?.[
+        "engine"
+      ];
+
+      // ── Moteur MapLibre GL (engine: "maplibre") ──────────────────────────
+      // Note : les métriques alternatives (SP3) ne sont pas supportées avec
+      // engine="maplibre" (hors scope B-111 / CLAUDE.md §4.3). Le switcher
+      // segmenté reste disponible en mode SVG (défaut).
+      if (engine === "maplibre") {
+        const data = await fetchKeyValueMap(conn, view.sql);
+        const formatOpt = (view.options as Record<string, unknown> | undefined)?.[
+          "format"
+        ];
+        // Émission de sélection (même patron que ranked_bars) :
+        // createPointEmitter gère le toggle et la clause Mosaic push-down.
+        const emit =
+          view.emitsSelection
+            ? createPointEmitter(ctx, view.emitsSelection, view.geoField)
+            : undefined;
+        renderChoroplethGL(container, data, {
+          format: typeof formatOpt === "string" ? formatOpt : undefined,
+          onSelect: emit
+            ? (code) => emit(code)
+            : undefined,
+        });
+        return;
+      }
+
+      // ── Moteur SVG (défaut, rétro-compat) ────────────────────────────────
 
       const bind = (svg: SVGSVGElement): void => {
         if (view.emitsSelection) {
