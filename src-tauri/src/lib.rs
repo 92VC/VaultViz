@@ -32,17 +32,23 @@ pub fn run() {
         log::log(log::LogLevel::Info, &start_msg);
     }
 
+    // B-120 — état du watcher FS debouncé.
+    let watcher_state = commands::watch::WatcherState::new();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
         .manage(logger)
+        .manage(watcher_state)
         .invoke_handler(tauri::generate_handler![
             commands::vviz::read_vviz,
             commands::query::run_query,
             commands::startup::startup_path,
             commands::diag::log_event,
             commands::cache::materialize_source,
+            commands::watch::start_watch,
+            commands::watch::stop_watch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
