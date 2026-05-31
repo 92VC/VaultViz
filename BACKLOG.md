@@ -42,19 +42,19 @@
 | V0 — I5 Erreurs | 3 | 0 | 0 | 3 | 0 |
 | V0 — I6 MSI | 3 | 0 | 0 | 3 | 0 |
 | V0 — I7 Go/No-Go | 3 | 0 | 0 | 3 | 0 |
-| V1 — V1-1 MapLibre | 2 | 2 | 0 | 0 | 0 |
-| V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
-| V1 — V1-3 Watcher | 2 | 2 | 0 | 0 | 0 |
-| V1 — V1-4 Exports | 3 | 3 | 0 | 0 | 0 |
+| V1 — V1-1 MapLibre | 2 | 0 | 0 | 2 | 0 |
+| V1 — V1-2 TopoJSON IGN | 2 | 0 | 0 | 2 | 0 |
+| V1 — V1-3 Watcher | 2 | 0 | 0 | 2 | 0 |
+| V1 — V1-4 Exports | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 0 | 0 | 4 | 0 |
-| V1 — V1-E Capacités moteur (viz-engine) | 2 | 1 | 0 | 1 | 0 |
+| V1 — V1-E Capacités moteur (viz-engine) | 2 | 0 | 0 | 2 | 0 |
 | V1 — V1-7 DLI/Power BI (1er test prod) | 6 | 3 | 0 | 3 | 0 |
 | V1 — V1-6 Signature DSI | 1 | 1 | 0 | 0 | 0 |
-| V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
+| V1 — V1-8 Doc | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **55** | **20** | **0** | **35** | **0** |
+| **Total** | **55** | **7** | **0** | **48** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -454,7 +454,7 @@ Chaque story porte les champs :
 
 ### 3.1 V1-1 — MapLibre + PMTiles
 
-### B-100 — [ ] Intégrer MapLibre GL JS
+### B-100 — [x] Intégrer MapLibre GL JS
 
 - **Itération** : V1-1
 - **Livrable** : carte MapLibre interactive (zoom, pan) en remplacement du rendu carto I2
@@ -467,7 +467,7 @@ Chaque story porte les champs :
 - **PRD** : §6.2 carto, ADR-009
 - **Complexité** : L
 
-### B-101 — [ ] PMTiles fond de carte embarqué offline
+### B-101 — [x] PMTiles fond de carte embarqué offline
 
 - **Itération** : V1-1
 - **Livrable** : fond OSM ou IGN distillé en PMTiles, embarqué dans le MSI
@@ -483,7 +483,7 @@ Chaque story porte les champs :
 
 ### 3.2 V1-2 — TopoJSON IGN ADMIN EXPRESS COG
 
-### B-110 — [ ] Pipeline conversion IGN ADMIN EXPRESS → TopoJSON simplifié
+### B-110 — [x] Pipeline conversion IGN ADMIN EXPRESS → TopoJSON simplifié
 
 - **Itération** : V1-2
 - **Livrable** : script `scripts/build-geo.sh` qui télécharge IGN, simplifie, convertit en TopoJSON
@@ -497,7 +497,7 @@ Chaque story porte les champs :
 - **PRD** : §6.2, ADR-009, §7.3
 - **Complexité** : M
 
-### B-111 — [ ] Drill carto MapLibre + TopoJSON
+### B-111 — [x] Drill carto MapLibre + TopoJSON
 
 - **Itération** : V1-2
 - **Livrable** : choroplèthe MapLibre clic département → drill complet
@@ -512,7 +512,7 @@ Chaque story porte les champs :
 
 ### 3.3 V1-3 — Watcher FS
 
-### B-120 — [ ] Watcher FS sur le share via `plugin-fs-watch`
+### B-120 — [x] Watcher FS sur le share via `plugin-fs-watch`
 
 - **Itération** : V1-3
 - **Livrable** : détection des modifications du Parquet référencé
@@ -525,7 +525,7 @@ Chaque story porte les champs :
 - **PRD** : §5.2, UC-5
 - **Complexité** : M
 
-### B-121 — [ ] Bannière refresh non intrusive
+### B-121 — [x] Bannière refresh non intrusive
 
 - **Itération** : V1-3
 - **Livrable** : bandeau top de fenêtre « Données mises à jour — Recharger »
@@ -540,7 +540,7 @@ Chaque story porte les champs :
 
 ### 3.4 V1-4 — Exports
 
-### B-130 — [ ] Décider stratégie export PDF (chrome.printing vs pdf-lib)
+### B-130 — [x] Décider stratégie export PDF (chrome.printing vs pdf-lib)
 
 - **Itération** : V1-4
 - **Livrable** : décision tracée dans `docs/adr/ADR-PDF.md`
@@ -553,7 +553,7 @@ Chaque story porte les champs :
 - **Complexité** : M
 - **Notes** : risque R-5 (rendu PDF dégradé MapLibre WebGL) à valider ici.
 
-### B-131 — [ ] Export PDF A4 (exigence explicite UC-4)
+### B-131 — [x] Export PDF A4 (exigence explicite UC-4)
 
 - **Itération** : V1-4
 - **Livrable** : bouton « Exporter en PDF » génère un PDF A4 paysage de la vue active
@@ -566,7 +566,7 @@ Chaque story porte les champs :
 - **PRD** : UC-4 (exigence explicite), ADR-011
 - **Complexité** : L
 
-### B-132 — [ ] Exports PNG (presse-papier + fichier) + CSV (données filtrées)
+### B-132 — [x] Exports PNG (presse-papier + fichier) + CSV (données filtrées)
 
 - **Itération** : V1-4
 - **Livrable** : 3 boutons d'export : PDF (B-131), PNG, CSV
@@ -670,7 +670,7 @@ Chaque story porte les champs :
 - **Complexité** : L
 - **Notes** : story **rétroactive** — acte comme app-core un travail né dans les épopées design (SP3) et DLI (ex-« W1 courbe bespoke »). Le `type` de vue est générique ; aucun couplage au cas DLI.
 
-### B-251 — [ ] Slicers multi-valeurs & slicer global (DSL + moteur)
+### B-251 — [x] Slicers multi-valeurs & slicer global (DSL + moteur)
 
 - **Itération** : V1-E
 - **Livrable** : extension **générique** du mécanisme de sélection — déclarer dans n'importe quel `.vviz` des **slicers multi-valeurs** combinés en **AND**, et un **slicer global** cross-filtrant toutes les vues du document.
@@ -790,42 +790,42 @@ Chaque story porte les champs :
 
 ### 3.8 V1-8 — Documentation
 
-### B-170 — [ ] Doc utilisateur 1 page
+### B-170 — [x] Doc utilisateur 1 page
 
 - **Itération** : V1-8
 - **Livrable** : `docs/user.md` (et PDF généré) en 1 page A4
 - **Critères d'acceptation** :
-  - [ ] Comment ouvrir un `.vviz`
-  - [ ] Comment exporter en PDF/PNG/CSV
-  - [ ] Comment réagir à la bannière « Données mises à jour »
-  - [ ] Que faire en cas d'erreur (numéro support DSI)
-  - [ ] Tient en une page A4 imprimable
+  - [x] Comment ouvrir un `.vviz`
+  - [x] Comment exporter en PDF/PNG/CSV
+  - [x] Comment réagir à la bannière « Données mises à jour »
+  - [x] Que faire en cas d'erreur (numéro support DSI)
+  - [x] Tient en une page A4 imprimable
 - **Dépendances** : B-150
 - **PRD** : §4.1 V1
 - **Complexité** : S
 
-### B-171 — [ ] Doc auteur de spec 5 pages
+### B-171 — [x] Doc auteur de spec 5 pages
 
 - **Itération** : V1-8
 - **Livrable** : `docs/author.md` (et PDF) — guide pour les data analysts
 - **Critères d'acceptation** :
-  - [ ] Anatomie d'un `.vviz`
-  - [ ] Référence des champs vgplot supportés (avec exemples)
-  - [ ] Bonnes pratiques de chemins UNC
-  - [ ] Galerie d'au moins 3 exemples canoniques (carte, time series, tableau)
-  - [ ] Lien vers le schéma JSON pour validation VS Code
+  - [x] Anatomie d'un `.vviz`
+  - [x] Référence des champs vgplot supportés (avec exemples)
+  - [x] Bonnes pratiques de chemins UNC
+  - [x] Galerie d'au moins 3 exemples canoniques (carte, time series, tableau)
+  - [x] Lien vers le schéma JSON pour validation VS Code
 - **Dépendances** : B-170
 - **PRD** : §4.1 V1, persona Mehdi
 - **Complexité** : M
 
-### B-172 — [ ] Publier le schéma JSON `.vviz` accessible aux auteurs
+### B-172 — [x] Publier le schéma JSON `.vviz` accessible aux auteurs
 
 - **Itération** : V1-8
 - **Livrable** : URL stable du schéma pour `$schema` dans les `.vviz`
 - **Critères d'acceptation** :
-  - [ ] Schéma servi via raw GitHub privé OU copié à l'installation dans `%ProgramFiles%\VaultViz\schema\` (cf. §16 Q4)
-  - [ ] Doc auteur référence l'URL ou le chemin local
-  - [ ] Test : VS Code avec extension JSON valide un `.vviz` contre le schéma
+  - [x] Schéma servi via raw GitHub privé OU copié à l'installation dans `%ProgramFiles%\VaultViz\schema\` (cf. §16 Q4)
+  - [x] Doc auteur référence l'URL ou le chemin local
+  - [x] Test : VS Code avec extension JSON valide un `.vviz` contre le schéma
 - **Dépendances** : B-171, B-033
 - **PRD** : §16 Q4
 - **Complexité** : M

@@ -35,7 +35,13 @@ import { mountToolbar, type ToolbarHandle } from "./components/toolbar";
 import { mountHome, type HomeHandle } from "./components/home";
 import { mountLoader, type LoaderHandle } from "./components/loader";
 import { openViaDialog, onFileDrop } from "./services/file-open";
+import { exportToPdf, downloadPdf } from "./services/pdf-export";
+import { exportToPng } from "./services/png-export";
+import { tableToCsv, downloadCsv } from "./services/csv-export";
+import { tableHandleRegistry } from "./components/table-view";
 import { createTabsManager, type TabsManager } from "./shell/tabs";
+import { mountRefreshBanner } from "./components/refresh-banner";
+import { onDataChanged } from "./services/watcher";
 
 let handles: ShellHandles;
 let router: Router;
@@ -49,6 +55,74 @@ let tabs: TabsManager;
 async function pickAndOpen(): Promise<void> {
   const picked = await openViaDialog();
   if (picked) await tabs.open(picked);
+}
+
+/** Export PDF du document actif (B-131 / I-9). */
+async function exportActiveToPdf(): Promise<void> {
+  const id = tabs.activeId();
+  if (!id) return;
+  const tab = tabs.list().find((t) => t.docId === id);
+  if (!tab) return;
+  // Conteneur .vv-doc du document actif (monté dans handles.dashboard).
+  const container =
+    handles.dashboard.querySelector<HTMLElement>(`[data-doc-id="${id}"]`) ??
+    handles.dashboard;
+  const bytes = await exportToPdf({
+    container,
+    title: tab.title,
+    author: "VaultViz",
+  });
+  // Nom de fichier basé sur le titre (sans extension si présente dans le titre)
+  const fname = tab.title.replace(/[^a-zA-Z0-9_\-\s]/g, "_").trim() + ".pdf";
+  downloadPdf(bytes, fname);
+}
+
+/** Export PNG du document actif : presse-papier + fichier (B-132). */
+async function exportActiveToPng(): Promise<void> {
+  const id = tabs.activeId();
+  if (!id) return;
+  const tab = tabs.list().find((t) => t.docId === id);
+  if (!tab) return;
+  const container =
+    handles.dashboard.querySelector<HTMLElement>(`[data-doc-id="${id}"]`) ??
+    handles.dashboard;
+  const fname = tab.title.replace(/[^a-zA-Z0-9_\-\s]/g, "_").trim() + ".png";
+  await exportToPng({ container, filename: fname });
+}
+
+/**
+ * Export CSV des données filtrées affichées du document actif (B-132).
+ *
+ * Stratégie :
+ *   - Cherche un `.vv-table` dans le conteneur du document actif.
+ *   - Récupère le TableViewHandle via le registre WeakMap (tableHandleRegistry).
+ *   - Export la Table Arrow courante (après cross-filter / setData).
+ *   - Si aucune table active → log console + no-op silencieux (pas de crash).
+ */
+function exportActiveToCsv(): void {
+  const id = tabs.activeId();
+  if (!id) return;
+  const tab = tabs.list().find((t) => t.docId === id);
+  if (!tab) return;
+  const container =
+    handles.dashboard.querySelector<HTMLElement>(`[data-doc-id="${id}"]`) ??
+    handles.dashboard;
+
+  // Cherche le premier .vv-table dans le doc actif.
+  const tableRoot = container.querySelector<HTMLElement>(".vv-table");
+  if (!tableRoot) {
+    console.info("[VaultViz] Aucune table active — export CSV ignoré.");
+    return;
+  }
+  const handle = tableHandleRegistry.get(tableRoot);
+  if (!handle) {
+    console.info("[VaultViz] Handle table introuvable — export CSV ignoré.");
+    return;
+  }
+
+  const csv = tableToCsv(handle.getData(), handle.getColumns());
+  const fname = tab.title.replace(/[^a-zA-Z0-9_\-\s]/g, "_").trim() + ".csv";
+  downloadCsv(csv, fname);
 }
 
 async function resolveStartupPath(): Promise<string | null> {
@@ -80,6 +154,19 @@ async function bootstrap(): Promise<void> {
       pickAndOpen().catch((err) =>
         console.error("[VaultViz] dialog error", err),
       );
+    },
+    onExportPdf: () => {
+      exportActiveToPdf().catch((err) =>
+        console.error("[VaultViz] export PDF erreur", err),
+      );
+    },
+    onExportPng: () => {
+      exportActiveToPng().catch((err) =>
+        console.error("[VaultViz] export PNG erreur", err),
+      );
+    },
+    onExportCsv: () => {
+      exportActiveToCsv();
     },
   });
   home = mountHome(handles.home, {
@@ -123,6 +210,35 @@ async function bootstrap(): Promise<void> {
   // Glisser-déposer d'un .vviz (no-op hors Tauri).
   onFileDrop((path) => {
     void tabs.open(path);
+  });
+
+  // Bandeau de refresh non intrusif (B-121).
+  // Monté UNE FOIS dans handles.stage (zone stable au-dessus du dashboard).
+  // AUCUN rechargement automatique (UC-5) : seul le clic « Recharger » déclenche.
+  //
+  // onReload : ferme l'onglet actif puis le rouvre (close + open).
+  // Effet de bord documenté : flash rapide sur l'écran home si c'est le
+  // dernier onglet ouvert ; l'onglet reprend la dernière position dans la barre.
+  //
+  // Note : startWatch(paths) n'est PAS encore câblé dans le pipeline
+  // d'ouverture (hors scope B-121) — onDataChanged ne se déclenchera donc
+  // jamais en production tant que B-122+ ne complète pas le câblage.
+  // La bannière est fonctionnelle ; le watcher doit être démarré séparément.
+  const refreshBanner = mountRefreshBanner(handles.stage, {
+    onReload: async () => {
+      const id = tabs.activeId();
+      if (!id) return;
+      const activeTab = tabs.list().find((t) => t.docId === id);
+      if (!activeTab) return;
+      const path = activeTab.path;
+      await tabs.close(id);
+      await tabs.open(path);
+    },
+  });
+
+  // Abonnement unique à l'événement watcher (best-effort, ne throw pas).
+  void onDataChanged(() => {
+    refreshBanner.show();
   });
 
   const startupPath = await resolveStartupPath();

@@ -20,6 +20,14 @@
 
 import type { Table, StructRowProxy } from "apache-arrow";
 
+/**
+ * Registre global WeakMap : nœud racine `.vv-table` → TableViewHandle.
+ * Permet à l'export CSV (B-132) de récupérer la Table Arrow courante
+ * (après cross-filter) depuis n'importe quelle couche sans coupler le
+ * mounter à main.ts.
+ */
+export const tableHandleRegistry = new WeakMap<HTMLElement, TableViewHandle>();
+
 import { fmt } from "../ui/format";
 import { icon } from "../ui/icons";
 
@@ -80,6 +88,17 @@ export interface TableViewHandle {
   root: HTMLElement;
   /** Met à jour le compteur (utile si filtre côté caller). */
   setRowCount(n: number): void;
+  /**
+   * Retourne la Table Arrow courante (après cross-filter / setData).
+   * Utilisé par l'export CSV pour les « données filtrées affichées ».
+   * B-132.
+   */
+  getData(): Table;
+  /**
+   * Retourne les colonnes configurées (champs + libellés).
+   * Utilisé par l'export CSV pour produire les en-têtes. B-132.
+   */
+  getColumns(): TableColumn[];
 }
 
 export function renderTable(
@@ -255,7 +274,7 @@ export function renderTable(
   root.addEventListener("scroll", () => paint());
   paint();
 
-  return {
+  const handle: TableViewHandle = {
     setData(t: Table): void {
       current = t;
       overrideCount = null;
@@ -266,6 +285,17 @@ export function renderTable(
       overrideCount = n;
       footer.textContent = `${n.toLocaleString("fr-FR")} ligne(s)`;
     },
+    getData(): Table {
+      return current;
+    },
+    getColumns(): TableColumn[] {
+      return opts.columns;
+    },
     root,
   };
+
+  // Enregistre dans le registre WeakMap pour l'export CSV (B-132).
+  tableHandleRegistry.set(root, handle);
+
+  return handle;
 }

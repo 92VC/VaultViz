@@ -48,6 +48,7 @@ duckdb = { version = "1", features = ["bundled"] }
 # l'itérateur DuckDB et le `StreamWriter`. À re-aligner manuellement si
 # `duckdb-rs` bump son arrow majeur (rare : ils suivent les LTS).
 arrow = { version = "58", default-features = false, features = ["ipc"] }
+notify-debouncer-full = "0.4"
 
 [dev-dependencies]
 tempfile = "3"

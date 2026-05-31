@@ -1,0 +1,19 @@
+/* B-100 — Styles MapLibre GL JS.
+ *
+ * Le CSS MapLibre est importé depuis node_modules via le bundler Vite.
+ * C'est un import LOCAL (pas un CDN) — invariant I-2 respecté.
+ */
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+/* Conteneur de carte MapLibre : dimensions minimales raisonnables. */
+.vv-maplibre-container {
+  width: 100%;
+  min-height: 400px;
+  position: relative;
+}
+
+/* Le canvas WebGL de MapLibre doit occuper tout le conteneur. */
+.vv-maplibre-container .maplibregl-map {
+  width: 100%;
+  height: 100%;
+}

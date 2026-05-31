@@ -132,6 +132,43 @@
             }
           }
         },
+        "slicers": {
+          "type": "array",
+          "maxItems": 16,
+          "description": "Filtres multi-valeurs (cases à cocher) combinés en AND. scope:'global'=tout le document ; 'tab'=onglet courant.",
+          "items": {
+            "type": "object",
+            "required": ["id", "field", "source"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z_][a-zA-Z0-9_]{0,63}$"
+              },
+              "field": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string",
+                "pattern": "^[a-zA-Z_][a-zA-Z0-9_]{0,63}$"
+              },
+              "label": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["in"],
+                "default": "in",
+                "description": "Type de filtre. 'in' = appartenance (= ou IN). 'interval' (bornes min/max) réservé pour une story future — non implémenté en V1 (YAGNI)."
+              },
+              "scope": {
+                "type": "string",
+                "enum": ["tab", "global"],
+                "default": "tab"
+              }
+            }
+          }
+        },
         "tabs": {
           "type": "array",
           "description": "Onglets internes du dashboard. Chaque vue est rattachée via `options.tab` ; une carte KPI peut pointer vers un onglet via `options.navigateTo`. Absent → page unique.",
@@ -152,7 +189,7 @@
         "views": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 32,
+          "maxItems": 64,
           "items": {
             "type": "object",
             "required": ["id", "type", "source"],

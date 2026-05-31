@@ -5,3 +5,4 @@ pub mod diag;
 pub mod query;
 pub mod startup;
 pub mod vviz;
+pub mod watch;

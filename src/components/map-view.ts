@@ -1,4 +1,5 @@
 // B-032 — Carte choroplèthe France (départements), SVG / D3.
+// B-100 — Ajout moteur MapLibre GL JS comme option de rendu de fond.
 //
 // Choix technique : on rend en SVG via `d3-geo` plutôt que via Mosaic
 // `vg.geo` (statut beta + dépendances supplémentaires). C'est un dépôt
@@ -9,13 +10,16 @@
 // uniquement.
 //
 // API :
-//   renderChoropleth(container, dataByDept, opts?)
+//   renderChoropleth(container, dataByDept, opts?)   — SVG / D3 (défaut)
+//   mountMap(container, opts)                        — choix du moteur
 // où `dataByDept` est une Map<code département (2 chiffres), valeur>.
 
 import { geoMercator, geoPath } from "d3-geo";
+import type { Map as MapLibreMap } from "maplibre-gl";
 
 import geojsonRaw from "../assets/departements-v0.geojson?raw";
 import { fmt, type FormatKind } from "../ui/format";
+import { createBaseMap, type BaseMapOptions } from "./map-libre";
 
 type DeptFeatureProps = {
   code?: string;
@@ -177,6 +181,66 @@ export function renderMetricSwitcher(
 
   container.replaceChildren(seg);
 }
+
+// ── B-100 — Sélection du moteur de rendu cartographique ──────────────────────
+
+/**
+ * Options de `mountMap` — permet de choisir entre le rendu SVG/D3 (défaut)
+ * et le fond MapLibre GL JS.
+ */
+export interface MountMapOptions extends BaseMapOptions {
+  /**
+   * Moteur de rendu de fond :
+   *  - `"svg"` (défaut) : choroplèthe SVG/D3, rétro-compatible.
+   *  - `"maplibre"` : fond vide MapLibre GL JS (zéro tuile réseau).
+   */
+  engine?: "svg" | "maplibre";
+  /** Options choroplèthe (utilisées uniquement si engine = "svg"). */
+  choropleth?: {
+    dataByDept?: Map<string, number>;
+    opts?: ChoroplethOptions;
+  };
+}
+
+/**
+ * Monte une vue cartographique dans `container`.
+ *
+ * - `engine = "svg"` (défaut) : délègue à `renderChoropleth` si `choropleth`
+ *   est fourni, sinon vide le conteneur.
+ * - `engine = "maplibre"` : délègue à `createBaseMap` (fond vide, zéro réseau).
+ *
+ * @returns L'instance `SVGSVGElement` (mode svg) ou `MapLibreMap` (mode maplibre).
+ */
+export function mountMap(
+  container: HTMLElement,
+  options: MountMapOptions = {},
+): SVGSVGElement | MapLibreMap {
+  const engine = options.engine ?? "svg";
+
+  if (engine === "maplibre") {
+    return createBaseMap(container, {
+      center: options.center,
+      zoom: options.zoom,
+    });
+  }
+
+  // Mode svg : rendu choroplèthe si des données sont fournies.
+  if (options.choropleth?.dataByDept) {
+    return renderChoropleth(
+      container,
+      options.choropleth.dataByDept,
+      options.choropleth.opts,
+    );
+  }
+
+  // Aucune donnée : vide le conteneur et retourne un SVG vide.
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(SVG_NS, "svg");
+  container.replaceChildren(svg);
+  return svg;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Test-only : nombre de features chargées depuis le GeoJSON embarqué.

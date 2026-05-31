@@ -26,10 +26,12 @@ import type { CompiledView } from "../viz-engine/view-compiler";
 import type { DuckConnector } from "../viz-engine/duck-connector";
 import type { RuntimeContext } from "../viz-engine/mosaic-runtime";
 import { ensureClauseSource } from "../viz-engine/mosaic-runtime";
-import { mountCompiledView } from "../viz-engine/view-mounter";
+import { mountCompiledView, updateSlicerState } from "../viz-engine/view-mounter";
 import { onSelectionValue } from "../viz-engine/drill-query";
 import { mountFilterChip } from "../components/filter-chip";
 import { renderTabBar, type TabDef } from "../components/tab-bar";
+import { renderSlicerPanel } from "../components/slicer-panel";
+import type { SlicerSpec } from "../viz-engine/types";
 
 type Region = "kpi" | "main" | "side" | "full";
 
@@ -93,9 +95,13 @@ async function mountInto(
   mount: HTMLElement,
   ctx: RuntimeContext,
   conn: DuckConnector,
+  opts: { slicers?: SlicerSpec[]; currentTab?: string } = {},
 ): Promise<void> {
   try {
-    await mountCompiledView(view, mount, ctx, conn);
+    await mountCompiledView(view, mount, ctx, conn, {
+      slicers: opts.slicers,
+      currentTab: opts.currentTab,
+    });
   } catch (err) {
     const msg = (err as Error).message ?? String(err);
     const note = document.createElement("p");
@@ -103,6 +109,43 @@ async function mountInto(
     note.textContent = `Vue "${view.id}" : ${msg}`;
     mount.appendChild(note);
   }
+}
+
+/**
+ * Peuple et monte un panneau slicer dans `host`.
+ * Les valeurs disponibles sont récupérées via `SELECT DISTINCT` (push-down).
+ * Appelle `updateSlicerState` au changement pour déclencher les re-renders.
+ */
+async function mountSlicerPanel(
+  host: HTMLElement,
+  slicer: SlicerSpec,
+  ctx: RuntimeContext,
+  conn: DuckConnector,
+): Promise<void> {
+  // Récupérer les valeurs distinctes depuis la source DuckDB.
+  let values: string[] = [];
+  try {
+    const sql = `SELECT DISTINCT CAST("${slicer.field}" AS VARCHAR) AS v FROM "${slicer.source}" WHERE "${slicer.field}" IS NOT NULL ORDER BY v`;
+    const result = await conn.query({ type: "json", sql });
+    const rows = result as Array<Record<string, unknown>>;
+    values = rows.map((r) => String(r["v"] ?? "")).filter((v) => v !== "");
+  } catch {
+    // Si la source n'est pas encore chargée ou champ inconnu : panneau vide.
+    values = [];
+  }
+
+  const panel = document.createElement("div");
+  panel.className = "slicer-panel-host";
+  host.appendChild(panel);
+
+  renderSlicerPanel(panel, {
+    label: slicer.label ?? slicer.field,
+    values,
+    selected: [],
+    onChange: (selected) => {
+      updateSlicerState(ctx, slicer.id, selected);
+    },
+  });
 }
 
 /**
@@ -126,14 +169,24 @@ function clearSelection(
 /**
  * Monte le tableau de bord par zones. Retombe sur un flux vertical si
  * aucune vue ne porte de `region` (layout non-dashboard).
+ *
+ * `slicers` : slicers déclarés dans `spec.slicers[]` (B-251/B-243/B-244).
+ * Les slicers `scope:"global"` sont affichés dans une zone `.slicers-global`
+ * au-dessus de la grille ; les slicers `scope:"tab"` sont affichés dans le
+ * panneau de leur onglet respectif.
+ * NOTE : un slicer ne filtre que les vues dont la `source` correspond à la
+ * sienne (contrainte moteur isSlicerApplicable — voir view-mounter.ts).
  */
 export async function mountDashboard(
   container: HTMLElement,
   views: CompiledView[],
   ctx: RuntimeContext,
   conn: DuckConnector,
-  opts: { gridRatio?: [number, number]; tabs?: TabDef[] } = {},
+  opts: { gridRatio?: [number, number]; tabs?: TabDef[]; slicers?: SlicerSpec[] } = {},
 ): Promise<void> {
+  const slicers = opts.slicers ?? [];
+  const globalSlicers = slicers.filter((s) => s.scope === "global");
+
   const hasRegions = views.some((v) => regionOf(v) !== undefined);
 
   if (!hasRegions) {
@@ -149,7 +202,7 @@ export async function mountDashboard(
       mount.className = "vv-view-mount";
       frame.appendChild(mount);
       stack.appendChild(frame);
-      await mountInto(v, mount, ctx, conn);
+      await mountInto(v, mount, ctx, conn, { slicers });
     }
     return;
   }
@@ -157,6 +210,17 @@ export async function mountDashboard(
   // Grille par zones.
   const grid = document.createElement("div");
   grid.className = "dash-grid";
+
+  // Zone slicers globaux (scope:"global") — au-dessus des KPI et des onglets.
+  // N'est créée que si au moins un slicer global est déclaré.
+  if (globalSlicers.length > 0) {
+    const slicersBar = document.createElement("div");
+    slicersBar.className = "slicers-global";
+    grid.appendChild(slicersBar);
+    for (const s of globalSlicers) {
+      await mountSlicerPanel(slicersBar, s, ctx, conn);
+    }
+  }
 
   const kpis = document.createElement("div");
   kpis.className = "kpis";
@@ -190,6 +254,7 @@ export async function mountDashboard(
     colMain: HTMLElement,
     colSide: HTMLElement,
     fullHost: HTMLElement,
+    currentTab?: string,
   ): Promise<void> {
     const region = regionOf(v) ?? "main";
     if (region === "full") {
@@ -197,12 +262,12 @@ export async function mountDashboard(
       card.className = "card table-card";
       card.dataset.viewId = v.id;
       fullHost.appendChild(card);
-      await mountInto(v, card, ctx, conn);
+      await mountInto(v, card, ctx, conn, { slicers, currentTab });
       return;
     }
     const { card, body } = makeCard(v);
     (region === "side" ? colSide : colMain).appendChild(card);
-    await mountInto(v, body, ctx, conn);
+    await mountInto(v, body, ctx, conn, { slicers, currentTab });
   }
 
   // Chip de filtre actif (« Filtre : X ✕ ») : lié à la première vue
@@ -239,7 +304,9 @@ export async function mountDashboard(
     const mount = document.createElement("div");
     mount.dataset.viewId = v.id;
     kpis.appendChild(mount);
-    await mountInto(v, mount, ctx, conn);
+    // Les KPI sont hors onglet → currentTab indéfini, seuls les slicers
+    // globaux dont la source correspond s'appliquent.
+    await mountInto(v, mount, ctx, conn, { slicers });
   }
 
   const tabs = opts.tabs?.filter((t) => t && typeof t.id === "string");
@@ -259,10 +326,38 @@ export async function mountDashboard(
       onSelect: switchTab,
     });
 
+    // Précalcul : sources utilisées par les vues de chaque onglet.
+    // Sert à ne monter les slicers tab que dans les onglets qui en ont besoin.
+    const tabViewSources = new Map<string, Set<string>>();
+    for (const v of chartViews) {
+      const declared = (v.options as Record<string, unknown> | undefined)?.["tab"];
+      const tabId =
+        typeof declared === "string" && new Set(tabs.map((t) => t.id)).has(declared)
+          ? declared
+          : tabs[0].id;
+      if (!tabViewSources.has(tabId)) tabViewSources.set(tabId, new Set());
+      tabViewSources.get(tabId)!.add(v.source);
+    }
+
     for (const t of tabs) {
       const panel = document.createElement("div");
       panel.className = "tab-panel";
       panel.dataset.tab = t.id;
+      // Slicers scope="tab" : ne monter que ceux dont la source est utilisée
+      // par au moins une vue de CET onglet — évite le bruit visuel dans les
+      // onglets qui n'ont pas de vues sur ces sources.
+      const sourcesInTab = tabViewSources.get(t.id) ?? new Set<string>();
+      const tabSlicers = slicers.filter(
+        (s) => s.scope === "tab" && sourcesInTab.has(s.source),
+      );
+      if (tabSlicers.length > 0) {
+        const tabSlicersBar = document.createElement("div");
+        tabSlicersBar.className = "slicers-tab";
+        panel.appendChild(tabSlicersBar);
+        for (const s of tabSlicers) {
+          await mountSlicerPanel(tabSlicersBar, s, ctx, conn);
+        }
+      }
       const { row, colMain, colSide } = makeRow();
       panel.appendChild(row);
       grid.appendChild(panel);
@@ -277,7 +372,9 @@ export async function mountDashboard(
           ? declared
           : tabs[0].id;
       const target = panels.get(tabId)!;
-      await placeChart(v, target.colMain, target.colSide, target.panel);
+      // Passe currentTab pour que isSlicerApplicable filtre correctement
+      // les slicers scope="tab" (ne s'appliquent qu'aux vues du même onglet).
+      await placeChart(v, target.colMain, target.colSide, target.panel, tabId);
     }
 
     // État initial : 1er onglet actif.

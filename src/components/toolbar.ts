@@ -26,6 +26,12 @@ export interface ToolbarOptions {
   onOpen: () => void;
   /** Appelé au clic sur « Exporter » (placeholder V0 si absent). */
   onExport?: () => void;
+  /** Appelé au clic sur « Exporter PDF » (B-131). */
+  onExportPdf?: () => void;
+  /** Appelé au clic sur « Exporter PNG » (B-132). */
+  onExportPng?: () => void;
+  /** Appelé au clic sur « Exporter CSV » (B-132). */
+  onExportCsv?: () => void;
 }
 
 /** États possibles du badge de statut. */
@@ -75,6 +81,9 @@ export function mountToolbar(
     <div class="tdiv"></div>
     <button type="button" class="tbtn" data-action="open">${icon("open")}Ouvrir</button>
     <button type="button" class="tbtn" data-action="export">${icon("export")}Exporter</button>
+    <button type="button" class="tbtn" data-action="export-pdf" title="Exporter en PDF (A4 paysage)">${icon("export")}PDF</button>
+    <button type="button" class="tbtn" data-action="export-png" title="Capturer en PNG (presse-papier + fichier)">${icon("export")}PNG</button>
+    <button type="button" class="tbtn" data-action="export-csv" title="Exporter les données en CSV (Excel)">${icon("export")}CSV</button>
     <button type="button" class="tbtn icon" data-action="theme" title="Thème"></button>
     <button type="button" class="tbtn icon" data-action="settings" title="Paramètres">${icon("settings")}</button>
   `;
@@ -87,6 +96,9 @@ export function mountToolbar(
   const exportBtn = el.querySelector<HTMLButtonElement>(
     '[data-action="export"]',
   )!;
+  const exportPdfBtn = el.querySelector<HTMLButtonElement>(
+    '[data-action="export-pdf"]',
+  )!;
   const themeBtn = el.querySelector<HTMLButtonElement>(
     '[data-action="theme"]',
   )!;
@@ -98,8 +110,18 @@ export function mountToolbar(
     themeBtn.innerHTML = themeIcon(next);
   });
 
+  const exportPngBtn = el.querySelector<HTMLButtonElement>(
+    '[data-action="export-png"]',
+  )!;
+  const exportCsvBtn = el.querySelector<HTMLButtonElement>(
+    '[data-action="export-csv"]',
+  )!;
+
   openBtn.addEventListener("click", () => opts.onOpen());
   exportBtn.addEventListener("click", () => opts.onExport?.());
+  exportPdfBtn.addEventListener("click", () => opts.onExportPdf?.());
+  exportPngBtn.addEventListener("click", () => opts.onExportPng?.());
+  exportCsvBtn.addEventListener("click", () => opts.onExportCsv?.());
 
   return {
     setPath(segments: string[]): void {

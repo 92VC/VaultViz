@@ -29,6 +29,16 @@ export interface RuntimeContext {
   params: Map<string, Param<unknown>>;
   /** Identifiants de source synthétiques (ClauseSource = identité objet). */
   sources: Map<string, object>;
+  /**
+   * État courant des slicers (B-251) : slicerId → valeurs cochées.
+   * Une clé absente équivaut à [] (slicer inactif).
+   */
+  slicerState: Map<string, string[]>;
+  /**
+   * Registre des listeners de slicers (B-251) : slicerId → Set<callbacks>.
+   * Initialisé paresseusement par `subscribeSlicers`.
+   */
+  slicerListeners?: Map<string, Set<() => void>>;
 }
 
 /** Crée un contexte d'exécution Mosaic vierge. */
@@ -37,6 +47,7 @@ export function createRuntime(): RuntimeContext {
     selections: new Map(),
     params: new Map(),
     sources: new Map(),
+    slicerState: new Map(),
   };
 }
 

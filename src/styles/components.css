@@ -181,6 +181,31 @@
 .status[data-s="error"] .led { background: var(--err); box-shadow: 0 0 0 3px var(--err-soft); }
 @keyframes pulse { 50% { opacity: .35; } }
 
+/* ---------- Bandeau refresh (B-121) ---------- */
+/* Masqué par défaut ; `.on` le rend visible (testable sans layout calcul). */
+.refresh-banner {
+  display: none;
+  align-items: center;
+  gap: var(--s3);
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--s2) var(--s4);
+  background: var(--warn-soft);
+  border-top: 1px solid color-mix(in oklab, var(--warn) 35%, transparent);
+  color: var(--warn);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  z-index: 50;
+}
+.refresh-banner.on {
+  display: flex;
+}
+.refresh-banner .rb-msg {
+  flex: 1;
+}
+
 /* ---------- Scrollbars custom ---------- */
 .stage::-webkit-scrollbar { width: 11px; height: 11px; }
 .stage::-webkit-scrollbar-thumb {
