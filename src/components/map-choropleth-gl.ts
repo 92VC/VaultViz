@@ -195,15 +195,23 @@ function colorFromRatio(ratio: number): string {
  * Construit une expression MapLibre `["match", ["get","code"], code1, col1, …, fallback]`
  * data-driven, en calculant la couleur de chaque département depuis
  * `dataByDept` et la valeur max.
+ *
+ * Guard : si dataByDept est vide ou ne contient pas de valeurs finies,
+ * retourne la couleur vide statique (string) — MapLibre accepte une string
+ * comme expression constante, et une expression `["match", …]` sans paires
+ * label/output serait invalide.
  */
 function buildColorExpression(
   dataByDept: Map<string, number>,
   emptyColor: string,
-): unknown[] {
+): unknown {
   const values = Array.from(dataByDept.values()).filter((v) =>
     Number.isFinite(v),
   );
   const max = values.length ? Math.max(...values) : 0;
+
+  // Guard : aucune donnée → couleur statique (expression constante valide).
+  if (dataByDept.size === 0 || max <= 0) return emptyColor;
 
   const expr: unknown[] = ["match", ["get", "code"]];
   for (const [code, v] of dataByDept) {
