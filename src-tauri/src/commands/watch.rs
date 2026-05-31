@@ -67,6 +67,12 @@ impl WatcherState {
     }
 }
 
+impl Default for WatcherState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // ── Fonction pure testable ────────────────────────────────────────────────────
 /// Démarre un watcher debouncé (1 s) sur les `paths` fournis.
 ///

@@ -68,6 +68,44 @@ fn watch_detects_modification_with_debounce() {
     );
 }
 
+/// Valide le cas RÉEL du publisher (PRD §7.1) : écriture atomique via
+/// rename-replace (`write tmp` puis `rename tmp -> target`). C'est le
+/// scénario que la stratégie watch-dossier-parent + filtre vise à couvrir :
+/// l'inode de `target` change au rename, mais comme on surveille le
+/// dossier parent, notify reporte bien le chemin cible.
+#[test]
+fn watch_detects_atomic_rename_replace() {
+    let dir = tempdir().expect("tempdir");
+    let target = dir.path().join("data.parquet");
+    let tmp = dir.path().join("data.parquet.tmp");
+
+    // Le fichier cible existe déjà (cas replace).
+    std::fs::write(&target, b"init").expect("init");
+
+    let (tx, rx) = mpsc::channel::<String>();
+    let _watcher = start_watch_impl(
+        vec![target.to_string_lossy().to_string()],
+        move |p| {
+            let _ = tx.send(p);
+        },
+    )
+    .expect("start_watch_impl");
+
+    std::thread::sleep(Duration::from_millis(100));
+
+    // Écriture atomique : on écrit dans un .tmp puis on le renomme par-dessus.
+    std::fs::write(&tmp, b"new content").expect("write tmp");
+    std::fs::rename(&tmp, &target).expect("rename");
+
+    let received = rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("doit détecter le rename-replace dans 5 s");
+    assert!(
+        received.contains("data.parquet"),
+        "le chemin reporté doit être la cible du rename, reçu : {received}"
+    );
+}
+
 /// Vérifie que le watcher N'émet PAS d'événement pour un fichier
 /// non surveillé dans le même dossier.
 #[test]
