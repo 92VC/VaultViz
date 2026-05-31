@@ -17,6 +17,7 @@
     "@tauri-apps/cli": "^2.1.0",
     "@types/d3-geo": "^3.1.0",
     "happy-dom": "^20.9.0",
+    "mapshaper": "^0.7.22",
     "typescript": "^5.6.3",
     "vite": "^5.4.10",
     "vitest": "^4.1.7"
@@ -30,6 +31,9 @@
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "apache-arrow": "^21.1.0",
-    "d3-geo": "^3.1.1"
+    "d3-geo": "^3.1.1",
+    "maplibre-gl": "^5.24.0",
+    "pdf-lib": "^1.17.1",
+    "pmtiles": "^4.4.1"
   }
 }
