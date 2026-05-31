@@ -540,7 +540,7 @@ Chaque story porte les champs :
 
 ### 3.4 V1-4 — Exports
 
-### B-130 — [ ] Décider stratégie export PDF (chrome.printing vs pdf-lib)
+### B-130 — [~] Décider stratégie export PDF (chrome.printing vs pdf-lib)
 
 - **Itération** : V1-4
 - **Livrable** : décision tracée dans `docs/adr/ADR-PDF.md`
