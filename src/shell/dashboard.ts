@@ -326,14 +326,30 @@ export async function mountDashboard(
       onSelect: switchTab,
     });
 
+    // Précalcul : sources utilisées par les vues de chaque onglet.
+    // Sert à ne monter les slicers tab que dans les onglets qui en ont besoin.
+    const tabViewSources = new Map<string, Set<string>>();
+    for (const v of chartViews) {
+      const declared = (v.options as Record<string, unknown> | undefined)?.["tab"];
+      const tabId =
+        typeof declared === "string" && new Set(tabs.map((t) => t.id)).has(declared)
+          ? declared
+          : tabs[0].id;
+      if (!tabViewSources.has(tabId)) tabViewSources.set(tabId, new Set());
+      tabViewSources.get(tabId)!.add(v.source);
+    }
+
     for (const t of tabs) {
       const panel = document.createElement("div");
       panel.className = "tab-panel";
       panel.dataset.tab = t.id;
-      // Slicers scope="tab" qui appartiennent explicitement à cet onglet
-      // (champ `tab` dans le slicer DSL — non encore standardisé) ou tous
-      // les tab-slicers (ils sont filtrés par isSlicerApplicable via currentTab).
-      const tabSlicers = slicers.filter((s) => s.scope === "tab");
+      // Slicers scope="tab" : ne monter que ceux dont la source est utilisée
+      // par au moins une vue de CET onglet — évite le bruit visuel dans les
+      // onglets qui n'ont pas de vues sur ces sources.
+      const sourcesInTab = tabViewSources.get(t.id) ?? new Set<string>();
+      const tabSlicers = slicers.filter(
+        (s) => s.scope === "tab" && sourcesInTab.has(s.source),
+      );
       if (tabSlicers.length > 0) {
         const tabSlicersBar = document.createElement("div");
         tabSlicersBar.className = "slicers-tab";
