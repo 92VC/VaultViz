@@ -45,7 +45,7 @@
 | V1 — V1-1 MapLibre | 2 | 1 | 0 | 1 | 0 |
 | V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-3 Watcher | 2 | 1 | 0 | 1 | 0 |
-| V1 — V1-4 Exports | 3 | 2 | 0 | 1 | 0 |
+| V1 — V1-4 Exports | 3 | 1 | 1 | 1 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 0 | 0 | 4 | 0 |
 | V1 — V1-E Capacités moteur (viz-engine) | 2 | 0 | 0 | 2 | 0 |
@@ -553,7 +553,7 @@ Chaque story porte les champs :
 - **Complexité** : M
 - **Notes** : risque R-5 (rendu PDF dégradé MapLibre WebGL) à valider ici.
 
-### B-131 — [ ] Export PDF A4 (exigence explicite UC-4)
+### B-131 — [~] Export PDF A4 (exigence explicite UC-4)
 
 - **Itération** : V1-4
 - **Livrable** : bouton « Exporter en PDF » génère un PDF A4 paysage de la vue active
