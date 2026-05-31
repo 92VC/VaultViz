@@ -2,8 +2,8 @@
 
 | Champ | Valeur |
 |---|---|
-| Statut | Accepté avec caveat (cf. R-8) |
-| Date | 2026-05-28 |
+| Statut | **Amendé 2026-05-30 — moteur HYBRIDE** (push-down DuckDB invariant ; rendu vgplot + maison) |
+| Date | 2026-05-28 (amendé 2026-05-30) |
 | Source | [PRD.md §6.3](../../PRD.md#63-décisions-architecturales-clés-adrs-synthétisés) |
 | Sponsor | DSI CPAM 92 + Data analyst lead |
 
@@ -16,6 +16,8 @@ Trois familles d'alternatives ont été évaluées : **Mosaic + vgplot** (UW IDL
 ## Décision
 
 Moteur de rendu = **Mosaic** (UW IDL) + grammaire haut-niveau **vgplot**.
+
+> **Amendement 2026-05-30 — principe retenu : moteur HYBRIDE.** Voir la section [« Principe retenu »](#principe-retenu--moteur-hybride-amendement-2026-05-30) en fin d'ADR. La décision d'origine (« tout Mosaic, repli Vega-Lite ») est conservée pour traçabilité mais **superséée** par le moteur hybride : push-down DuckDB invariant, rendu libre (vgplot là où il sert, rendu maison ailleurs).
 
 ## Conséquences
 
@@ -79,6 +81,48 @@ pas du vgplot JSON brut. Le DSL est compilé en directives vgplot par
   B-031). Sa V0 ne couvre que ce qui est démontré en Wave 3+ ;
   l'extension du DSL est versionnée par bumps mineurs de
   `vviz.version` après V1.
+
+## Principe retenu — moteur hybride (amendement 2026-05-30)
+
+À l'usage (Wave 3+, intégration design, cas DLI), la grammaire vgplot pure
+s'est révélée **insuffisante ou de qualité moindre** sur plusieurs vues :
+carte choroplèthe, camembert, courbes (line/area), KPI, barres classées et
+appariées. Plutôt que de dégrader la qualité de visualisation pour rester
+« 100 % Mosaic », ou de basculer entièrement sur Vega-Lite (repli R-8),
+le projet retient un **moteur hybride**.
+
+**Invariant unique (non négociable)** : **tout calcul est poussé dans DuckDB
+natif** (push-down SQL). Aucune agrégation/filtre/binning n'est exécuté côté
+JS. ADR-001 et ADR-003 restent strictement préservés. C'est ce qui définit
+H4, pas la part de JS de rendu.
+
+**Rendu libre** : le `type` d'une vue choisit son rendu :
+
+| Rendu | Vues | Module |
+|---|---|---|
+| **vgplot / Mosaic** | `bar`, `plot` | `components/bar-chart.ts`, `components/plot-view.ts`, `viz-engine/mosaic-runtime.ts` |
+| **maison (SVG d3-geo)** | `map_choropleth` | `components/map-view.ts` |
+| **maison (DOM/SVG TS)** | `pie`, `line`, `area`, `dot`, `kpi`, barres classées/appariées, `table` | `components/{pie,line,…}-chart.ts`, `table-view.ts` |
+
+Tous les rendus — y compris « maison » — obtiennent leurs données via
+`fetchKV`/`fetchKV2` (SQL exécuté par DuckDB natif), donc le push-down est
+identique quel que soit le moteur de dessin.
+
+**Coordination cross-vues** : assurée par `src/viz-engine/view-mounter.ts`
+(sélections VaultViz : `subscribeCrossFilter`, `createPointEmitter`,
+`injectWhere`), **pas exclusivement** par le coordinateur Mosaic. Le
+cross-filter par clic sur barre/secteur/département reste sub-seconde grâce
+au push-down.
+
+**Conséquences** :
+- Le **volume de JS de rendu n'est plus un critère** (l'ancien No-Go
+  « > 50 lignes JS métier » est retiré — cf. PRD §12.1 amendé). Le seul
+  critère No-Go côté moteur est : *push-down DuckDB non préservé*.
+- Le DSL `.vviz` reste stable : enrichir la liste des `type` de vues
+  n'invalide pas les `.vviz` existants. `engine` reste `"mosaic"` (label
+  historique ; le moteur réel est hybride).
+- Vega-Lite (R-8) reste une option de repli **théorique**, non activée :
+  le besoin de qualité est désormais couvert par le rendu maison.
 
 ## Références
 

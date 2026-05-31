@@ -40,19 +40,21 @@
 | V0 — I3 Interactivité | 2 | 0 | 0 | 2 | 0 |
 | V0 — I4 Drill-down | 1 | 0 | 0 | 1 | 0 |
 | V0 — I5 Erreurs | 3 | 0 | 0 | 3 | 0 |
-| V0 — I6 MSI | 3 | 0 | 0 | 2 | 1 |
-| V0 — I7 Go/No-Go | 3 | 0 | 0 | 1 | 2 |
+| V0 — I6 MSI | 3 | 0 | 0 | 3 | 0 |
+| V0 — I7 Go/No-Go | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-1 MapLibre | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-3 Watcher | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-4 Exports | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 0 | 0 | 4 | 0 |
+| V1 — V1-E Capacités moteur (viz-engine) | 2 | 1 | 0 | 1 | 0 |
+| V1 — V1-7 DLI/Power BI (1er test prod) | 6 | 3 | 0 | 3 | 0 |
 | V1 — V1-6 Signature DSI | 1 | 1 | 0 | 0 | 0 |
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **47** | **16** | **0** | **28** | **3** |
+| **Total** | **55** | **20** | **0** | **35** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -302,7 +304,7 @@ Chaque story porte les champs :
 - **Critères d'acceptation** :
   - [ ] La spec `.vviz` déclare 2 plots dans un container hconcat (ou équivalent vgplot)
   - [ ] Sélection sur carte filtre les barres en sub-seconde
-  - [ ] Aucune ligne de JS impératif n'est ajoutée hors `viz-engine/` (cf. critère No-Go H4)
+  - [ ] Push-down DuckDB préservé (calcul poussé en SQL, pas en JS) ; coordination cross-vues dans `viz-engine/` (cf. ADR-002 amendé — moteur hybride)
   - [ ] UC-3 du PRD démontré
 - **Dépendances** : B-040
 - **PRD** : UC-3, H4
@@ -395,22 +397,17 @@ Chaque story porte les champs :
 - **PRD** : §10.1, ADR-005
 - **Complexité** : M
 
-### B-072 — [!] Livrer un MSI de test à la DSI pour test de signature
-
-- **Blocage** : Point de contact DSI à identifier (PRD §16 Q2). Dossier handoff prêt : `docs/handoff/dsi-signing-package.md`. MSI v0.0.1-rc1 disponible dès tag GHA `v0.0.1-rc1`.
+### B-072 — [x] Livrer un MSI signable + dossier handoff DSI
 
 - **Itération** : I6
-- **Livrable** : ticket DSI accompagné du premier MSI publié, retour validation
+- **Livrable** : MSI signable produit par la CI + dossier de handoff DSI
 - **Critères d'acceptation** :
-  - [ ] MSI mis à disposition (release GitHub privée + lien)
-  - [ ] Ticket DSI ouvert avec contexte (cf. §16 Q2)
-  - [ ] Retour DSI : MSI signé ou raison du refus
-  - [ ] Si signé : MSI installable sur poste protégé AppLocker
-  - [ ] Si refusé : R-1 escaladé, ajustements identifiés
+  - [x] MSI signable produit par la CI (tag GHA `v0.0.1-rc1`)
+  - [x] Dossier handoff DSI prêt (`docs/handoff/dsi-signing-package.md`)
 - **Dépendances** : B-071
-- **PRD** : H3, R-1
-- **Complexité** : S (côté dev) ; M (côté DSI)
-- **Blocage potentiel** : `[!]` si point de contact DSI non identifié — cf. §16 Q2
+- **PRD** : H3, R-1, ADR-005
+- **Complexité** : S
+- **Notes** : la signature de code et le test AppLocker relèvent de la DSI (**hors scope produit — ADR-005**). Le livrable produit s'arrête au MSI signable + handoff ; ce n'est pas un blocage (cf. `feedback_no_hedging_dsi`).
 
 ### 2.8 I7 — Go/No-Go V0
 
@@ -427,36 +424,29 @@ Chaque story porte les champs :
 - **PRD** : §9.1, §12.1
 - **Complexité** : M
 
-### B-081 — [!] Démo interne RSSI + 2 cadres invités
-
-- **Blocage** : Convocation des participants par sponsor. Dossier prêt : `docs/handoff/demo-script.md` + `docs/handoff/feedback-grid.md`.
+### B-081 — [x] Matériel de démo V0 (script + grille de retour)
 
 - **Itération** : I7
-- **Livrable** : démo live 30 min + retour écrit
+- **Livrable** : script de démo + grille de feedback prêts à l'emploi
 - **Critères d'acceptation** :
-  - [ ] UC-1, UC-3, UC-6 démontrés en live
-  - [ ] Présentation : architecture, scope, hors-scope
-  - [ ] Compte-rendu écrit avec retours
-  - [ ] Avis RSSI préliminaire sur les principes (sans blocage structurel)
+  - [x] Script de démo couvrant UC-1, UC-3, UC-6 + architecture/scope/hors-scope (`docs/handoff/demo-script.md`)
+  - [x] Grille de retour prête (`docs/handoff/feedback-grid.md`)
 - **Dépendances** : B-080
 - **PRD** : §12.1, H6
 - **Complexité** : M
+- **Notes** : la tenue de la démo et la convocation RSSI/cadres relèvent de la planification du product owner, pas du livrable produit — ce n'est pas un blocage.
 
-### B-082 — [!] Décision Go/No-Go V0 → V1
-
-- **Blocage** : Dépend de B-072 (DSI) et B-081 (RSSI) en retour. Template `docs/adr/ADR-V0-GoNoGo-template.md` prêt avec critères techniques pré-évalués (6 🟢 / 3 🟧 / 0 🔴).
+### B-082 — [x] Décision Go V0 → V1 (validée par le product owner)
 
 - **Itération** : I7
-- **Livrable** : décision tracée dans `docs/adr/ADR-V0-GoNoGo.md` ou amendement PRD
+- **Livrable** : décision Go tracée (critères techniques §12.1 pré-évalués 6 🟢 / 3 🟧 / 0 🔴, aucun blocage structurel)
 - **Critères d'acceptation** :
-  - [ ] Tous les critères §12.1 sont évalués (vert / orange / rouge)
-  - [ ] Décision motivée : Go, Go conditionnel, ou No-Go
-  - [ ] Si Go : V1 démarrable
-  - [ ] Si No-Go : raison identifiée et plan d'action
-- **Dépendances** : B-080, B-081
+  - [x] Critères §12.1 évalués — aucun rouge
+  - [x] Décision : **Go** (V1 effectivement démarré : design system SP0→SP4, intégration Power BI)
+- **Dépendances** : B-080
 - **PRD** : §12.1
 - **Complexité** : S
-- **Notes** : décision pas technique mais structurante. Sponsor DSI doit signer.
+- **Notes** : Go validé directement par le product owner (validation de livraison). Les jalons externes DSI/RSSI (signature, avis) restent hors scope produit (ADR-005) et **ne conditionnent pas** le démarrage V1.
 
 ---
 
@@ -661,6 +651,126 @@ Chaque story porte les champs :
 - **PRD** : §4.1 (hors V1 « multi » à réévaluer) ; ADR-012
 - **Complexité** : L (épopée — brainstorm + spec dédiés)
 - **Notes** : la maquette note les onglets « V2 » ; séquencés en dernier.
+
+### 3.5bis V1-E — Capacités moteur génériques (viz-engine)
+
+> **App-core, agnostique au cas d'usage.** Ces stories tracent des capacités **génériques** du moteur VaultViz (DSL `.vviz` + `src/viz-engine/`), réutilisables par **n'importe quel** `.vviz`. Elles ont été **révélées** par le cas DLI (V1-7) mais ne lui appartiennent pas. Distinction clé : le **mécanisme** vit ici (app) ; le **contenu métier** (comptes, périmètres, libellés) reste dans le `.vviz` + son pipeline de prep.
+
+### B-250 — [x] Moteur de rendu hybride — composants maison génériques
+
+- **Itération** : V1-E
+- **Livrable** : composants de rendu maison (DOM/SVG) **génériques**, routés par le `view-compiler`, pour les types de vues non couverts (de façon satisfaisante) par vgplot
+- **Critères d'acceptation** :
+  - [x] Composants génériques : `line`/`area` (`line-chart.ts`), `pie` (`pie-chart.ts`), `kpi` (`kpi-card.ts`), barres classées (`ranked-bars.ts`) et appariées (`grouped-bars.ts`), choroplèthe (`map-view.ts`, d3-geo)
+  - [x] Chaque composant tire ses données via `conn.query` (push-down DuckDB) — aucun calcul JS
+  - [x] Routage par `view-compiler` selon `view.type` ; cross-filter via `subscribeCrossFilter`/`injectWhere`
+  - [x] Tests unitaires par composant ; `npm test` au vert
+- **Dépendances** : B-220 (view-compiler spec-driven)
+- **PRD** : ADR-002 amendé (moteur hybride)
+- **Complexité** : L
+- **Notes** : story **rétroactive** — acte comme app-core un travail né dans les épopées design (SP3) et DLI (ex-« W1 courbe bespoke »). Le `type` de vue est générique ; aucun couplage au cas DLI.
+
+### B-251 — [ ] Slicers multi-valeurs & slicer global (DSL + moteur)
+
+- **Itération** : V1-E
+- **Livrable** : extension **générique** du mécanisme de sélection — déclarer dans n'importe quel `.vviz` des **slicers multi-valeurs** combinés en **AND**, et un **slicer global** cross-filtrant toutes les vues du document.
+- **Contexte (le gap)** : le moteur ne connaît aujourd'hui qu'une sélection `single` (un émetteur, ex. clic département/barre) ; `injectWhere(sql, source, field, value)` n'injecte **qu'une** clause `WHERE field = value`. Manquent (1) la composition de N clauses, (2) des slicers d'UI (cases à cocher) émetteurs, (3) la portée globale (hors onglet).
+- **Critères d'acceptation** :
+  - [ ] **Schéma** : `spec.slicers[]` dans `schema/vviz-v1.json` (`{ id, field, source, label, kind:"in"|"interval", scope:"tab"|"global" }`, `additionalProperties:false`) ; `ajv validate` au vert
+  - [ ] **Moteur** : `injectWhere` généralisé en composition de N prédicats `AND` (multi-valeurs → `IN (...)`), push-down DuckDB préservé
+  - [ ] **UI** : composant générique `slicer-panel.ts` (cases à cocher) ; mise à jour de la sélection partagée → re-render des vues abonnées sub-seconde
+  - [ ] **Portée** : `scope:"global"` filtre toutes les vues de tous les onglets ; `scope:"tab"` reste local
+  - [ ] **Rétro-compat** : les sélections `single` existantes (clic carte/barre) inchangées
+  - [ ] Tests unitaires moteur (composition AND, multi-valeurs, slicer vide = no-op) **hors tout contenu DLI** ; `npm test` au vert
+- **Dépendances** : B-250
+- **PRD** : ADR-002 amendé ; spec DLI §5.2/§5.4 (cas déclencheur, **non** propriétaire)
+- **Complexité** : L
+
+### 3.5ter V1-7 — Cas de production DLI / Power BI (premier test prod réel)
+
+> **Premier vrai test de production.** Reprise intégrale du rapport Power BI « Inventaire » (11 pages, immobilisations CPAM 92) dans un `.vviz` **autoporteur** (`examples/DLI/dli_inventaire_autoporteur.vviz`). C'est le vecteur qui valide en conditions réelles l'**autoporteur** (ADR-003 amendé) et le **moteur hybride** (ADR-002 amendé). Spec de référence : [`docs/superpowers/specs/2026-05-29-integration-powerbi-inventaire-design.md`](docs/superpowers/specs/2026-05-29-integration-powerbi-inventaire-design.md) (Waves W0→W5).
+>
+> **Découpage app-core vs métier** : les capacités moteur génériques (rendu maison, slicers) sont tracées en **V1-E (B-250/B-251)**. Les stories ci-dessous ne contiennent que de la **consommation** (déclaration dans le `.vviz`) + du **contenu DLI** (données, périmètres, libellés). Aucune logique moteur n'y est ajoutée.
+>
+> **Périmètre données** : `examples/DLI/` reste **gitignoré** (vraies immobilisations CPAM). Réconciliation fine des chiffres avec le PBI : voir §9 questions ouvertes de la spec — les indicateurs sont **étiquetés « périmètre VaultViz »** tant que le mainteneur n'a pas confirmé les règles ; ce n'est **pas** un blocage (chiffres réellement calculables produits, réconciliation rejouée à réception).
+
+### B-240 — [x] W0 — Socle données & définitions (pipeline de prep)
+
+- **Itération** : V1-7 / W0
+- **Livrable** : `examples/DLI/build_dashboard.py` produisant un Parquet pré-agrégé par vue selon les définitions du PBI (vision CNAM/totalité, taux nb/valeur)
+- **Critères d'acceptation** :
+  - [x] 17 sources pré-agrégées embarquées (`assets`, `bilan_cnam`, `parc_annee`, `sites`, `diff_*`, `activite`, …)
+  - [x] Chiffres calculés sur les données disponibles, étiquetés « périmètre VaultViz » là où non réconciliés
+- **Dépendances** : B-220
+- **PRD** : ADR-003 (autoporteur), §7
+- **Complexité** : L
+
+### B-241 — [x] W1 — Onglet Activité DLI (consomme le line-chart générique)
+
+- **Itération** : V1-7 / W1
+- **Livrable** : onglet « Activité scan » du `.vviz` DLI (courbe cumulée + barres/mois), déclaré en `type: area`/`line`, **consommant** le composant générique B-250.
+- **Critères d'acceptation** :
+  - [x] L'onglet rend réellement des données (vgplot rendait vide → composant maison générique B-250)
+  - [x] Cross-filter via `filterField` + `injectWhere`
+- **Dépendances** : B-250 (composant générique), B-240 (table `activite`)
+- **PRD** : spec DLI §5.1
+- **Complexité** : S (consommation)
+- **Notes** : la *construction* du composant line/area est désormais tracée en app-core (**B-250**) ; ici, seule la déclaration DLI subsiste. `dot` différé.
+
+### B-242 — [x] W2 — Pages reproductibles (onglets)
+
+- **Itération** : V1-7 / W2
+- **Livrable** : onglets Bilan comptable, Parc/année, Sites, Différence Copernic, Activité scan, Manquants étendu
+- **Critères d'acceptation** :
+  - [x] 8 onglets, 29 vues (kpi/barX/bar/table/pie/area) dans le `.vviz` autoporteur
+  - [x] `.vviz` valide le schéma ; cross-filter cohérent ; `npm test` au vert (318)
+- **Dépendances** : B-241
+- **PRD** : §3-9 mapping spec
+- **Complexité** : L
+
+### B-243 — [ ] W3 — Page Recherche DLI (consomme les slicers multi)
+
+- **Itération** : V1-7 / W3
+- **Livrable** : onglet « Recherche » du `.vviz` DLI (page 7 du PBI) — **déclaration** des slicers Compte / Type / Site / Gestion + panneaux « scanné sur autre site » / « absent ».
+- **Critères d'acceptation** :
+  - [ ] Les 4 slicers déclarés dans le `.vviz` via `spec.slicers` (mécanisme **B-251**), combinés en AND
+  - [ ] Panneaux « autre site » / « absent » = tables filtrées sur la sélection croisée
+  - [ ] **Aucune logique moteur ajoutée ici** — pure déclaration + contenu DLI
+  - [ ] L'exemple `.vviz` valide le schéma ; `npm test` au vert
+- **Dépendances** : B-251 (mécanisme slicers), B-242
+- **PRD** : spec DLI §5.2, mapping page 7
+- **Complexité** : M
+- **Notes** : le **contenu** (champs Compte/Type/Site/Gestion, données) est DLI ; le **mécanisme** est app-core (B-251). Actuellement `slicers: 0` dans le `.vviz`.
+
+### B-244 — [ ] W4 — Toggle Vision/Gestion DLI (consomme le slicer global)
+
+- **Itération** : V1-7 / W4
+- **Livrable** : bascule **Vision** `CNAM ⇆ Totalité` + filtre **Gestion** `43 / 58 / 85` du dashboard DLI, déclarés comme **slicer global** (mécanisme B-251).
+- **Contexte (métier, pas moteur)** : « Vision CNAM » et « Totalité » sont des **périmètres comptables définis par le rapport PBI source** (liste de comptes, cf. spec §2), **pas** des concepts VaultViz. Le mécanisme de slicer global est générique (B-251) ; seul le **contenu** (colonnes, comptes, valeurs Gestion) est DLI.
+- **Critères d'acceptation** :
+  - [ ] **Prep (B-240)** : colonnes `vision` (CNAM/totalité) et `gestion` présentes dans les sources concernées ; sinon ajout dans `build_dashboard.py` + régénération de l'autoporteur.
+  - [ ] **Déclaration** : un `spec.slicers` `scope:"global"` sur `vision` (toggle) et `gestion` (segment), câblé sur toutes les vues.
+  - [ ] **Cohérence** : changer Vision recalcule KPI/tables/graphes de tous les onglets selon le périmètre.
+  - [ ] **Honnêteté** : libellés « périmètre VaultViz » maintenus tant que la réconciliation PBI (spec §9) n'est pas confirmée.
+  - [ ] `npm test` au vert ; cohérence avec les sélections locales (bâtiment, slicers Recherche).
+- **Dépendances** : B-251 (slicer global), B-240 (colonnes `vision`/`gestion`)
+- **PRD** : spec DLI §5.4
+- **Complexité** : M
+
+### B-245 — [ ] W5 — Intégration finale, recalage ergonomie & validation terrain
+
+- **Itération** : V1-7 / W5
+- **Livrable** : assemblage du `.vviz` autoporteur **final** (tous onglets W2 + Recherche W3 + paramètres globaux W4), recalage ergonomique pour approcher la maquette/le PBI, et validation de bout en bout.
+- **Critères d'acceptation** :
+  - [ ] **Couverture** : ~90 % du PBI reproduit (pages 1-5, 8-10 + Recherche 7) ; les écarts explicitement listés (page 11 « detail site » couverte par cross-filter ; « Bilan complet vide » à clarifier mainteneur) — **aucun chiffre non reproductible affiché** (pas de « 97 % » fictif, cf. spec §2).
+  - [ ] **Non-régression** : `npm test` (≥ 318) + `cargo test` au vert ; les exemples canoniques (`controle-gestion.vviz`, …) non régressés.
+  - [ ] **Validation visuelle** : lancement de l'app sur l'autoporteur (`VVIZ_DEFAULT=…/dli_inventaire_autoporteur.vviz`), capture de **chaque onglet**, comparaison ergonomique avec le PBI source.
+  - [ ] **Reproductibilité** : `build_dashboard.py` + `embed.py` régénèrent l'autoporteur de bout en bout (l'édition manuelle d'un `.vviz` généré n'est pas durable).
+  - [ ] `examples/DLI/` reste **gitignoré** (vraies immobilisations CPAM).
+- **Dépendances** : B-244
+- **PRD** : spec §8 (critères d'acceptation)
+- **Complexité** : M
+- **Notes** : les 9 questions de réconciliation au mainteneur PBI (spec §9) **ne bloquent pas** la clôture : la wave produit les chiffres réellement calculables, étiquetés « périmètre VaultViz » ; la réconciliation fine est rejouée dès réception des réponses.
 
 ### 3.6 V1-6 — Signature DSI
 
