@@ -483,7 +483,7 @@ Chaque story porte les champs :
 
 ### 3.2 V1-2 — TopoJSON IGN ADMIN EXPRESS COG
 
-### B-110 — [~] Pipeline conversion IGN ADMIN EXPRESS → TopoJSON simplifié
+### B-110 — [x] Pipeline conversion IGN ADMIN EXPRESS → TopoJSON simplifié
 
 - **Itération** : V1-2
 - **Livrable** : script `scripts/build-geo.sh` qui télécharge IGN, simplifie, convertit en TopoJSON
