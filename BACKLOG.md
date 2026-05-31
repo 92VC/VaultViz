@@ -42,7 +42,7 @@
 | V0 — I5 Erreurs | 3 | 0 | 0 | 3 | 0 |
 | V0 — I6 MSI | 3 | 0 | 0 | 3 | 0 |
 | V0 — I7 Go/No-Go | 3 | 0 | 0 | 3 | 0 |
-| V1 — V1-1 MapLibre | 2 | 2 | 0 | 0 | 0 |
+| V1 — V1-1 MapLibre | 2 | 1 | 0 | 1 | 0 |
 | V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-3 Watcher | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-4 Exports | 3 | 3 | 0 | 0 | 0 |
@@ -54,7 +54,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **55** | **19** | **0** | **36** | **0** |
+| **Total** | **55** | **18** | **0** | **37** | **0** |
 
 ### 0.4 Conventions champs
 
@@ -454,7 +454,7 @@ Chaque story porte les champs :
 
 ### 3.1 V1-1 — MapLibre + PMTiles
 
-### B-100 — [~] Intégrer MapLibre GL JS
+### B-100 — [x] Intégrer MapLibre GL JS
 
 - **Itération** : V1-1
 - **Livrable** : carte MapLibre interactive (zoom, pan) en remplacement du rendu carto I2

@@ -11,8 +11,6 @@ import type { StyleSpecification } from "maplibre-gl";
 
 /** Options de création de la carte de fond. */
 export interface BaseMapOptions {
-  /** Conteneur DOM dans lequel injecter la carte (doit être non vide côté MapLibre). */
-  container?: HTMLElement;
   /** Longitude/Latitude du centre. Défaut : [2.5, 46.5] (France). */
   center?: [number, number];
   /** Niveau de zoom initial. Défaut : 5. */
