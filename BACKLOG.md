@@ -44,7 +44,7 @@
 | V0 — I7 Go/No-Go | 3 | 0 | 0 | 3 | 0 |
 | V1 — V1-1 MapLibre | 2 | 1 | 0 | 1 | 0 |
 | V1 — V1-2 TopoJSON IGN | 2 | 2 | 0 | 0 | 0 |
-| V1 — V1-3 Watcher | 2 | 1 | 0 | 1 | 0 |
+| V1 — V1-3 Watcher | 2 | 0 | 0 | 2 | 0 |
 | V1 — V1-4 Exports | 3 | 1 | 1 | 1 | 0 |
 | V1 — V1-5 Design SP0 (refondation) | 1 | 0 | 0 | 1 | 0 |
 | V1 — V1-5 Design SP1–SP4 (épopées) | 4 | 0 | 0 | 4 | 0 |
@@ -54,7 +54,7 @@
 | V1 — V1-8 Doc | 3 | 3 | 0 | 0 | 0 |
 | V1 — V1-9 Pilote MECM | 2 | 2 | 0 | 0 | 0 |
 | V1 — V1-10 Go/No-Go | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **55** | **16** | **0** | **39** | **0** |
+| **Total** | **55** | **14** | **1** | **40** | **0** |
 
 ### 0.4 Conventions champs
 
